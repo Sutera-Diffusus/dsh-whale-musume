@@ -1102,7 +1102,7 @@
 
     memory.state = computed;
     memory.lastLine = computed.line;
-    root.__dshWhaleMoeDebug = { state: computed.state, pose: computed.pose, line: computed.line, view: view, mode: readMode(), layout: layout.kind, failed: memory.failed, errorMatches: memory.lastErrorMatches, errorActive: memory.lastErrorActive, lastEventState: memory.lastEventState, stateHoldUntil: memory.stateHoldUntil, holdLeft: Math.max(0, memory.stateHoldUntil - Date.now()), moodPose: memory.moodPose, moodUntil: memory.moodUntil, toolWasActive: memory.toolWasActive, lastSuccessAt: memory.lastSuccessAt, toolGoneAt: memory.toolGoneAt, toolSeenAt: memory.toolSeenAt, at: Date.now(), idleChat: { nextAt: idleChat.nextAt, lastGreetAt: idleChat.lastGreetAt, lastGreetBucket: idleChat.lastGreetBucket }, weather: weatherSummary() };
+    root.__dshWhaleMoeDebug = { state: computed.state, pose: computed.pose, line: computed.line, view: view, mode: readMode(), layout: layout.kind, failed: memory.failed, errorMatches: memory.lastErrorMatches, errorActive: memory.lastErrorActive, lastEventState: memory.lastEventState, stateHoldUntil: memory.stateHoldUntil, holdLeft: Math.max(0, memory.stateHoldUntil - Date.now()), moodPose: memory.moodPose, moodUntil: memory.moodUntil, moodAnimate: memory.moodAnimate, toolWasActive: memory.toolWasActive, lastSuccessAt: memory.lastSuccessAt, toolGoneAt: memory.toolGoneAt, toolSeenAt: memory.toolSeenAt, at: Date.now(), idleChat: { nextAt: idleChat.nextAt, lastGreetAt: idleChat.lastGreetAt, lastGreetBucket: idleChat.lastGreetBucket }, weather: weatherSummary() };
   }
 
   /* 待机 base 稳定为 idle-cute；情绪动作只由随机低频的 showMood 覆盖。
@@ -1619,7 +1619,7 @@
           var low = root.localStorage.getItem("dsh.balance.low") === "1";
           if (low && !BUSY_STATES[memory.state.state] && now - lastBalanceLowAt > 60000) {
             lastBalanceLowAt = now;
-            showMood("balance-low", 5000);
+            showMood("balance-low", 5000, true);
           }
         } catch (e) { /* ignore */ }
         schedule();
@@ -1627,7 +1627,7 @@
     }
     root.addEventListener("dsh-whale-balance-low", function () {
       lastBalanceLowAt = Date.now();
-      if (!BUSY_STATES[memory.state.state]) showMood("balance-low", 5000);
+      if (!BUSY_STATES[memory.state.state]) showMood("balance-low", 5000, true);
       if (growth && growth.achievements.indexOf("balance-low") === -1) {
         growth.achievements.push("balance-low");
         saveGrowth();
