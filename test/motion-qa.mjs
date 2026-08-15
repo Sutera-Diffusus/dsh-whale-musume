@@ -31,6 +31,11 @@ async function ev(call, expression) {
   if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description || r.exceptionDetails.text);
   return r.result.value;
 }
+async function waitUntil(call, expression, ms = 20000, step = 200) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) { if (await ev(call, expression).catch(() => false)) return true; await delay(step); }
+  return false;
+}
 async function shot(call, name) {
   const r = await call("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
   fs.writeFileSync(path.join(SHOTS, name), Buffer.from(r.data, "base64"));
@@ -55,6 +60,11 @@ async function main() {
   }
   await ev(call, `localStorage.setItem('whale-moe:pet','1'); localStorage.setItem('whale-moe:mode','float'); localStorage.setItem('whale-moe:keywords','0'); window.dispatchEvent(new CustomEvent('whale-moe-prefs-change',{detail:{key:'mode',value:'float'}})); true`);
   await delay(800);
+  // The test copy may carry a real work signal from previous runs.
+  // Start every phase from a truly calm mascot, with the gone-hold fully expired.
+  const calm0 = await waitUntil(call, `window.__dshWhaleMoeDebug?.state === 'idle'`, 20000, 200);
+  if (!calm0) throw new Error("never reached idle before mood test");
+  await delay(4500);
   await shot(call, "qa-0-idle.png");
 
   // ---- pose swap: instant single-layer swap, no stacked images ----
@@ -71,19 +81,19 @@ async function main() {
   })()`);
   const stackedFrames = overlapFrames.filter(([x, y]) => x >= 0.5 && y >= 0.5).length;
   const blankFrames = overlapFrames.filter(([x, y]) => x < 0.15 && y < 0.15).length;
+  const swappedOnce = overlapFrames.some(([x, y]) => x < 0.5 && y >= 0.5);
+  check("switch: mood actually swaps layers", swappedOnce, { swappedOnce, first: overlapFrames.slice(0, 8) });
   check("switch: no stacked pose images", stackedFrames <= 1, { stackedFrames, first: overlapFrames.slice(0, 8) });
   check("switch: never fully blank", blankFrames === 0, blankFrames);
   await shot(call, "qa-1-switch-mid.png");
 
   // ---- float busy vs idle: pose + glow marker ----
+  const calm1 = await waitUntil(call, `window.__dshWhaleMoeDebug?.state === 'idle'`, 10000, 200);
+  if (!calm1) throw new Error("never returned to idle before busy test");
+  await delay(1200);
   await ev(call, `(() => { const n=document.createElement('div'); n.setAttribute('data-dsh-qa-fake','true'); n.setAttribute('data-running',''); n.style.cssText='position:fixed;left:320px;top:160px;width:300px;height:60px;z-index:99999;pointer-events:none;'; document.body.appendChild(n); return true; })()`);
-  let sawTool = false;
-  for (let i = 0; i < 40; i++) { if (await ev(call, `window.__dshWhaleMoeDebug?.state === 'tool'`).catch(() => false)) { sawTool = true; break; } await delay(50); }
-  if (!sawTool) throw new Error("never reached tool state");
-  for (let i = 0; i < 40; i++) {
-    if (await ev(call, `(document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || '').includes('dsh-whale-state-running.webp')`).catch(() => false)) break;
-    await delay(100);
-  }
+  const settled = await waitUntil(call, `window.__dshWhaleMoeDebug?.state === 'tool' && (document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || '').includes('dsh-whale-state-running.webp') && Date.now() - (window.__dshWhaleMoeDebug?.at || 0) < 500`, 5000, 50);
+  if (!settled) throw new Error("tool state + running pose never settled");
   await delay(250);
   const busyDiag = await ev(call, `({ state: window.__dshWhaleMoeDebug?.state, src: document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src'), busy: document.querySelector('[data-dsh-whale-root]')?.hasAttribute('data-dsh-whale-busy'), debug: window.__dshWhaleMoeDebug })`);
   check("float: busy pose + glow while running", busyDiag.state === "tool" && busyDiag.src.includes("dsh-whale-state-running.webp") && busyDiag.busy === true, busyDiag);

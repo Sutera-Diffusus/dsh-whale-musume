@@ -79,7 +79,6 @@
   function computeState(prev, signals, now, rng) {
     var p = base(prev);
     var t = typeof now === "number" && Number.isFinite(now) ? now : 0;
-    var r = typeof rng === "function" ? rng() : 1;
     var s = signals && typeof signals === "object" ? signals : {};
     var lastInteraction = typeof s.lastInteraction === "number" ? s.lastInteraction : t;
 
@@ -95,7 +94,6 @@
     else if (Number.isFinite(s.curiousAt) && s.curiousAt >= 0 && t - s.curiousAt >= 0 && t - s.curiousAt <= CURIOUS_WINDOW_MS) state = "curious";
     else if (s.waiting) state = "waiting";
     else if (t - lastInteraction >= AFK_MS) state = "afk";
-    else if (r < TEASE_CHANCE) state = "teasing";
     else state = "idle";
 
     var changed = state !== p.state;

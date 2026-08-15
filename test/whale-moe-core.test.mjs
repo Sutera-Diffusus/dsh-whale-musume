@@ -53,11 +53,11 @@ test("speech gap: same state re-speaks only after 6s", () => {
   assert.equal(again.streak, 1);
 });
 
-test("teasing fires deterministically when rng is below the chance", () => {
-  const teased = core.computeState(null, freshSignals(), T0, () => 0.001);
-  assert.equal(teased.state, "teasing");
-  const notTeased = core.computeState(null, freshSignals(), T0, () => 0.5);
-  assert.equal(notTeased.state, "idle");
+test("idle stays idle no matter the rng (no teasing flicker)", () => {
+  const low = core.computeState(null, freshSignals(), T0, () => 0.001);
+  assert.equal(low.state, "idle");
+  const high = core.computeState(null, freshSignals(), T0, () => 0.5);
+  assert.equal(high.state, "idle");
 });
 
 test("waiting beats idle but not thinking", () => {

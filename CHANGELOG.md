@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.0.2 (2026-08-15)
+
+- 布局层同样拦截情绪姿势：忙时 `statePose()` 不再让任何 mood 覆盖 running（v1.0.1 只拦了渲染层，仍有漏网路径）
+- 移除随机 `teasing` 状态闪烁：待机在任何随机数下都稳定保持 `idle-cute`
+- 工作释放路径固定为 running → success → idle，不发生回弹或中间空帧
+- 新增 `soak-work` 60s 压测：6s 信号空洞 ×5、24 轮快速闪烁、忙时强塞情绪、释放与待机稳定性，全程帧采样
+- motion QA 增加「mood 必须真正完成换层」与「开始前必须回到 calm」的前置断言
+- 调试面板新增 `toolWasActive / lastSuccessAt / toolGoneAt / toolSeenAt` 字段
+
 ## v1.0.1 (2026-08-15)
 
 - 修复工作态反复「抽搐」：换图动画被打断时不再误清新动画的防重入标记

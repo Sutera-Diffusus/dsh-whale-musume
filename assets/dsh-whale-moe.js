@@ -1099,14 +1099,17 @@
 
     memory.state = computed;
     memory.lastLine = computed.line;
-    root.__dshWhaleMoeDebug = { state: computed.state, pose: computed.pose, line: computed.line, view: view, mode: readMode(), layout: layout.kind, failed: memory.failed, errorMatches: memory.lastErrorMatches, errorActive: memory.lastErrorActive, lastEventState: memory.lastEventState, stateHoldUntil: memory.stateHoldUntil, holdLeft: Math.max(0, memory.stateHoldUntil - Date.now()), moodPose: memory.moodPose, moodUntil: memory.moodUntil };
+    root.__dshWhaleMoeDebug = { state: computed.state, pose: computed.pose, line: computed.line, view: view, mode: readMode(), layout: layout.kind, failed: memory.failed, errorMatches: memory.lastErrorMatches, errorActive: memory.lastErrorActive, lastEventState: memory.lastEventState, stateHoldUntil: memory.stateHoldUntil, holdLeft: Math.max(0, memory.stateHoldUntil - Date.now()), moodPose: memory.moodPose, moodUntil: memory.moodUntil, toolWasActive: memory.toolWasActive, lastSuccessAt: memory.lastSuccessAt, toolGoneAt: memory.toolGoneAt, toolSeenAt: memory.toolSeenAt, at: Date.now() };
   }
 
   /* 待机 base 稳定为 idle-cute；情绪动作只由随机低频的 showMood 覆盖。
      拖拽中显示“被拎起来”并交给 CSS 左右摇摆。 */
   function statePose(computed, view) {
     if (dragState && dragState.moved) return "pick-up";
-    if (memory.moodUntil > Date.now() && memory.moodPose) return memory.moodPose;
+    /* 忙时情绪让位：running 优先，仅点击互动专用的两个姿势可覆盖 */
+    var busy = BUSY_STATES[computed.state] === 1;
+    var moodOk = !busy || memory.moodPose === "work-pat" || memory.moodPose === "work-ram";
+    if (memory.moodUntil > Date.now() && memory.moodPose && moodOk) return memory.moodPose;
     if (computed.state === "idle") return "idle-cute";
     return computed.pose;
   }
