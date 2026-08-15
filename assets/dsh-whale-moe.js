@@ -1,0 +1,1359 @@
+/* dsh-whale-moe v3 — mascot-only presenter (no theme pack dependency).
+   Rules: own nodes only, no business-DOM mutation, no text reading,
+   one MutationObserver (120ms debounce), no ambient rAF.
+   Activation: always on; toggled off via its own gear menu
+   (localStorage "whale-moe:pet" = "0"). */
+(function (root) {
+  "use strict";
+  if (!root || !root.document) return;
+
+  var core = root.DshWhaleMoeCore;
+  var doc = root.document;
+  var VIEW_ATTR = "data-dsh-whale-view";
+  var ASSET_ROOT = "/assets/generated/";
+  var POSE_VERSION = "?v=3";
+  var DEBOUNCE_MS = 120;
+  var PARTICLE_MAX = 30;
+  var HEART_CHARS = ["♥", "✿", "☆", "♪"];
+
+  var PREFS = [
+    { key: "pet", label: "看板娘" },
+    { key: "chat", label: "台词气泡" },
+    { key: "particles", label: "粒子效果" }
+  ];
+
+  var VIEW_SELECTORS = Object.freeze({
+    settings: '[role="dialog"], [data-slot="settings.header"]',
+    workbench: '[data-slot="conversation.chat.node"], [data-phase="session"]'
+  });
+
+  /* Structural signal banks: presence-only detection, never reads text.
+     data-running / data-state="ongoing" are the real DSH terminal/turn
+     indicators (from the web-frontend bundle). data-state="running" is NOT
+     a live DSH state — historical step cards keep it forever and would pin
+     the mascot as permanently busy. The data-status variants stay only for
+     test fixtures and older builds. */
+  var SIGNAL_BANKS = Object.freeze({
+    thinking: ['[aria-busy="true"]', '[data-status="pending"]', '[data-state="loading"]', '[data-slot="conversation.chat.node"] [class*="stream" i]'],
+    tool: ['[data-role="tool"]', '[data-tool="true"]', '[data-tool-card="true"]', '[data-status="running"]', '[data-running]', '[data-state="ongoing"]'],
+    error: ['[data-state="error"]:not([class*="turnErrorDot"])', '[data-status="error"]', '[aria-invalid="true"]'],
+    success: ['[data-state="success"]', '[data-status="success"]'],
+    code: ['pre', '[data-slot="terminal"]', '[data-role="log"]', '[data-terminal]'],
+    chat: ['[data-slot="conversation.chat.node"]']
+  });
+
+  function readPref(key) {
+    try { return root.localStorage.getItem("whale-moe:" + key) !== "0"; } catch (e) { return true; }
+  }
+  function writePref(key, value) {
+    try { root.localStorage.setItem("whale-moe:" + key, value ? "1" : "0"); } catch (e) { /* storage unavailable */ }
+  }
+
+  var MODES = Object.freeze({ auto: 1, bar: 1, side: 1, float: 1, mini: 1 });
+  function readMode() {
+    try {
+      var value = root.localStorage.getItem("whale-moe:mode");
+      if (value === null) return "float";
+      return MODES[value] ? value : "float";
+    } catch (e) { return "float"; }
+  }
+  function readFloatPos() {
+    try {
+      var rawX = root.localStorage.getItem("whale-moe:floatX");
+      var rawY = root.localStorage.getItem("whale-moe:floatY");
+      if (rawX === null || rawY === null) return null;
+      var x = Number(rawX);
+      var y = Number(rawY);
+      if (Number.isFinite(x) && Number.isFinite(y)) return { x: x, y: y };
+    } catch (e) { /* ignore */ }
+    return null;
+  }
+  function writeFloatPos(x, y) {
+    try {
+      root.localStorage.setItem("whale-moe:floatX", String(Math.round(x)));
+      root.localStorage.setItem("whale-moe:floatY", String(Math.round(y)));
+    } catch (e) { /* storage unavailable */ }
+  }
+
+  function isVisible(node) {
+    if (!node) return false;
+    if (typeof node.getBoundingClientRect !== "function") return true;
+    var rect = node.getBoundingClientRect();
+    if (rect.width <= 1 && rect.height <= 1) return false;
+    if (node.ownerDocument && node.ownerDocument.defaultView && typeof node.ownerDocument.defaultView.getComputedStyle === "function") {
+      var style = node.ownerDocument.defaultView.getComputedStyle(node);
+      if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return false;
+    }
+    return true;
+  }
+
+  function firstVisible(selector) {
+    var nodes = doc.querySelectorAll(selector);
+    for (var i = 0; i < nodes.length; i += 1) if (isVisible(nodes[i])) return nodes[i];
+    return null;
+  }
+  function anyVisible(selectors) {
+    for (var i = 0; i < selectors.length; i += 1) if (firstVisible(selectors[i])) return true;
+    return false;
+  }
+  function countVisible(selectors) {
+    var seen = new Set();
+    for (var i = 0; i < selectors.length; i += 1) {
+      var nodes = doc.querySelectorAll(selectors[i]);
+      for (var j = 0; j < nodes.length; j += 1) if (isVisible(nodes[j])) seen.add(nodes[j]);
+    }
+    return seen.size;
+  }
+
+  function detectView() {
+    if (firstVisible(VIEW_SELECTORS.settings)) return "settings";
+    if (firstVisible(VIEW_SELECTORS.workbench)) return "workbench";
+    return "home";
+  }
+
+  function findComposerSurface() {
+    var card = firstVisible('[data-composer-card="true"]');
+    if (card) return card;
+    var textarea = firstVisible('[data-slot="conversation.composer.bar"] textarea');
+    return textarea && textarea.closest ? textarea.closest("form, [class]") : null;
+  }
+
+  /* ---------- own layers ---------- */
+
+  function removeRoot() {
+    var nodes = doc.querySelectorAll("[data-dsh-whale-root]");
+    for (var i = 0; i < nodes.length; i += 1) nodes[i].remove();
+    var particles = doc.querySelectorAll("[data-dsh-whale-particle]");
+    for (var p = 0; p < particles.length; p += 1) particles[p].remove();
+  }
+
+  function createToggleButton(label, key) {
+    var btn = doc.createElement("button");
+    btn.type = "button";
+    btn.setAttribute("data-dsh-whale-toggle", key);
+    btn.setAttribute("aria-pressed", String(readPref(key)));
+    btn.textContent = label + (readPref(key) ? "：开" : "：关");
+    btn.addEventListener("click", function (event) {
+      event.stopPropagation();
+      var next = !readPref(key);
+      writePref(key, next);
+      btn.setAttribute("aria-pressed", String(next));
+      btn.textContent = label + (next ? "：开" : "：关");
+      reconcile();
+    });
+    return btn;
+  }
+
+  var layerState = { active: "a", loaded: { a: "", b: "" }, gen: 0, pendingSwap: "" };
+
+  function setPose(src, animate, soft) {
+    var rootNode = doc.querySelector("[data-dsh-whale-root]");
+    if (!rootNode) return;
+    if (src && src.indexOf("?") === -1) src += POSE_VERSION;
+    var nextName = layerState.active === "a" ? "b" : "a";
+    var current = rootNode.querySelector('[data-dsh-whale-layer="' + layerState.active + '"]');
+    var next = rootNode.querySelector('[data-dsh-whale-layer="' + nextName + '"]');
+    if (!current || !next) return;
+
+    /* A previous blink/transition can leave an inline opacity that would pin
+       an inactive layer visible under the new pose — always clear it. */
+    current.style.opacity = "";
+    next.style.opacity = "";
+
+    if (layerState.loaded[layerState.active] === src) return;
+
+    /* Motion-hide swap (industry sprite/VTuber style): old pose squashes down
+       quickly, the image is swapped at the heaviest motion point, then the new
+       pose pops back with overshoot. No opacity crossfade, and the two layers
+       are never active at the same time.
+       soft=false → click/reaction poses switch instantly (no transition). */
+    function swap() {
+      var motionNode = rootNode.querySelector("[data-dsh-whale-motion]");
+      function applyLayers() {
+        next.classList.add("dsh-whale-active");
+        current.classList.remove("dsh-whale-active");
+        layerState.active = nextName;
+        layerState.pendingSwap = "";
+      }
+      if (!soft || motionReduced() || !motionNode || typeof motionNode.animate !== "function") {
+        applyLayers();
+        return;
+      }
+      var swapGen = layerState.gen;
+      layerState.pendingSwap = src;
+      var hide = motionNode.animate(
+        [
+          { transform: "translateY(0) scale(1)" },
+          { transform: "translateY(12px) scale(0.86, 0.92)" }
+        ],
+        { duration: 140, easing: "cubic-bezier(0.55, 0, 1, 0.45)" }
+      );
+      hide.onfinish = function () {
+        hide.onfinish = null;
+        if (swapGen !== layerState.gen) { layerState.pendingSwap = ""; return; } /* superseded by a newer pose */
+        applyLayers();
+        motionNode.animate(
+          [
+            { transform: "translateY(18px) scale(0.88, 0.94)" },
+            { transform: "translateY(0) scale(1)" }
+          ],
+          { duration: 480, easing: "cubic-bezier(0.22, 1, 0.36, 1)" }
+        );
+      };
+    }
+
+    if (!animate || layerState.loaded[layerState.active] === "") {
+      layerState.gen += 1;
+      layerState.pendingSwap = "";
+      current.setAttribute("src", src);
+      current.classList.add("dsh-whale-active");
+      next.classList.remove("dsh-whale-active");
+      layerState.loaded[layerState.active] = src;
+      return;
+    }
+    if (layerState.loaded[nextName] === src) {
+      if (layerState.pendingSwap === src) return; /* already animating this swap */
+      layerState.gen += 1;
+      swap();
+      return;
+    }
+    next.setAttribute("src", src);
+    layerState.loaded[nextName] = src;
+    layerState.gen += 1;
+    var gen = layerState.gen;
+    next.addEventListener("load", function handler() {
+      next.removeEventListener("load", handler);
+      if (gen !== layerState.gen) return; /* superseded by a newer pose */
+      if (layerState.pendingSwap === src) return;
+      swap();
+    }, { once: true });
+  }
+
+  function burst(symbol) {
+    var rootNode = doc.querySelector("[data-dsh-whale-root]");
+    if (!rootNode || motionReduced()) return;
+    var node = doc.createElement("span");
+    node.setAttribute("data-dsh-whale-burst", "true");
+    node.textContent = symbol;
+    rootNode.appendChild(node);
+    node.addEventListener("animationend", function () { node.remove(); }, { once: true });
+    root.setTimeout(function () { node.remove(); }, 1000);
+  }
+
+  function emojiBurst(symbols) {
+    var rootNode = doc.querySelector("[data-dsh-whale-root]");
+    if (!rootNode || motionReduced() || !symbols || !symbols.length) return;
+    for (var i = 0; i < symbols.length; i += 1) {
+      var node = doc.createElement("span");
+      node.setAttribute("data-dsh-whale-burst", "true");
+      node.className = "dsh-emoji-fly";
+      node.textContent = symbols[i];
+      var side = i % 2 === 0 ? -1 : 1;
+      node.style.setProperty("--wm-dx", String(side * (14 + (i % 3) * 12)) + "px");
+      node.style.setProperty("--wm-dy", String(-34 - (i % 3) * 16) + "px");
+      node.style.setProperty("--wm-rot", String(side * (8 + i * 7)) + "deg");
+      node.style.animationDelay = (i * 55) + "ms";
+      rootNode.appendChild(node);
+      node.addEventListener("animationend", function () { node.remove(); }, { once: true });
+      root.setTimeout(function () { node.remove(); }, 1200 + i * 60);
+    }
+  }
+
+  var typingTimer = null;
+  var nextTimer = null;
+  function typeBubble(textNode, line) {
+    if (typingTimer) root.clearTimeout(typingTimer);
+    memory.currentTypingLine = line;
+    if (motionReduced()) {
+      textNode.textContent = line;
+      memory.currentTypingLine = "";
+      typingTimer = null;
+      return;
+    }
+    textNode.textContent = "";
+    var caret = doc.createElement("span");
+    caret.setAttribute("data-dsh-whale-caret", "true");
+    caret.textContent = "▍";
+    textNode.appendChild(caret);
+    var index = 0;
+    (function tick() {
+      if (index >= line.length) {
+        caret.remove();
+        typingTimer = null;
+        memory.currentTypingLine = "";
+        return;
+      }
+      var ch = line.charAt(index);
+      textNode.insertBefore(doc.createTextNode(ch), caret);
+      index += 1;
+      var delay = 64;
+      if ("，。！？～…".indexOf(ch) !== -1) delay = 260;
+      else if (ch === " ") delay = 90;
+      else if (index % 5 === 0) delay = 130;
+      typingTimer = root.setTimeout(tick, delay);
+    })();
+  }
+
+  function ensureRoot() {
+    var rootNode = doc.querySelector("[data-dsh-whale-root]");
+    if (rootNode) return rootNode;
+    rootNode = doc.createElement("div");
+    rootNode.setAttribute("data-dsh-whale-root", "true");
+
+    var frame = doc.createElement("div");
+    frame.setAttribute("data-dsh-whale-frame", "true");
+    frame.setAttribute("data-dsh-whale-mascot", "true");
+    frame.setAttribute("aria-hidden", "true");
+
+    var motion = doc.createElement("div");
+    motion.setAttribute("data-dsh-whale-motion", "true");
+
+    var layerA = doc.createElement("img");
+    layerA.alt = "";
+    layerA.draggable = false;
+    layerA.setAttribute("data-dsh-whale-layer", "a");
+    layerA.addEventListener("error", function () { layerA.style.display = "none"; });
+    layerA.addEventListener("load", function () { layerA.style.display = ""; });
+    var layerB = doc.createElement("img");
+    layerB.alt = "";
+    layerB.draggable = false;
+    layerB.setAttribute("data-dsh-whale-layer", "b");
+    layerB.addEventListener("error", function () { layerB.style.display = "none"; });
+    layerB.addEventListener("load", function () { layerB.style.display = ""; });
+    motion.appendChild(layerA);
+    motion.appendChild(layerB);
+    frame.appendChild(motion);
+
+    var bubble = doc.createElement("div");
+    bubble.setAttribute("data-dsh-whale-bubble", "true");
+    bubble.hidden = true;
+    var text = doc.createElement("span");
+    text.setAttribute("data-dsh-whale-bubble-text", "true");
+    var gear = doc.createElement("button");
+    gear.type = "button";
+    gear.setAttribute("data-dsh-whale-gear", "true");
+    gear.setAttribute("aria-label", "鲸鱼娘偏好");
+    gear.textContent = "⚙";
+    gear.addEventListener("click", function (event) {
+      event.stopPropagation();
+      toggleMenu();
+    });
+    bubble.appendChild(text);
+    bubble.appendChild(gear);
+
+    var gearMini = doc.createElement("button");
+    gearMini.type = "button";
+    gearMini.setAttribute("data-dsh-whale-gear-mini", "true");
+    gearMini.setAttribute("aria-label", "鲸鱼娘偏好");
+    gearMini.textContent = "⚙";
+    gearMini.addEventListener("click", function (event) {
+      event.stopPropagation();
+      toggleMenu();
+    });
+
+    var menu = doc.createElement("div");
+    menu.setAttribute("data-dsh-whale-prefs", "true");
+    menu.hidden = true;
+    for (var i = 0; i < PREFS.length; i += 1) menu.appendChild(createToggleButton(PREFS[i].label, PREFS[i].key));
+
+    rootNode.appendChild(frame);
+    rootNode.appendChild(bubble);
+    rootNode.appendChild(gearMini);
+    rootNode.appendChild(menu);
+    doc.body.appendChild(rootNode);
+
+    rootNode.addEventListener("click", function (event) { event.stopPropagation(); });
+    var suppressClick = false;
+    frame.addEventListener("click", function (event) {
+      event.stopPropagation();
+      if (suppressClick) { suppressClick = false; return; }
+      var m = rootNode.querySelector("[data-dsh-whale-motion]");
+      if (m && !motionReduced()) {
+        m.classList.remove("dsh-whale-react");
+        void m.offsetWidth;
+        m.classList.add("dsh-whale-react");
+        root.setTimeout(function () { m.classList.remove("dsh-whale-react"); }, 650);
+      }
+      patMascot();
+    });
+    frame.addEventListener("pointerdown", function (event) {
+      pressStartedAt = Date.now();
+      if (readMode() === "float" && event.button === 0) startDrag(event, rootNode);
+    });
+    frame.addEventListener("contextmenu", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      showContextMenu(event.clientX, event.clientY);
+    });
+    rootNode.__dshWhaleMoeSuppressClick = function () { suppressClick = true; };
+    return rootNode;
+  }
+
+  var dragState = null;
+  function startDrag(event, rootNode) {
+    event.preventDefault();
+    dragState = {
+      node: rootNode,
+      dx: event.clientX - rootNode.getBoundingClientRect().left,
+      dy: event.clientY - rootNode.getBoundingClientRect().top,
+      moved: false,
+      startX: event.clientX,
+      startY: event.clientY,
+      lastX: event.clientX,
+      lastY: event.clientY
+    };
+    root.addEventListener("pointermove", onDrag, true);
+    root.addEventListener("pointerup", endDrag, true);
+    root.addEventListener("pointercancel", endDrag, true);
+  }
+  function onDrag(event) {
+    if (!dragState) return;
+    var node = dragState.node;
+    var width = node.getBoundingClientRect().width;
+    var height = node.getBoundingClientRect().height;
+    var left = event.clientX - dragState.dx;
+    var top = event.clientY - dragState.dy;
+    if (!dragState.moved && (Math.abs(event.clientX - dragState.startX) > 4 || Math.abs(event.clientY - dragState.startY) > 4)) {
+      dragState.moved = true;
+      node.classList.add("dsh-whale-dragging");
+      schedule();
+    }
+    node.style.left = Math.round(clamp(left, 8, root.innerWidth - width - 8)) + "px";
+    node.style.top = Math.round(clamp(top, 8, root.innerHeight - height - 8)) + "px";
+    if (dragState.moved) {
+      /* 摇摆跟随光标水平速度，而不是自动动画 */
+      var motionNode = node.querySelector("[data-dsh-whale-motion]");
+      if (motionNode) {
+        var vx = event.clientX - dragState.lastX;
+        var angle = clamp(vx * 1.1, -16, 16);
+        motionNode.style.setProperty("--wm-drag-angle", angle.toFixed(1) + "deg");
+      }
+    }
+    dragState.lastX = event.clientX;
+    dragState.lastY = event.clientY;
+  }
+  function endDrag() {
+    root.removeEventListener("pointermove", onDrag, true);
+    root.removeEventListener("pointerup", endDrag, true);
+    root.removeEventListener("pointercancel", endDrag, true);
+    if (dragState && dragState.node) {
+      dragState.node.classList.remove("dsh-whale-dragging");
+    }
+    if (dragState && dragState.moved && dragState.node) {
+      writeFloatPos(parseFloat(dragState.node.style.left), parseFloat(dragState.node.style.top));
+      var node = dragState.node;
+      if (node.__dshWhaleMoeSuppressClick) node.__dshWhaleMoeSuppressClick();
+    }
+    dragState = null;
+    schedule();
+  }
+
+  function toggleMenu() {
+    var menu = doc.querySelector("[data-dsh-whale-prefs]");
+    if (menu) menu.hidden = !menu.hidden;
+  }
+
+  function showContextMenu(x, y) {
+    var old = doc.querySelector("[data-dsh-whale-context]");
+    if (old) old.remove();
+    var menu = doc.createElement("div");
+    menu.setAttribute("data-dsh-whale-context", "true");
+    var items = [
+      { label: "投喂小点心", action: function () { var out = applyGrowth({ type: "feed" }, Date.now(), 0); burst("🍰"); showMood("eat", 3000); var line = say("interact", "feed"); if (line) showLine(line); if (out.unlocks.length) announceUnlocks(out.unlocks); } },
+      { label: "戳一下", action: function () { applyGrowth({ type: "poke" }, Date.now(), 0); burst("💢"); showMood("angry", 3000); var line = say("interact", "poke"); if (line) showLine(line); } },
+      { label: "夸夸 DS娘", action: function () { applyGrowth({ type: "praise" }, Date.now(), 0); burst("✨"); showMood("star", 3000); var line = say("interact", "praise"); if (line) showLine(line); } },
+      { label: "回到原位", action: function () { try { root.localStorage.removeItem("whale-moe:floatX"); root.localStorage.removeItem("whale-moe:floatY"); } catch (e) { /* ignore */ } reconcile(); } },
+      { label: "打开看板娘设置", action: function () { var b = [...doc.querySelectorAll("button")].find(function (n) { return (n.textContent || "").trim() === "设置"; }); if (b) b.click(); } },
+      { label: "关闭菜单", action: function () { menu.remove(); } }
+    ];
+    for (var i = 0; i < items.length; i += 1) {
+      (function (item) {
+        var btn = doc.createElement("button");
+        btn.type = "button";
+        btn.textContent = item.label;
+        btn.addEventListener("click", function (event) { event.stopPropagation(); item.action(); menu.remove(); });
+        menu.appendChild(btn);
+      })(items[i]);
+    }
+    doc.body.appendChild(menu);
+    menu.style.left = Math.min(x, root.innerWidth - 180) + "px";
+    menu.style.top = Math.min(y, root.innerHeight - 160) + "px";
+    doc.addEventListener("pointerdown", function closer(event) {
+      if (!menu.contains(event.target)) { menu.remove(); doc.removeEventListener("pointerdown", closer, true); }
+    }, true);
+  }
+
+  /* ---------- interactions ---------- */
+
+  var patHistory = [];
+  var celebrateUntil = 0;
+  var pressStartedAt = 0;
+  var moodTimer = null;
+  var lastTripleAt = 0;
+  var lastPatProcessedAt = 0;
+  var lastPatSpeechAt = 0;
+  var lastWorkSlackAt = 0;
+  var lastBalanceLowAt = 0;
+  var IDLE_ACTION_POOL = ["daily-eat", "daily-coffee", "daily-stretch", "daily-pajama", "daily-shower", "cool-shades", "meme-smug"];
+  var BUSY_ACTION_POOL = ["work-slack", "work-idea", "work-deadline", "work-boss", "work-slack-phone", "work-sleep"];
+  function showMood(kind, duration) {
+    var rootNode = doc.querySelector("[data-dsh-whale-root]");
+    if (!rootNode) return;
+    memory.moodPose = kind;
+    memory.moodUntil = Date.now() + (duration || 3000);
+    schedule();
+    if (moodTimer) { root.clearTimeout(moodTimer); moodTimer = null; }
+    moodTimer = root.setTimeout(function () {
+      moodTimer = null;
+      memory.moodPose = "";
+      memory.moodUntil = 0;
+      schedule();
+    }, duration || 3000);
+  }
+
+  function fxAt(x, y, kind) {
+    if (motionReduced() || !readPref("particles")) return;
+    var span = doc.createElement("span");
+    span.setAttribute("data-dsh-whale-fx", "true");
+    span.className = kind;
+    span.style.left = Math.round(x) + "px";
+    span.style.top = Math.round(y) + "px";
+    doc.body.appendChild(span);
+    span.addEventListener("animationend", function () { span.remove(); }, { once: true });
+    root.setTimeout(function () { span.remove(); }, 1300);
+  }
+
+  function patMascot() {
+    var now = Date.now();
+    if (now < celebrateUntil) return;
+    patHistory = patHistory.filter(function (t) { return now - t < 2000; });
+    patHistory.push(now);
+    if (patHistory.length >= 3 && now - lastTripleAt >= 2600) {
+      patHistory = [];
+      lastTripleAt = now;
+      lastPatProcessedAt = now;
+      celebrateUntil = now + 2200;
+      memory.celebrationVisible = false;
+      spawnParticles(12, now);
+      showMood("star", 2200);
+      var trip = applyGrowth({ type: "triple" }, now, 0);
+      if (trip.unlocks.length) announceUnlocks(trip.unlocks);
+      var node = doc.querySelector("[data-dsh-whale-root]");
+      if (node && !motionReduced()) {
+        var motionNode = node.querySelector("[data-dsh-whale-motion]");
+        if (motionNode) {
+          motionNode.classList.add("dsh-whale-spin");
+          root.setTimeout(function () { motionNode.classList.remove("dsh-whale-spin"); }, 850);
+        }
+      }
+    } else {
+      /* rapid-fire clicks: keep pose/particle feedback but skip growth and
+         speech churn so the bubble never stutters 诶嘿诶嘿 repeatedly */
+      var rapid = now - lastPatProcessedAt < 450;
+      lastPatProcessedAt = now;
+      var busyNow = BUSY_STATES[memory.state.state] === 1;
+      showMood(busyNow ? (Math.random() < 0.5 ? "work-pat" : "work-ram") : "blush", busyNow ? 2400 : 2600);
+      emojiBurst(busyNow ? ["💻", "💦", "✨"] : ["💖", "✨", "⭐"]);
+      if (rapid) { reconcile(); return; }
+      var pat = applyGrowth({ type: "pat" }, now, patHistory.length);
+      if (now - lastPatSpeechAt >= 2500) {
+        lastPatSpeechAt = now;
+        var patLine = say("interact", "pat");
+        if (patLine) showLine(patLine);
+      }
+      if (pat.unlocks.length) announceUnlocks(pat.unlocks);
+    }
+    reconcile();
+  }
+
+  function showLineNow(line) {
+    var rootNode = ensureRoot();
+    var bubble = rootNode.querySelector("[data-dsh-whale-bubble]");
+    var text = rootNode.querySelector("[data-dsh-whale-bubble-text]");
+    if (!bubble || !text) return;
+    var wasHidden = bubble.hidden;
+    bubble.classList.remove("dsh-whale-out");
+    if (memory.bubbleOutTimer) { root.clearTimeout(memory.bubbleOutTimer); memory.bubbleOutTimer = null; }
+    typeBubble(text, localizeLine(line));
+    bubble.hidden = false;
+    memory.bubbleHideAt = Date.now() + 4500;
+    if (wasHidden) bubble.classList.add("dsh-whale-pop");
+  }
+
+  function scheduleNext() {
+    if (nextTimer) root.clearTimeout(nextTimer);
+    nextTimer = root.setTimeout(function () {
+      nextTimer = null;
+      var next = memory.pendingLine;
+      memory.pendingLine = "";
+      if (next) showLineNow(next);
+    }, 160);
+  }
+
+  function showLine(line) {
+    var rootNode = ensureRoot();
+    var bubble = rootNode.querySelector("[data-dsh-whale-bubble]");
+    var text = rootNode.querySelector("[data-dsh-whale-bubble-text]");
+    if (!bubble || !text) return;
+    /* single-slot queue: never restart the typewriter or stack timers */
+    if (!bubble.hidden && (typingTimer || nextTimer)) {
+      if (typingTimer) {
+        root.clearTimeout(typingTimer);
+        typingTimer = null;
+        text.textContent = memory.currentTypingLine;
+        memory.currentTypingLine = "";
+      }
+      memory.pendingLine = line;
+      scheduleNext();
+      return;
+    }
+    memory.pendingLine = "";
+    showLineNow(line);
+  }
+
+  function announceUnlocks(ids) {
+    var label = core.ACHIEVEMENTS.filter(function (a) { return ids.indexOf(a.id) !== -1; }).map(function (a) { return a.name; }).join("、");
+    if (!label) return;
+    burst("🏅");
+    showLine("成就达成：" + label + "！");
+  }
+
+  function spawnParticles(count, now) {
+    if (!readPref("particles") || motionReduced()) return;
+    var current = doc.querySelectorAll("[data-dsh-whale-particle]").length;
+    count = Math.max(0, Math.min(count, PARTICLE_MAX - current));
+    var kinds = ["dot", "spark", "heart"];
+    for (var i = 0; i < count; i += 1) {
+      var span = doc.createElement("span");
+      span.setAttribute("data-dsh-whale-particle", "true");
+      span.className = "dsh-particle-" + kinds[(now + i) % kinds.length];
+      var rootNode = ensureRoot();
+      var rect = rootNode.getBoundingClientRect();
+      var drift = Math.round((Math.random() - 0.5) * 30);
+      span.style.left = Math.round(rect.left + rect.width / 2 + drift) + "px";
+      span.style.top = Math.round(rect.top + rect.height * 0.35) + "px";
+      span.style.setProperty("--wm-drift", drift + "px");
+      doc.body.appendChild(span);
+      span.addEventListener("animationend", function () { span.remove(); }, { once: true });
+      root.setTimeout(function () { span.remove(); }, 1100);
+    }
+  }
+
+  function motionReduced() {
+    try { return root.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; }
+  }
+
+  /* ---------- state plumbing ---------- */
+
+  var growth = null;
+  var dialogueCounters = { daily: {}, work: {}, interact: {}, keyword: {} };
+  var keywordScanTimer = null;
+  var lastChatCount = 0;
+  var lastCodeCount = 0;
+
+  function loadGrowth() {
+    try {
+      var since = root.localStorage.getItem("whale-moe:companionSince");
+      if (since === null) {
+        since = String(Date.now());
+        try { root.localStorage.setItem("whale-moe:companionSince", since); } catch (e) { /* ignore */ }
+      }
+      growth = {
+        mood: Number(root.localStorage.getItem("whale-moe:mood")) || core.DEFAULT_GROWTH.mood,
+        affinity: Number(root.localStorage.getItem("whale-moe:affinity")) || 0,
+        satiety: Number(root.localStorage.getItem("whale-moe:satiety")) || core.DEFAULT_GROWTH.satiety,
+        lastSignin: root.localStorage.getItem("whale-moe:lastSignin") || "",
+        signinStreak: Number(root.localStorage.getItem("whale-moe:signinStreak")) || 0,
+        achievements: (root.localStorage.getItem("whale-moe:achievements") || "").split(",").filter(Boolean),
+        level: Number(root.localStorage.getItem("whale-moe:level")) || 1,
+        companionSince: Number(since) || Date.now()
+      };
+    } catch (e) { growth = Object.assign({}, core.DEFAULT_GROWTH, { companionSince: Date.now() }); }
+  }
+  function saveGrowth() {
+    try {
+      root.localStorage.setItem("whale-moe:mood", String(Math.round(growth.mood)));
+      root.localStorage.setItem("whale-moe:affinity", String(Math.round(growth.affinity)));
+      root.localStorage.setItem("whale-moe:satiety", String(Math.round(growth.satiety)));
+      root.localStorage.setItem("whale-moe:lastSignin", growth.lastSignin);
+      root.localStorage.setItem("whale-moe:signinStreak", String(growth.signinStreak));
+      root.localStorage.setItem("whale-moe:achievements", growth.achievements.join(","));
+      root.localStorage.setItem("whale-moe:level", String(growth.level));
+      if (growth.companionSince) root.localStorage.setItem("whale-moe:companionSince", String(growth.companionSince));
+    } catch (e) { /* storage unavailable */ }
+  }
+  function syncCompanionAchievements(now) {
+    if (!growth || !growth.companionSince) return;
+    var days = Math.max(0, Math.floor((now - growth.companionSince) / 86400000));
+    var tiers = [{ id: "day1", days: 1 }, { id: "day7", days: 7 }, { id: "day30", days: 30 }];
+    var unlocks = tiers.filter(function (tier) { return days >= tier.days && growth.achievements.indexOf(tier.id) === -1; }).map(function (tier) { return tier.id; });
+    if (unlocks.length) {
+      growth.achievements = growth.achievements.concat(unlocks);
+      saveGrowth();
+      announceUnlocks(unlocks);
+    }
+  }
+
+  var usageStats = null;
+  var USAGE_TIERS = Object.freeze({
+    "first-tool": { key: "tools", min: 1 },
+    "tools-10": { key: "tools", min: 10 },
+    "tools-50": { key: "tools", min: 50 },
+    "tools-100": { key: "tools", min: 100 },
+    "first-code": { key: "code", min: 1 },
+    "code-20": { key: "code", min: 20 },
+    "first-success": { key: "successes", min: 1 },
+    "success-10": { key: "successes", min: 10 },
+    "first-failure": { key: "failures", min: 1 },
+    "fail-10": { key: "failures", min: 10 },
+    "messages-100": { key: "messages", min: 100 },
+    "messages-500": { key: "messages", min: 500 },
+    "keyword-master": { key: "keywords", min: 10 }
+  });
+  function loadUsageStats() {
+    try {
+      usageStats = JSON.parse(root.localStorage.getItem("whale-moe:usageStats") || "null") || { tools: 0, code: 0, successes: 0, failures: 0, messages: 0, keywords: 0 };
+    } catch (e) { usageStats = { tools: 0, code: 0, successes: 0, failures: 0, messages: 0, keywords: 0 }; }
+  }
+  function saveUsageStats() {
+    try { root.localStorage.setItem("whale-moe:usageStats", JSON.stringify(usageStats)); } catch (e) { /* ignore */ }
+  }
+  function addUsageStat(key, amount) {
+    if (!usageStats) loadUsageStats();
+    usageStats[key] = (usageStats[key] || 0) + amount;
+    saveUsageStats();
+    var unlocks = [];
+    for (var id in USAGE_TIERS) {
+      var tier = USAGE_TIERS[id];
+      if (usageStats[tier.key] >= tier.min && (!growth || growth.achievements.indexOf(id) === -1)) unlocks.push(id);
+    }
+    if (unlocks.length) {
+      if (growth) growth.achievements = growth.achievements.concat(unlocks);
+      saveGrowth();
+      announceUnlocks(unlocks);
+    }
+  }
+  function applyGrowth(event, now, pats) {
+    var out = core.computeGrowth(growth, event, now, pats);
+    growth = out.growth;
+    saveGrowth();
+    return out;
+  }
+  function say(bank, event) {
+    if (!readPref("chat")) return "";
+    dialogueCounters[bank][event] = (dialogueCounters[bank][event] || 0) + 1;
+    return core.pickDialogue(bank, event, dialogueCounters[bank][event], Math.random);
+  }
+  function keywordsEnabled() {
+    try { return root.localStorage.getItem("whale-moe:keywords") === "1"; } catch (e) { return false; }
+  }
+  function title() {
+    try { var t = root.localStorage.getItem("whale-moe:title"); return t && t.trim() ? t.trim() : "主人"; } catch (e) { return "主人"; }
+  }
+  function localizeLine(line) {
+    return String(line).split("主人").join(title());
+  }
+  function isNight(now) {
+    var h = new Date(now || Date.now()).getHours();
+    var nightOn = true;
+    try { nightOn = root.localStorage.getItem("whale-moe:night") !== "0"; } catch (e) { /* default on */ }
+    return nightOn && (h >= 22 || h < 6);
+  }
+
+  var STATE_HOLD_MS = Object.freeze({ success: 3000, failure: 3500, curious: 2500, tool: 1200, thinking: 1200 });
+  var STATE_CHIP = Object.freeze({ thinking: "思考中", tool: "工作中", success: "完成", failure: "出错", curious: "好奇" });
+  var BUSY_STATES = Object.freeze({ thinking: 1, tool: 1, success: 1, failure: 1 });
+
+  function holdSignals(signals, now) {
+    if (!signals.error && !signals.tool && !signals.thinking && now < memory.stateHoldUntil) {
+      if (memory.lastEventState === "failure") signals.error = true;
+      else if (memory.lastEventState === "success") signals.successAt = now;
+      else if (memory.lastEventState === "curious") signals.curiousAt = now;
+    }
+    return signals;
+  }
+
+  function blinkOnce() {
+    var rootNode = doc.querySelector("[data-dsh-whale-root]");
+    if (!rootNode || motionReduced() || memory.state.state !== "idle") return;
+    var layer = rootNode.querySelector("[data-dsh-whale-layer].dsh-whale-active");
+    if (!layer) return;
+    layer.style.transition = "opacity 120ms ease";
+    layer.style.opacity = "0.94";
+    root.setTimeout(function () { layer.style.opacity = ""; }, 140);
+    root.setTimeout(function () { layer.style.transition = ""; }, 400);
+  }
+  root.DshWhaleMoeBlink = blinkOnce;
+  root.DshWhaleMoeMood = showMood;
+
+  function showChip(label, persist) {
+    var rootNode = doc.querySelector("[data-dsh-whale-root]");
+    if (!rootNode || motionReduced()) return;
+    var old = rootNode.querySelector("[data-dsh-whale-chip]");
+    if (old) old.remove();
+    var chip = doc.createElement("span");
+    chip.setAttribute("data-dsh-whale-chip", "true");
+    chip.textContent = label;
+    rootNode.appendChild(chip);
+    if (!persist) root.setTimeout(function () { chip.remove(); }, 2200);
+  }
+
+  var memory = {
+    view: "home",
+    viewChangedAt: -Infinity,
+    lastInteractionAt: Date.now(),
+    toolWasActive: false,
+    lastSuccessAt: -Infinity,
+    state: { state: "idle", lastSpeechAt: -Infinity },
+    idleTick: 0,
+    idlePoseIndex: 0,
+    idlePoseFor: 9000,
+    lastIdlePoseAt: 0,
+    nextIdleMicroAt: 0,
+    nextIdleActionAt: 0,
+    nextBusyActionAt: 0,
+    failureStreak: 0,
+    lastGrowthTick: 0,
+    stateHoldUntil: 0,
+    lastEventState: "",
+    moodPose: "",
+    moodUntil: 0,
+    celebrationVisible: false,
+    currentTypingLine: "",
+    pendingLine: "",
+    bubbleOutTimer: null,
+    lastPoseSrc: "",
+    lastLine: "",
+    bubbleHideAt: 0,
+    errorSeen: [],
+    failed: false
+  };
+
+  function errorVisible() {
+    memory.lastErrorMatches = [];
+    var seen = memory.errorSeen || (memory.errorSeen = []);
+    for (var i = 0; i < SIGNAL_BANKS.error.length; i += 1) {
+      var nodes = doc.querySelectorAll(SIGNAL_BANKS.error[i]);
+      for (var j = 0; j < nodes.length; j += 1) {
+        var n = nodes[j];
+        /* Historical DSH log clusters carry data-state="error" for a failed
+           step that already finished; they are records, not live failures. */
+        if (typeof n.closest === "function" && n.closest('[class*="dshLogCluster"]')) continue;
+        if (!isVisible(n)) continue;
+        var meaningful = n.getAttribute("role") === "alert"
+          || n.getAttribute("aria-invalid") === "true"
+          || (n.textContent || "").trim().length > 0;
+        if (!meaningful) continue;
+        /* History cards for old turns sit inside conversation chat nodes.
+           Seed them on first pass and only treat *newly created* error nodes
+           as live failures, so an old failed step can never pin the mascot
+           in the failure pose forever. */
+        var known = seen.indexOf(n) !== -1;
+        if (!known) {
+          seen.push(n);
+          if (seen.length > 400) seen.shift();
+          if (seen.length <= 400 && (n.closest ? n.closest('[data-slot="conversation.chat.node"]') : null)) continue;
+        } else {
+          continue;
+        }
+        memory.lastErrorMatches.push({
+          sel: SIGNAL_BANKS.error[i],
+          tag: n.tagName,
+          cls: String(n.className).slice(0, 120),
+          txt: (n.textContent || "").trim().slice(0, 80),
+          role: n.getAttribute("role"),
+          ariaInvalid: n.getAttribute("aria-invalid")
+        });
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function collectSignals() {
+    var now = Date.now();
+    var view = detectView();
+    var toolActive = anyVisible(SIGNAL_BANKS.tool);
+    var errorActive = errorVisible();
+    if (view === "workbench" && memory.toolWasActive && !toolActive && !errorActive) memory.lastSuccessAt = now;
+    memory.toolWasActive = toolActive;
+    var dense = countVisible(SIGNAL_BANKS.code) >= 3;
+    /* Workbench uses exactly two moods: busy (tool/thinking/success/failure)
+       vs calm (idle rotation). The old "waiting" sweat pose no longer fires. */
+    return {
+      view: view,
+      waiting: false,
+      thinking: anyVisible(SIGNAL_BANKS.thinking),
+      tool: toolActive,
+      successAt: anyVisible(SIGNAL_BANKS.success) ? now : memory.lastSuccessAt,
+      error: errorActive,
+      curiousAt: memory.viewChangedAt,
+      lastInteraction: memory.lastInteractionAt,
+      denseCode: dense
+    };
+  }
+
+  function render(computed) {
+    if (!readPref("pet") || !computed || computed.state === "hidden") {
+      removeRoot();
+      if (doc.body) doc.body.removeAttribute(VIEW_ATTR);
+      root.__dshWhaleMoeDebug = { state: "hidden", pose: null, line: "", view: memory.view };
+      return;
+    }
+    var rootNode = ensureRoot();
+    var frame = rootNode.querySelector("[data-dsh-whale-frame]");
+    var bubble = rootNode.querySelector("[data-dsh-whale-bubble]");
+    var bubbleText = rootNode.querySelector("[data-dsh-whale-bubble-text]");
+    var view = memory.view;
+
+    /* layout routing */
+    var layout = resolveLayout(view, computed);
+    var moodActive = memory.moodUntil > Date.now() && !!memory.moodPose;
+    if (!layout || layout.hidden) {
+      rootNode.style.display = "none";
+    } else {
+      if (moodActive) {
+        layout.src = ASSET_ROOT + "dsh-whale-state-" + memory.moodPose + ".webp";
+      }
+      if (layout.anchor) placeAnchored(rootNode, layout);
+      else placeAt(rootNode, layout.x, layout.y, layout.w, layout.h);
+      rootNode.style.width = layout.w + "px";
+      rootNode.style.height = layout.h + "px";
+      frame.style.width = layout.w + "px";
+      frame.style.height = layout.h + "px";
+      frame.style.cursor = layout.kind === "float" ? "grab" : "pointer";
+      rootNode.setAttribute("data-dsh-whale-mode", layout.kind);
+      if (layout.kind === "mini" || computed.mode === "mini") rootNode.setAttribute("data-dsh-whale-dense", "true");
+      else rootNode.removeAttribute("data-dsh-whale-dense");
+      /* 忙闲视觉：工作中持续亮状态签 + 光晕，空闲立即撤掉 */
+      if (BUSY_STATES[computed.state] === 1) {
+        rootNode.setAttribute("data-dsh-whale-busy", "true");
+        var chipNow = rootNode.querySelector("[data-dsh-whale-chip]");
+        if (!chipNow || chipNow.textContent !== STATE_CHIP[computed.state]) showChip(STATE_CHIP[computed.state], true);
+      } else {
+        rootNode.removeAttribute("data-dsh-whale-busy");
+        var idleChip = rootNode.querySelector("[data-dsh-whale-chip]");
+        if (idleChip) idleChip.remove();
+      }
+    }
+    if (!layout.hidden) setPose(layout.src, true, !moodActive);
+
+    /* celebration override: 3 quick pats — type once, then keep the finished
+       bubble stable so repeated renders/reconciles can never re-jump it */
+    if (Date.now() < celebrateUntil && view !== "settings" && readPref("chat")) {
+      var celebLine = localizeLine("诶嘿～最喜欢主人啦！");
+      if (!memory.celebrationVisible) {
+        memory.celebrationVisible = true;
+        memory.lastLine = celebLine;
+        typeBubble(bubbleText, celebLine);
+        bubble.hidden = false;
+        memory.bubbleHideAt = Date.now() + 4500;
+        bubble.classList.remove("dsh-whale-pop");
+        void bubble.offsetWidth;
+        bubble.classList.add("dsh-whale-pop");
+      }
+      return;
+    }
+    if (memory.celebrationVisible) memory.celebrationVisible = false;
+
+    /* speech: only meaningful workbench events speak */
+    var eventStates = { failure: 1, success: 1, tool: 1, thinking: 1, curious: 1 };
+    if (computed.speak && readPref("chat") && view === "workbench" && eventStates[computed.state] && !typingTimer) {
+      typeBubble(bubbleText, computed.line);
+      bubble.hidden = false;
+      memory.bubbleHideAt = Date.now() + 4500;
+      if (!motionReduced() && computed.line !== memory.lastLine) {
+        bubble.classList.remove("dsh-whale-pop");
+        void bubble.offsetWidth;
+        bubble.classList.add("dsh-whale-pop");
+      }
+    } else {
+      /* keep the current manual line until its expiry; never force-hide here,
+         otherwise showLine() lines flicker for a single frame */
+    }
+    if (!bubble.hidden && Date.now() > memory.bubbleHideAt && !typingTimer && !nextTimer) {
+      if (!memory.bubbleOutTimer) {
+        bubble.classList.add("dsh-whale-out");
+        memory.bubbleOutTimer = root.setTimeout(function () {
+          memory.bubbleOutTimer = null;
+          bubble.hidden = true;
+          bubble.classList.remove("dsh-whale-out");
+        }, 200);
+      }
+    }
+
+    /* error shake + success sparkle + ADV attention burst + growth/dialogue, only on state change */
+    if (computed.state !== memory.state.state) {
+      if (STATE_HOLD_MS[computed.state]) {
+        memory.lastEventState = computed.state;
+        memory.stateHoldUntil = Date.now() + STATE_HOLD_MS[computed.state];
+      }
+      if (STATE_CHIP[computed.state]) showChip(STATE_CHIP[computed.state], BUSY_STATES[computed.state] === 1);
+      if (computed.state === "failure") {
+        memory.failureStreak += 1;
+        addUsageStat("failures", 1);
+        applyGrowth({ type: "failure" }, Date.now(), 0);
+        burst("！");
+        if (view === "workbench") {
+          var fLine = say("work", memory.failureStreak >= 3 ? "gentle" : "failure");
+          if (fLine) showLine(fLine);
+        }
+        if (!motionReduced()) {
+          rootNode.classList.remove("dsh-whale-shake");
+          void rootNode.offsetWidth;
+          rootNode.classList.add("dsh-whale-shake");
+          rootNode.addEventListener("animationend", function handler() { rootNode.classList.remove("dsh-whale-shake"); rootNode.removeEventListener("animationend", handler); });
+        }
+      }
+      if (computed.state === "success") {
+        memory.failureStreak = 0;
+        addUsageStat("successes", 1);
+        applyGrowth({ type: "success" }, Date.now(), 0);
+        burst("★");
+        spawnParticles(12, Date.now());
+        if (view === "workbench") {
+          var sLine = say("work", "success");
+          if (sLine) showLine(sLine);
+        }
+      }
+      if (computed.state === "tool" || computed.state === "thinking") {
+        addUsageStat("tools", 1);
+        if (isNight(Date.now()) && growth && growth.achievements.indexOf("night-work") === -1) {
+          growth.achievements.push("night-work");
+          saveGrowth();
+          announceUnlocks(["night-work"]);
+        }
+        burst("…");
+        if (view === "workbench") {
+          var tLine = say("work", computed.state === "tool" ? "tool" : "thinking");
+          if (tLine) showLine(tLine);
+        }
+      }
+    }
+
+    memory.state = computed;
+    memory.lastLine = computed.line;
+    root.__dshWhaleMoeDebug = { state: computed.state, pose: computed.pose, line: computed.line, view: view, mode: readMode(), layout: layout.kind, failed: memory.failed, errorMatches: memory.lastErrorMatches, lastEventState: memory.lastEventState, stateHoldUntil: memory.stateHoldUntil, holdLeft: Math.max(0, memory.stateHoldUntil - Date.now()) };
+  }
+
+  /* 待机 base 稳定为 idle-cute；情绪动作只由随机低频的 showMood 覆盖。
+     拖拽中显示“被拎起来”并交给 CSS 左右摇摆。 */
+  function statePose(computed, view) {
+    if (dragState && dragState.moved) return "pick-up";
+    if (memory.moodUntil > Date.now() && memory.moodPose) return memory.moodPose;
+    if (computed.state === "idle") return "idle-cute";
+    return computed.pose;
+  }
+
+  function peekSize(id, fallbackW, fallbackH) {
+    var cal = root.__dshWhalePeekCalibration || {};
+    var c = cal[id];
+    if (!c || !c.bboxW || !c.bboxH || !c.w) return { w: fallbackW, h: fallbackH };
+    var w = Math.round(fallbackH * (c.bboxW / c.bboxH));
+    if (w < 24) w = 24;
+    return { w: w, h: fallbackH, padLeftRatio: c.padLeft / c.w };
+  }
+
+  function resolveLayout(view, computed) {
+    var vw = root.innerWidth;
+    var vh = root.innerHeight;
+    if (view === "settings") return { hidden: true, src: "", kind: "peek", w: 0, h: 0 };
+    var mode = readMode();
+    var effective = mode === "auto" ? (view === "home" ? "bar" : "side") : mode;
+    var dense = computed.mode === "mini";
+
+    if (effective === "bar") {
+      var composer = findComposerSurface();
+      if (!composer || !isVisible(composer)) return { hidden: true, src: "", kind: "bar", w: 0, h: 0 };
+      var crect = composer.getBoundingClientRect();
+      var barSize = dense ? { w: 56, h: 56 } : peekSize("home-peek", 128, 104);
+      return {
+        hidden: false, kind: "bar", anchor: composer,
+        w: barSize.w, h: barSize.h,
+        src: ASSET_ROOT + "dsh-whale-home-peek.webp",
+        left: crect.right - barSize.w - 6,
+        top: crect.top - barSize.h + 16
+      };
+    }
+
+    if (effective === "side") {
+      var sidebar = firstVisible('[data-slot="sidebar"] > *') || firstVisible('[data-slot="sidebar"]') || firstVisible('[data-slot="sidebar.workspaces"]');
+      if (!sidebar || !isVisible(sidebar)) return { hidden: true, src: "", kind: "side", w: 0, h: 0 };
+      var srect = sidebar.getBoundingClientRect();
+      /* 忙闲两态：工作区有任务在跑 → 完整“工作中”立绘；空闲 → 探头 */
+      var busy = BUSY_STATES[computed.state] === 1;
+      if (view === "workbench" && busy && !dense) {
+        return {
+          hidden: false, kind: "side", anchor: sidebar,
+          w: 112, h: 112, padLeftRatio: 0.5,
+          src: ASSET_ROOT + "dsh-whale-state-" + statePose(computed, view) + ".webp",
+          left: srect.right - 56 - 8,
+          top: srect.bottom - 112 - 96
+        };
+      }
+      var sideSize = dense ? { w: 56, h: 56, padLeftRatio: 0.5 } : peekSize("workbench-peek", 148, 112);
+      return {
+        hidden: false, kind: "side", anchor: sidebar,
+        w: sideSize.w, h: sideSize.h,
+        src: ASSET_ROOT + "dsh-whale-workbench-peek.webp",
+        left: srect.right - Math.round(sideSize.w * (sideSize.padLeftRatio || 0.5)) - 8,
+        top: srect.bottom - sideSize.h - 96
+      };
+    }
+
+    if (effective === "float") {
+      var saved = readFloatPos();
+      var fw = dense ? 56 : 200;
+      var fh = dense ? 56 : 200;
+      /* during an active drag, keep the live pointer position; never snap back */
+      var fx = saved ? saved.x : vw - fw - 20;
+      var fy = saved ? saved.y : vh - fh - 20;
+      if (dragState && dragState.node) {
+        fx = parseFloat(dragState.node.style.left) || fx;
+        fy = parseFloat(dragState.node.style.top) || fy;
+      }
+      return {
+        hidden: false, kind: "float", w: fw, h: fh,
+        src: ASSET_ROOT + "dsh-whale-state-" + statePose(computed, view) + ".webp",
+        x: clamp(fx, 8, vw - fw - 8),
+        y: clamp(fy, 8, vh - fh - 8)
+      };
+    }
+
+    /* mini corner */
+    var mw = 64;
+    var mh = 64;
+    return {
+      hidden: false, kind: "mini", w: mw, h: mh,
+      src: ASSET_ROOT + "dsh-whale-state-" + statePose(computed, view) + ".webp",
+      x: vw - mw - 14,
+      y: vh - mh - 14
+    };
+  }
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function placeAnchored(rootNode, layout) {
+    var rect = layout.anchor.getBoundingClientRect();
+    var left = layout.left !== undefined ? layout.left : rect.right - layout.w - 10;
+    var top = layout.top !== undefined ? layout.top : rect.top;
+    left = clamp(left, 8, root.innerWidth - layout.w - 8);
+    top = clamp(top, 8, root.innerHeight - layout.h - 8);
+    rootNode.style.display = "block";
+    rootNode.style.left = Math.round(left) + "px";
+    rootNode.style.top = Math.round(top) + "px";
+  }
+
+  function placeAt(rootNode, x, y, width, height) {
+    rootNode.style.display = "block";
+    rootNode.style.left = Math.round(clamp(x, 8, root.innerWidth - width - 8)) + "px";
+    rootNode.style.top = Math.round(clamp(y, 8, root.innerHeight - height - 8)) + "px";
+  }
+
+  /* ---------- reconcile / lifecycle ---------- */
+
+  function safeReconcile() {
+    try {
+      reconcile();
+    } catch (error) {
+      if (!memory.failed) {
+        memory.failed = true;
+        if (root.console && root.console.warn) root.console.warn("[dsh-whale-moe] presenter disabled after error:", error);
+      }
+      root.__dshWhaleMoeDebug = { state: "hidden", pose: null, line: "", view: memory.view, failed: true, error: String(error) };
+      if (observer) observer.disconnect();
+      removeRoot();
+      if (doc.body) doc.body.removeAttribute(VIEW_ATTR);
+    }
+  }
+
+  function reconcile() {
+    if (!doc.body) return;
+    var view = detectView();
+    var now = Date.now();
+    if (!growth) loadGrowth();
+    syncCompanionAchievements(now);
+    if (!memory.lastGrowthTick) { memory.lastGrowthTick = now; applyGrowth({ type: "signin" }, now, 0); }
+    else if (now - memory.lastGrowthTick >= 60000) {
+      var deltaMin = (now - memory.lastGrowthTick) / 60000;
+      memory.lastGrowthTick = now;
+      applyGrowth({ type: "tick", deltaMin: deltaMin }, now, 0);
+    }
+    if (isNight(now)) doc.body.setAttribute("data-dsh-whale-night", "true");
+    else doc.body.removeAttribute("data-dsh-whale-night");
+    var codeNow = countVisible(SIGNAL_BANKS.code);
+    if (codeNow > lastCodeCount) addUsageStat("code", codeNow - lastCodeCount);
+    lastCodeCount = codeNow;
+    var chatNow = countVisible(SIGNAL_BANKS.chat);
+    if (chatNow > lastChatCount) {
+      addUsageStat("messages", chatNow - lastChatCount);
+      if (keywordsEnabled()) scheduleKeywordScan();
+    }
+    lastChatCount = chatNow;
+    if (view !== memory.view) {
+      memory.view = view;
+      memory.viewChangedAt = now;
+    }
+    var signals = holdSignals(collectSignals(), now);
+    var computed = core.computeState(memory.state, signals, now, Math.random);
+    render(computed);
+    if (readPref("pet")) {
+      if (doc.body) doc.body.setAttribute(VIEW_ATTR, view);
+      doc.documentElement.setAttribute(VIEW_ATTR, view);
+    }
+  }
+
+  function scheduleKeywordScan() {
+    root.__dshWhaleMoeKeywordScans = (root.__dshWhaleMoeKeywordScans || 0) + 1;
+    if (keywordScanTimer) root.clearTimeout(keywordScanTimer);
+    keywordScanTimer = root.setTimeout(function () {
+      keywordScanTimer = null;
+      root.__dshWhaleMoeKeywordRuns = (root.__dshWhaleMoeKeywordRuns || 0) + 1;
+      var nodes = doc.querySelectorAll('[data-slot="conversation.chat.node"]');
+      for (var i = nodes.length - 1; i >= 0; i -= 1) {
+        var text = (nodes[i].textContent || "").slice(0, 2000);
+        if (!text) continue;
+        var id = core.matchKeyword(text, keywordsEnabled());
+        root.__dshWhaleMoeKeywordMatched = id;
+        if (!id) continue;
+        var line = say("keyword", id);
+        root.__dshWhaleMoeKeywordLine = line;
+        if (line) {
+          addUsageStat("keywords", 1);
+          showLine(line);
+        }
+        if (id === "thanks") {
+          var out = applyGrowth({ type: "thanks" }, Date.now(), 0);
+          if (out.unlocks.length) burst("🏅");
+        }
+        break;
+      }
+    }, 500);
+  }
+
+  var observer = null;
+  var scheduled = false;
+  function schedule() {
+    root.__dshWhaleMoeScheduleCalls = (root.__dshWhaleMoeScheduleCalls || 0) + 1;
+    root.__dshWhaleMoeScheduleSkipped = (root.__dshWhaleMoeScheduleSkipped || 0) + (scheduled || memory.failed ? 1 : 0);
+    if (scheduled || memory.failed) return;
+    scheduled = true;
+    root.setTimeout(function () {
+      scheduled = false;
+      safeReconcile();
+    }, DEBOUNCE_MS);
+  }
+
+  function onUserActivity() {
+    memory.lastInteractionAt = Date.now();
+    schedule();
+  }
+
+  function start() {
+    if (root.__dshWhaleMoeStarted) return;
+    root.__dshWhaleMoeStarted = true;
+    root.addEventListener("pointerdown", onUserActivity, true);
+    root.addEventListener("keydown", onUserActivity, true);
+    root.addEventListener("resize", schedule);
+    root.addEventListener("storage", schedule);
+    root.addEventListener("whale-moe-prefs-change", schedule);
+    try {
+      fetch("/assets/peek-calibration.json").then(function (r) { return r.json(); }).then(function (json) {
+        root.__dshWhalePeekCalibration = json;
+        schedule();
+      }).catch(function () { /* fallback sizes */ });
+    } catch (e) { /* fetch unavailable */ }
+    if (!root.__dshWhaleMoeIdleTimer && !motionReduced()) {
+      root.__dshWhaleMoeIdleTimer = root.setInterval(function () {
+        var now = Date.now();
+        var node = doc.querySelector("[data-dsh-whale-root]");
+        if (node && memory.state.state === "idle") {
+          /* 微动作：随机 18-28s 一次，幅度轻 */
+          if (!memory.nextIdleMicroAt) memory.nextIdleMicroAt = now + 18000 + Math.floor(Math.random() * 10000);
+          if (now >= memory.nextIdleMicroAt) {
+            memory.nextIdleMicroAt = now + 18000 + Math.floor(Math.random() * 10000);
+            var motionNode = node.querySelector("[data-dsh-whale-motion]");
+            if (motionNode) {
+              var cls = Math.random() < 0.5 ? "dsh-whale-hop" : "dsh-whale-squint";
+              motionNode.classList.remove("dsh-whale-hop", "dsh-whale-squint");
+              void motionNode.offsetWidth;
+              motionNode.classList.add(cls);
+              root.setTimeout(function () { motionNode.classList.remove("dsh-whale-hop", "dsh-whale-squint"); }, 900);
+            }
+          }
+          /* 大动作：随机 35-60s 一次，无固定顺序，每张停留 4.2-5.8s */
+          if (!memory.nextIdleActionAt) memory.nextIdleActionAt = now + 35000 + Math.floor(Math.random() * 25000);
+          if (now >= memory.nextIdleActionAt) {
+            memory.nextIdleActionAt = now + 35000 + Math.floor(Math.random() * 25000);
+            showMood(IDLE_ACTION_POOL[Math.floor(Math.random() * IDLE_ACTION_POOL.length)], 4200 + Math.floor(Math.random() * 1600));
+          }
+        }
+        /* 工作中长时间没人碰 → 随机工作小剧场；有低余额标记 → 眼巴巴 */
+        if (BUSY_STATES[memory.state.state] === 1 && now - memory.lastInteractionAt > 24000) {
+          if (!memory.nextBusyActionAt) memory.nextBusyActionAt = now + 45000 + Math.floor(Math.random() * 25000);
+          if (now >= memory.nextBusyActionAt) {
+            memory.nextBusyActionAt = now + 45000 + Math.floor(Math.random() * 25000);
+            showMood(BUSY_ACTION_POOL[Math.floor(Math.random() * BUSY_ACTION_POOL.length)], 4800 + Math.floor(Math.random() * 1200));
+          }
+        } else {
+          memory.nextBusyActionAt = 0;
+        }
+        try {
+          var low = root.localStorage.getItem("dsh.balance.low") === "1";
+          if (low && now - lastBalanceLowAt > 60000) {
+            lastBalanceLowAt = now;
+            showMood("balance-low", 5000);
+          }
+        } catch (e) { /* ignore */ }
+        schedule();
+      }, 3000);
+    }
+    root.addEventListener("dsh-whale-balance-low", function () {
+      lastBalanceLowAt = Date.now();
+      showMood("balance-low", 5000);
+      if (growth && growth.achievements.indexOf("balance-low") === -1) {
+        growth.achievements.push("balance-low");
+        saveGrowth();
+        announceUnlocks(["balance-low"]);
+      }
+    });
+    var gazePending = false;
+    root.addEventListener("pointermove", function (event) {
+      if (gazePending || motionReduced()) return;
+      var mode = readMode();
+      if (mode !== "float" && mode !== "side") return;
+      var node = doc.querySelector("[data-dsh-whale-root]");
+      if (!node) return;
+      gazePending = true;
+      root.requestAnimationFrame(function () {
+        gazePending = false;
+        var rect = node.getBoundingClientRect();
+        if (rect.width <= 1) return;
+        var cx = rect.left + rect.width / 2;
+        var cy = rect.top + rect.height / 2;
+        var gx = clamp((event.clientX - cx) / Math.max(rect.width, 48) * 5, -4, 4);
+        var gy = clamp((event.clientY - cy) / Math.max(rect.height, 48) * 4, -3, 3);
+        node.style.setProperty("--wm-gaze-x", gx.toFixed(2) + "px");
+        node.style.setProperty("--wm-gaze-y", gy.toFixed(2) + "px");
+        node.style.setProperty("--wm-gaze-r", (gx * 0.3).toFixed(2) + "deg");
+      });
+    }, { passive: true });
+
+    function init() {
+      safeReconcile();
+      observer = new root.MutationObserver(schedule);
+      observer.observe(doc.documentElement, {
+        attributes: true,
+        childList: true,
+        subtree: true
+      });
+    }
+    if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", init, { once: true });
+    else init();
+  }
+
+  root.__dshWhaleMoeDebug = { state: "boot", pose: null, line: "", view: "home" };
+  start();
+})(typeof window === "undefined" ? null : window);

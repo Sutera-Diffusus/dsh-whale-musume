@@ -1,0 +1,32 @@
+{
+  "home-peek": {
+    "w": 512,
+    "h": 512,
+    "bboxW": 496,
+    "bboxH": 433,
+    "padLeft": 8,
+    "padRight": 8,
+    "padTop": 39,
+    "padBottom": 40
+  },
+  "workbench-peek": {
+    "w": 512,
+    "h": 512,
+    "bboxW": 230,
+    "bboxH": 496,
+    "padLeft": 141,
+    "padRight": 141,
+    "padTop": 8,
+    "padBottom": 8
+  },
+  "settings-peek": {
+    "w": 512,
+    "h": 512,
+    "bboxW": 247,
+    "bboxH": 495,
+    "padLeft": 132,
+    "padRight": 133,
+    "padTop": 8,
+    "padBottom": 9
+  }
+}

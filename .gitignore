@@ -1,0 +1,17 @@
+node_modules/
+*.zip
+*.log
+.env
+*.db
+*.exe
+*.msi
+target/
+releases/
+.toolchain/
+.edge-qa-profile/
+_dsh-copies/
+backup/
+backups/
+dist/
+.DS_Store
+Thumbs.db

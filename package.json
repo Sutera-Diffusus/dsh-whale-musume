@@ -1,0 +1,11 @@
+{
+  "name": "dsh-whale-musume",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A whale-girl Kanban Musume mascot for DeepSeek Harness",
+  "scripts": {
+    "test": "node --test test/whale-moe-core.test.mjs test/whale-moe-growth.test.mjs test/apply-theme.test.mjs",
+    "qa": "node test/motion-qa.mjs && node test/cdp-whale-moe.mjs"
+  },
+  "license": "MIT"
+}
