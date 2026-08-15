@@ -1315,6 +1315,167 @@
     }, DEBOUNCE_MS);
   }
 
+  /* ---------- weather service (Open-Meteo, no key required) ---------- */
+  var WEATHER_REFRESH_MIN = 30 * 60000;
+  var WEATHER_REFRESH_MAX = 60 * 60000;
+  var WEATHER_DATA_MS = 2 * 3600000;
+  var recentLines = [];
+  var weatherState = {
+    city: readWeather("weatherCity"),
+    key: readWeather("weatherKey"),
+    coords: readCoords(),
+    current: null,
+    fetchedAt: 0,
+    lastToldKind: "",
+    nextRefreshAt: 0,
+    retryAt: 0,
+    status: ""
+  };
+
+  function readWeather(key) {
+    try { return root.localStorage.getItem("whale-moe:" + key) || ""; } catch (e) { return ""; }
+  }
+  function readCoords() {
+    try {
+      var lat = root.localStorage.getItem("whale-moe:weatherLat");
+      var lon = root.localStorage.getItem("whale-moe:weatherLon");
+      if (lat === null || lon === null) return null;
+      return { lat: Number(lat), lon: Number(lon) };
+    } catch (e) { return null; }
+  }
+  function writeCoords(coords) {
+    try {
+      if (coords) {
+        root.localStorage.setItem("whale-moe:weatherLat", String(coords.lat));
+        root.localStorage.setItem("whale-moe:weatherLon", String(coords.lon));
+      } else {
+        root.localStorage.removeItem("whale-moe:weatherLat");
+        root.localStorage.removeItem("whale-moe:weatherLon");
+      }
+    } catch (e) { /* storage unavailable */ }
+  }
+
+  function weatherJson(url, timeoutMs) {
+    return new Promise(function (resolve, reject) {
+      var ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+      var timer = root.setTimeout(function () {
+        if (ctrl) ctrl.abort();
+        reject(new Error("weather timeout"));
+      }, timeoutMs || 7000);
+      root.fetch(url, { signal: ctrl ? ctrl.signal : undefined, headers: { Accept: "application/json" } }).then(function (res) {
+        if (!res.ok) throw new Error("weather http " + res.status);
+        return res.json();
+      }).then(function (json) {
+        root.clearTimeout(timer);
+        resolve(json);
+      }).catch(function (error) {
+        root.clearTimeout(timer);
+        reject(error);
+      });
+    });
+  }
+
+  function weatherKeyParam() {
+    var key = readWeather("weatherKey").trim();
+    return key ? "&apikey=" + encodeURIComponent(key) : "";
+  }
+
+  function geocodeCity(city) {
+    var url = "https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(city) + "&count=1&language=zh&format=json" + weatherKeyParam();
+    return weatherJson(url, 8000).then(function (json) {
+      if (!json || !json.results || !json.results.length) throw new Error("city not found");
+      return { lat: Number(json.results[0].latitude), lon: Number(json.results[0].longitude), name: json.results[0].name || city };
+    });
+  }
+
+  function fetchWeather(city, key) {
+    var useCity = (city || readWeather("weatherCity")).trim();
+    if (!useCity) return Promise.reject(new Error("no city"));
+    var cached = weatherState.coords;
+    var coordsP = cached ? Promise.resolve(cached) : geocodeCity(useCity);
+    return coordsP.then(function (coords) {
+      weatherState.coords = coords;
+      writeCoords(coords);
+      var url = "https://api.open-meteo.com/v1/forecast?latitude=" + coords.lat + "&longitude=" + coords.lon + "&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m&timezone=auto" + weatherKeyParam();
+      return weatherJson(url, 8000).then(function (json) {
+        if (!json || !json.current) throw new Error("no current weather");
+        weatherState.current = {
+          temp: Number(json.current.temperature_2m),
+          code: String(json.current.weather_code),
+          wind: Number(json.current.wind_speed_10m || 0),
+          humidity: Number(json.current.relative_humidity_2m || 0)
+        };
+        weatherState.fetchedAt = Date.now();
+        weatherState.retryAt = 0;
+        weatherState.nextRefreshAt = weatherState.fetchedAt + WEATHER_REFRESH_MIN + Math.floor(Math.random() * (WEATHER_REFRESH_MAX - WEATHER_REFRESH_MIN));
+        weatherState.status = "ok";
+        schedule();
+        return weatherState.current;
+      });
+    });
+  }
+
+  function weatherEnsure(force) {
+    var now = Date.now();
+    var city = readWeather("weatherCity").trim();
+    if (!city) return Promise.resolve(null);
+    if (weatherState.city !== city || weatherState.key !== readWeather("weatherKey")) {
+      weatherState.city = city;
+      weatherState.key = readWeather("weatherKey");
+      weatherState.coords = null;
+      writeCoords(null);
+    }
+    var fresh = weatherState.current && now - weatherState.fetchedAt < WEATHER_DATA_MS;
+    if (force || (!fresh && now >= weatherState.nextRefreshAt && now >= weatherState.retryAt)) {
+      return fetchWeather(city).catch(function () {
+        weatherState.status = "error";
+        weatherState.retryAt = now + 60 * 60000;
+        return null;
+      });
+    }
+    return Promise.resolve(weatherState.current);
+  }
+
+  function weatherSummary() {
+    if (!weatherState.current) return null;
+    var w = core.weatherText(weatherState.current.code);
+    return { temp: weatherState.current.temp, emoji: w.emoji, label: w.label, kind: w.kind, wind: weatherState.current.wind };
+  }
+
+  function weatherLine(now, counter) {
+    var summary = weatherSummary();
+    if (!summary) return "";
+    var line = core.pickDialogueAvoidRecent("weather", summary.kind, counter || 0, Math.random, recentLines);
+    if (!line) return "";
+    var tail = " · 现在 " + Math.round(summary.temp) + "°C " + summary.label;
+    return line + tail;
+  }
+
+  function weatherChangedSinceTold() {
+    var summary = weatherSummary();
+    return summary && summary.kind !== weatherState.lastToldKind;
+  }
+
+  root.__dshWhaleMoeWeather = weatherState;
+  root.DshWhaleMoeWeatherTest = function (city, key) {
+    var useCity = (city || readWeather("weatherCity")).trim();
+    if (!useCity) return Promise.reject(new Error("请先填写城市"));
+    var beforeCoords = weatherState.coords;
+    var beforeKey = weatherState.key;
+    if (key !== undefined && key !== null) {
+      try { root.localStorage.setItem("whale-moe:weatherKey", String(key)); } catch (e) {}
+    }
+    weatherState.coords = null;
+    return fetchWeather(useCity, key || "").then(function () {
+      var s = weatherSummary();
+      return "✅ 已连通：" + useCity + " " + Math.round(s.temp) + "°C " + s.label;
+    }).catch(function (error) {
+      weatherState.coords = beforeCoords;
+      weatherState.key = beforeKey;
+      throw error;
+    });
+  };
+
   function onUserActivity() {
     memory.lastInteractionAt = Date.now();
     schedule();
