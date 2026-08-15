@@ -992,7 +992,7 @@
       frame.style.height = layout.h + "px";
       frame.style.cursor = layout.kind === "float" ? "grab" : "pointer";
       rootNode.setAttribute("data-dsh-whale-mode", layout.kind);
-      if (layout.kind === "mini" || computed.mode === "mini") rootNode.setAttribute("data-dsh-whale-dense", "true");
+      if (layout.kind === "mini") rootNode.setAttribute("data-dsh-whale-dense", "true");
       else rootNode.removeAttribute("data-dsh-whale-dense");
       /* 忙闲视觉：工作中持续亮状态签 + 光晕，空闲立即撤掉 */
       if (BUSY_STATES[computed.state] === 1) {
@@ -1138,7 +1138,7 @@
       var composer = findComposerSurface();
       if (!composer || !isVisible(composer)) return { hidden: true, src: "", kind: "bar", w: 0, h: 0 };
       var crect = composer.getBoundingClientRect();
-      var barSize = dense ? { w: 56, h: 56 } : peekSize("home-peek", 128, 104);
+      var barSize = peekSize("home-peek", 128, 104);
       return {
         hidden: false, kind: "bar", anchor: composer,
         w: barSize.w, h: barSize.h,
@@ -1154,7 +1154,7 @@
       var srect = sidebar.getBoundingClientRect();
       /* 忙闲两态：工作区有任务在跑 → 完整“工作中”立绘；空闲 → 探头 */
       var busy = BUSY_STATES[computed.state] === 1;
-      if (view === "workbench" && busy && !dense) {
+      if (view === "workbench" && busy) {
         return {
           hidden: false, kind: "side", anchor: sidebar,
           w: 112, h: 112, padLeftRatio: 0.5,
@@ -1163,7 +1163,7 @@
           top: srect.bottom - 112 - 96
         };
       }
-      var sideSize = dense ? { w: 56, h: 56, padLeftRatio: 0.5 } : peekSize("workbench-peek", 148, 112);
+      var sideSize = peekSize("workbench-peek", 148, 112);
       return {
         hidden: false, kind: "side", anchor: sidebar,
         w: sideSize.w, h: sideSize.h,
@@ -1175,8 +1175,8 @@
 
     if (effective === "float") {
       var saved = readFloatPos();
-      var fw = dense ? 56 : 200;
-      var fh = dense ? 56 : 200;
+      var fw = 200;
+      var fh = 200;
       /* during an active drag, keep the live pointer position; never snap back */
       var fx = saved ? saved.x : vw - fw - 20;
       var fy = saved ? saved.y : vh - fh - 20;

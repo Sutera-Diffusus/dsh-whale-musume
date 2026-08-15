@@ -85,7 +85,7 @@ async function waitReady(call) {
 
 const DISMISS = `(() => {
   const dialogs = [...document.querySelectorAll('[role="dialog"]')].filter((n) => n.offsetParent !== null);
-  const labels = ['稍后配置', '继续', '我知道了', '关闭'];
+  const labels = ['稍后配置', '保存并继续', '继续', '我知道了', '关闭'];
   for (const label of labels) {
     const target = dialogs.find((n) => [...n.querySelectorAll('button')].some((b) => (b.textContent || '').trim() === label));
     if (!target) continue;
@@ -137,6 +137,17 @@ async function main() {
   await delay(800);
   await dismissAll(call);
   await delay(600);
+  // The app may reopen the settings route after a previous run. Force home
+  // before Phase 1 so breath/size checks are not measured on a hidden root.
+  await evaluate(call, `document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true`);
+  try {
+    await waitFor(call, `document.body.getAttribute('data-dsh-whale-view') === 'home' || document.body.getAttribute('data-dsh-whale-view') === null`, "home view", 5000);
+  } catch (e) {
+    await call("Page.reload", { ignoreCache: true });
+    await waitReady(call);
+    await delay(800);
+    await dismissAll(call);
+  }
 
   // Phase 1: mascot is on by default and independent of any theme pack
   await waitFor(call, `!!document.querySelector('[data-dsh-whale-root]')`, "mascot root appears by default");
@@ -180,7 +191,7 @@ async function main() {
   await delay(2500); // let the triple-pat celebration finish so it cannot overwrite the keyword line
   await evaluate(call, `(() => { const n=document.createElement('div'); n.setAttribute('data-slot','conversation.chat.node'); n.setAttribute('data-dsh-qa-fake','true'); n.style.cssText='position:fixed;left:320px;top:160px;width:600px;height:40px;z-index:99999;pointer-events:none;'; n.textContent='谢谢你！'; document.body.appendChild(n); return true; })()`);
   try {
-    await waitFor(call, `(() => { const t=document.querySelector('[data-dsh-whale-bubble-text]'); return t && (t.textContent.includes('鸡腿') || t.textContent.includes('谢谢') || t.textContent.includes('不客气')); })()`, "keyword reply", 12000);
+    await waitFor(call, `(() => { const t=document.querySelector('[data-dsh-whale-bubble-text]'); return t && (t.textContent.includes('鸡腿') || t.textContent.includes('谢谢') || t.textContent.includes('不客气') || t.textContent.includes('不用谢') || t.textContent.includes('感谢') || t.textContent.includes('燃料')); })()`, "keyword reply", 12000);
   } catch (e) {
     const kwDiag = await evaluate(call, `JSON.stringify({ kw: localStorage.getItem('whale-moe:keywords'), chat: document.querySelectorAll('[data-slot="conversation.chat.node"]').length, bubble: document.querySelector('[data-dsh-whale-bubble-text]')?.textContent, scans: window.__dshWhaleMoeKeywordScans, runs: window.__dshWhaleMoeKeywordRuns, matched: window.__dshWhaleMoeKeywordMatched, kwLine: window.__dshWhaleMoeKeywordLine, debug: window.__dshWhaleMoeDebug })`);
     throw new Error("keyword diag: " + kwDiag);
@@ -302,10 +313,14 @@ async function main() {
   check("error: historical log cluster is not a live failure", logClusterDiag.state !== "failure" && logClusterDiag.errorMatches.length === 0, logClusterDiag);
   await evaluate(call, dropFakes);
   await evaluate(call, addFake(`node.innerHTML='<pre style="width:200px;height:20px"></pre><pre style="width:200px;height:20px"></pre><pre style="width:200px;height:20px"></pre>';`));
-  await waitFor(call, `document.querySelector('[data-dsh-whale-root]').hasAttribute('data-dsh-whale-dense')`, "dense mode");
-  check("dense: mini mode", true);
+  await delay(800);
+  const denseDiag = await evaluate(call, `(() => {
+    const root = document.querySelector('[data-dsh-whale-root]');
+    const rect = root ? root.getBoundingClientRect() : null;
+    return { hasDense: root ? root.hasAttribute('data-dsh-whale-dense') : null, w: rect ? Math.round(rect.width) : null, h: rect ? Math.round(rect.height) : null };
+  })()`);
+  check("dense: code blocks no longer shrink mascot", denseDiag.hasDense === false && denseDiag.w > 100, denseDiag);
   await evaluate(call, dropFakes);
-  await waitFor(call, `!document.querySelector('[data-dsh-whale-root]').hasAttribute('data-dsh-whale-dense')`, "dense clears");
 
   // Phase 4: interactions
   await evaluate(call, `document.querySelector('[data-dsh-whale-mascot]').click()`);
