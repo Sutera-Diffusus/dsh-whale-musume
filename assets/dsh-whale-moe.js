@@ -1099,7 +1099,7 @@
 
     memory.state = computed;
     memory.lastLine = computed.line;
-    root.__dshWhaleMoeDebug = { state: computed.state, pose: computed.pose, line: computed.line, view: view, mode: readMode(), layout: layout.kind, failed: memory.failed, errorMatches: memory.lastErrorMatches, errorActive: memory.lastErrorActive, lastEventState: memory.lastEventState, stateHoldUntil: memory.stateHoldUntil, holdLeft: Math.max(0, memory.stateHoldUntil - Date.now()), moodPose: memory.moodPose, moodUntil: memory.moodUntil, toolWasActive: memory.toolWasActive, lastSuccessAt: memory.lastSuccessAt, toolGoneAt: memory.toolGoneAt, toolSeenAt: memory.toolSeenAt, at: Date.now() };
+    root.__dshWhaleMoeDebug = { state: computed.state, pose: computed.pose, line: computed.line, view: view, mode: readMode(), layout: layout.kind, failed: memory.failed, errorMatches: memory.lastErrorMatches, errorActive: memory.lastErrorActive, lastEventState: memory.lastEventState, stateHoldUntil: memory.stateHoldUntil, holdLeft: Math.max(0, memory.stateHoldUntil - Date.now()), moodPose: memory.moodPose, moodUntil: memory.moodUntil, toolWasActive: memory.toolWasActive, lastSuccessAt: memory.lastSuccessAt, toolGoneAt: memory.toolGoneAt, toolSeenAt: memory.toolSeenAt, at: Date.now(), idleChat: { nextAt: idleChat.nextAt, lastGreetAt: idleChat.lastGreetAt, lastGreetBucket: idleChat.lastGreetBucket }, weather: weatherSummary() };
   }
 
   /* 待机 base 稳定为 idle-cute；情绪动作只由随机低频的 showMood 覆盖。
@@ -1268,6 +1268,7 @@
     var signals = holdSignals(collectSignals(), now);
     var computed = core.computeState(memory.state, signals, now, Math.random);
     render(computed);
+    if (readPref("pet")) idleChatTick(now);
     if (readPref("pet")) {
       if (doc.body) doc.body.setAttribute(VIEW_ATTR, view);
       doc.documentElement.setAttribute(VIEW_ATTR, view);
@@ -1475,6 +1476,95 @@
       throw error;
     });
   };
+
+  /* ---------- idle chat scheduler (5-8 min, context-aware) ---------- */
+  var IDLE_CHAT_MIN = 5 * 60000;
+  var IDLE_CHAT_MAX = 8 * 60000;
+  var GREET_GAP_MS = 3 * 3600000;
+  var idleChat = {
+    nextAt: Date.now() + IDLE_CHAT_MIN + Math.floor(Math.random() * (IDLE_CHAT_MAX - IDLE_CHAT_MIN)),
+    lastGreetAt: -Infinity,
+    lastGreetBucket: ""
+  };
+
+  function rememberLine(line) {
+    if (!line) return;
+    recentLines.push(line);
+    if (recentLines.length > 12) recentLines.shift();
+  }
+
+  function latestTaskTopic() {
+    try {
+      var nodes = doc.querySelectorAll('[data-slot="conversation.chat.node"]');
+      if (!nodes.length) return "general";
+      var last = nodes[nodes.length - 1];
+      var text = (last.textContent || "").slice(0, 1200);
+      return core.classifyTask(text);
+    } catch (e) { return "general"; }
+  }
+
+  function bubbleFree() {
+    try {
+      var bubble = doc.querySelector("[data-dsh-whale-bubble]");
+      return !bubble || bubble.hidden || !(bubble.textContent || "").trim();
+    } catch (e) { return true; }
+  }
+
+  function showChatLine(line) {
+    if (!line) return;
+    rememberLine(line);
+    showLine(line);
+  }
+
+  function maybeGreet(now) {
+    if (now - idleChat.lastGreetAt < GREET_GAP_MS) return false;
+    var bucket = core.greetBucket(new Date(now).getHours());
+    if (bucket === "night") return false;
+    idleChat.lastGreetAt = now;
+    idleChat.lastGreetBucket = bucket;
+    var line = core.pickDialogueAvoidRecent("greet", bucket, 0, Math.random, recentLines);
+    var summary = weatherSummary();
+    if (line && summary) line += " · 现在 " + Math.round(summary.temp) + "°C " + summary.label;
+    showChatLine(line);
+    return true;
+  }
+
+  function idleChatTick(now) {
+    var city = readWeather("weatherCity").trim();
+    var view = detectView();
+    if (view === "settings" || memory.state.state !== "idle" || !readPref("chat") || !bubbleFree() || !readPref("pet")) return;
+    if (now < idleChat.nextAt) return;
+
+    idleChat.nextAt = now + IDLE_CHAT_MIN + Math.floor(Math.random() * (IDLE_CHAT_MAX - IDLE_CHAT_MIN));
+    var line = "";
+    var bucket = core.greetBucket(new Date(now).getHours());
+    if (now - idleChat.lastGreetAt >= GREET_GAP_MS && bucket !== "night") {
+      line = core.pickDialogueAvoidRecent("greet", bucket, 0, Math.random, recentLines);
+      idleChat.lastGreetAt = now;
+      idleChat.lastGreetBucket = bucket;
+    } else if (city) {
+      weatherEnsure(false).then(function () {
+        if (memory.state.state !== "idle" || !bubbleFree() || !weatherChangedSinceTold()) return;
+        var weatherNow = weatherLine(Date.now(), 0);
+        if (weatherNow) {
+          var summary = weatherSummary();
+          weatherState.lastToldKind = summary ? summary.kind : "";
+          showChatLine(weatherNow);
+        }
+      });
+    }
+    if (!line) {
+      var topic = latestTaskTopic();
+      line = core.pickDialogueAvoidRecent("context", topic, 0, Math.random, recentLines);
+    }
+    if (!line) {
+      var memeBank = Math.random() < 0.5 ? "worker" : (Math.random() < 0.5 ? "slack" : "ddl");
+      line = core.pickDialogueAvoidRecent("meme", memeBank, 0, Math.random, recentLines);
+    }
+    if (line) showChatLine(line);
+  }
+
+  root.__dshWhaleMoeIdleChat = idleChat;
 
   function onUserActivity() {
     memory.lastInteractionAt = Date.now();
