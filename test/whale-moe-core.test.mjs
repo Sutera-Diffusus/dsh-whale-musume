@@ -147,7 +147,7 @@ test("classifyTask sorts text into topic buckets", () => {
 });
 
 test("pickDialogueAvoidRecent avoids recent lines", () => {
-  const recent = ["早啊主人，太阳都晒到尾巴了才来🌞", "主人早安！DS娘今天也是精神百倍😤"];
+  const recent = ["早啊主人，太阳都晒到尾巴了才来🌞", "主人早安！鲸鱼娘今天也是精神百倍😤"];
   const pick = core.pickDialogueAvoidRecent("daily", "morning", 0, () => 0.99, recent);
   assert.equal(pick, "早～再不起来我就把你的咖啡喝光啦☕");
 });

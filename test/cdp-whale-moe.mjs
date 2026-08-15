@@ -244,7 +244,7 @@ async function main() {
   await evaluate(call, fakeTree);
   await waitFor(call, `document.body.getAttribute('data-dsh-whale-view') === 'workbench'`, "workbench view");
   await waitFor(call, `!!document.querySelector('[data-dsh-whale-mascot]')`, "mascot mounted after settings phase");
-  await waitFor(call, `window.__dshWhaleMoeDebug && !['waiting','tool','thinking','failure'].includes(window.__dshWhaleMoeDebug.state)`, "workbench idle is calm (no sweat pose)");
+  await waitFor(call, `window.__dshWhaleMoeDebug && !['waiting','tool','thinking','failure'].includes(window.__dshWhaleMoeDebug.state) && (document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || '').includes('workbench-peek')`, "workbench idle peek", 6000);
   const idleDiag = await evaluate(call, `({ state: window.__dshWhaleMoeDebug.state, src: document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src'), moodOverlays: document.querySelectorAll('[data-dsh-whale-mood]').length })`);
   check("state: workbench idle pose distinct from busy", idleDiag.state !== "waiting" && idleDiag.src.includes("workbench-peek"), idleDiag);
   check("mood: no vector expression overlay", idleDiag.moodOverlays === 0, idleDiag.moodOverlays);

@@ -31,7 +31,7 @@ test("patchHost tolerates an existing third pack after whale-maid", () => {
 test("patchClient appends the option after the whale-maid option and is idempotent", () => {
   const first = patchClient(CLIENT_BASE);
   assert.equal(first.changed, true);
-  assert.ok(first.source.includes('{ value: "whale-moe", children: "鲸汐·海洋甜点工房" }'));
+  assert.ok(first.source.includes('{ value: "whale-moe", children: "鲸鱼娘·海洋甜点工房" }'));
   assert.equal((first.source.match(/value: "whale-moe"/g) || []).length, 1);
   const second = patchClient(first.source);
   assert.equal(second.changed, false);
@@ -183,10 +183,10 @@ test("patchMascotClient adds the mascot settings section and is idempotent", () 
   const fixture = 'const store = 1;\nconst injected = (a) => a;\nctx.slots.inject("settings.theme.item", () => ctx.slots.register({}, ThemePackRow));';
   const out = patchMascotClient(fixture);
   assert.equal(out.changed, true);
-  assert.ok(out.source.includes("/* DSH-WHALE-MOE:MASCOT-SETTINGS v11 */"));
+  assert.ok(out.source.includes("/* DSH-WHALE-MOE:MASCOT-SETTINGS v12 */"));
   assert.ok(out.source.includes('id: "mascot"'));
   assert.ok(out.source.includes('label: "看板娘"'));
-  assert.ok(out.source.includes('label: "DS娘（鲸鱼娘）"'));
+  assert.ok(out.source.includes('label: "鲸鱼娘"'));
   assert.ok(!out.source.includes('MascotModeRow'));
   assert.ok(!out.source.includes('悬浮（可拖拽）'));
   assert.ok(out.source.includes('重置到默认位置'));
@@ -211,12 +211,12 @@ test("patchMascotClient adds the mascot settings section and is idempotent", () 
   assert.equal(second.changed, false);
 });
 
-test("patchMascotClient upgrades legacy v1-v10 blocks to v11", () => {
+test("patchMascotClient upgrades legacy v1-v11 blocks to v12", () => {
   const fixture = 'const store = 1;\nconst injected = (a) => a;\nctx.slots.inject("settings.theme.item", () => ctx.slots.register({}, ThemePackRow));';
-  const legacy = patchMascotClient(fixture).source.replace("DSH-WHALE-MOE:MASCOT-SETTINGS v11", "DSH-WHALE-MOE:MASCOT-SETTINGS v4");
+  const legacy = patchMascotClient(fixture).source.replace("DSH-WHALE-MOE:MASCOT-SETTINGS v12", "DSH-WHALE-MOE:MASCOT-SETTINGS v4");
   const upgraded = patchMascotClient(legacy);
   assert.equal(upgraded.changed, true);
-  assert.ok(upgraded.source.includes("DSH-WHALE-MOE:MASCOT-SETTINGS v11"));
+  assert.ok(upgraded.source.includes("DSH-WHALE-MOE:MASCOT-SETTINGS v12"));
   assert.ok(!upgraded.source.includes("DSH-WHALE-MOE:MASCOT-SETTINGS v4"));
   assert.equal((upgraded.source.match(/id: "mascot"/g) || []).length, 1);
 });

@@ -15,7 +15,7 @@ const DEFAULT_TARGET = process.env.DSH_INSTALL_DIR || "D:/Deepseek harness";
 const BACKUP_ROOT = process.env.DSH_WHALE_BACKUP || "D:/ai-temp";
 const MARKER = "DSH-WHALE-MOE-THEME v1";
 const PACK_ID = "whale-moe";
-const LABEL = "鲸汐·海洋甜点工房";
+const LABEL = "鲸鱼娘·海洋甜点工房";
 
 const REL = {
   indexHtml: "node_modules/@deepseek-ai/dsh-web-frontend/dist/index.html",
@@ -235,10 +235,10 @@ export function untheme(target = DEFAULT_TARGET, options = {}) {
   return backupDir;
 }
 
-/* ---- mascot settings section: DS娘（鲸鱼娘） ---- */
+/* ---- mascot settings section: 鲸鱼娘（鲸鱼娘） ---- */
 
-const MASCOT_SETTINGS_MARKER = "DSH-WHALE-MOE:MASCOT-SETTINGS v11";
-const MASCOT_SETTINGS_LEGACY = ["DSH-WHALE-MOE:MASCOT-SETTINGS v1", "DSH-WHALE-MOE:MASCOT-SETTINGS v2", "DSH-WHALE-MOE:MASCOT-SETTINGS v3", "DSH-WHALE-MOE:MASCOT-SETTINGS v4", "DSH-WHALE-MOE:MASCOT-SETTINGS v5", "DSH-WHALE-MOE:MASCOT-SETTINGS v6", "DSH-WHALE-MOE:MASCOT-SETTINGS v7", "DSH-WHALE-MOE:MASCOT-SETTINGS v8", "DSH-WHALE-MOE:MASCOT-SETTINGS v9", "DSH-WHALE-MOE:MASCOT-SETTINGS v10"];
+const MASCOT_SETTINGS_MARKER = "DSH-WHALE-MOE:MASCOT-SETTINGS v12";
+const MASCOT_SETTINGS_LEGACY = ["DSH-WHALE-MOE:MASCOT-SETTINGS v1", "DSH-WHALE-MOE:MASCOT-SETTINGS v2", "DSH-WHALE-MOE:MASCOT-SETTINGS v3", "DSH-WHALE-MOE:MASCOT-SETTINGS v4", "DSH-WHALE-MOE:MASCOT-SETTINGS v5", "DSH-WHALE-MOE:MASCOT-SETTINGS v6", "DSH-WHALE-MOE:MASCOT-SETTINGS v7", "DSH-WHALE-MOE:MASCOT-SETTINGS v8", "DSH-WHALE-MOE:MASCOT-SETTINGS v9", "DSH-WHALE-MOE:MASCOT-SETTINGS v10", "DSH-WHALE-MOE:MASCOT-SETTINGS v11"];
 const MASCOT_SETTINGS_ANCHOR = "}, ThemePackRow));";
 
 function mascotBlock(marker) {
@@ -326,8 +326,8 @@ function mascotBlock(marker) {
 			return (0, react_jsx_runtime.jsxs)("label", { style: MASCOT_ROW_STYLE, children: [(0, react_jsx_runtime.jsx)("span", { children: label }), (0, react_jsx_runtime.jsx)("span", { children: String(value) + (suffix || "") })] });
 		}
 		const MASCOT_ACHIEVEMENTS = [
-			["first-pat", "🫳", "初次摸头", "第一次摸 DS娘的头"], ["ten-pats", "🖐️", "摸头十连", "累计摸头 10 次"], ["hundred-pats", "💯", "摸头百连", "累计摸头 100 次"],
-			["first-feed", "🍰", "投喂成功", "第一次投喂小点心"], ["first-triple", "🎉", "三连击", "触发比心彩蛋"], ["thanks", "💬", "嘴甜", "对 DS娘说谢谢"],
+			["first-pat", "🫳", "初次摸头", "第一次摸 鲸鱼娘的头"], ["ten-pats", "🖐️", "摸头十连", "累计摸头 10 次"], ["hundred-pats", "💯", "摸头百连", "累计摸头 100 次"],
+			["first-feed", "🍰", "投喂成功", "第一次投喂小点心"], ["first-triple", "🎉", "三连击", "触发比心彩蛋"], ["thanks", "💬", "嘴甜", "对 鲸鱼娘说谢谢"],
 			["lv5", "⭐", "五级", "好感度达到 Lv5"], ["lv10", "👑", "十级", "好感度达到 Lv10"], ["signin3", "📅", "常客", "连续签到 3 天"],
 			["signin7", "🗓️", "一周之约", "连续签到 7 天"], ["night-owl", "🌙", "深夜陪伴", "深夜互动一次"], ["comeback", "👋", "欢迎回来", "久别重逢"],
 			["day1", "💞", "一日之缘", "陪伴满 1 天"], ["day7", "💎", "一周相伴", "陪伴满 7 天"], ["day30", "🏛️", "三十日契约", "陪伴满 30 天"],
@@ -377,7 +377,7 @@ function mascotBlock(marker) {
 		}
 		function MascotPrefRows() {
 			return (0, react_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", width: "100%" }, children: [
-				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "基础", children: [(0, react_jsx_runtime.jsx)(MascotTitleRow, {}), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "DS娘（鲸鱼娘）", prefKey: "pet" }), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "台词气泡", prefKey: "chat" }), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "粒子效果", prefKey: "particles" })] }),
+				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "基础", children: [(0, react_jsx_runtime.jsx)(MascotTitleRow, {}), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "鲸鱼娘", prefKey: "pet" }), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "台词气泡", prefKey: "chat" }), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "粒子效果", prefKey: "particles" })] }),
 				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "智能", children: [(0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "关键词感知（默认关）", prefKey: "keywords" }), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "摸鱼提醒", prefKey: "idle-nudge" }), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "深夜模式", prefKey: "night" })] }),
 				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "天气", children: [(0, react_jsx_runtime.jsx)(MascotWeatherRow, {})] }),
 				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "养成", children: [(0, react_jsx_runtime.jsx)(MascotGrowthStats, {})] }),

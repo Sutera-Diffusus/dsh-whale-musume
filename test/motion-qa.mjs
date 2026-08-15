@@ -140,7 +140,16 @@ async function main() {
   check("blink: smooth opacity dip (max jump <= 0.15, min >= 0.93)", blinkJump <= 0.15 && blinkMin >= 0.93, { blink, blinkJump });
   await shot(call, "qa-3-blink-mid.png");
 
-  const report = { pass: failures.length === 0, failures, overlapFrames: overlapFrames.slice(0, 12), busyDiag, gapProbe, blink };
+  // ---- idle action pose must enter with the motion-hide animation ----
+  await ev(call, `window.DshWhaleMoeMood && window.DshWhaleMoeMood('daily-coffee', 1400, true); true`);
+  await delay(320);
+  const coffeeDiag = await ev(call, `({
+    src: document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || '',
+    anims: (document.querySelector('[data-dsh-whale-motion]')?.getAnimations() || []).length
+  })`);
+  check("idle action: coffee pose enters with motion-hide animation", coffeeDiag.src.includes("daily-coffee") && coffeeDiag.anims >= 1, coffeeDiag);
+
+  const report = { pass: failures.length === 0, failures, overlapFrames: overlapFrames.slice(0, 12), busyDiag, gapProbe, blink, coffeeDiag };
   fs.writeFileSync(path.join(SHOTS, "motion-qa.json"), JSON.stringify(report, null, 2), "utf8");
   console.log("REPORT", JSON.stringify(report));
   ws.close();

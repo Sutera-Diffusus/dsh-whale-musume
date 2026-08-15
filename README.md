@@ -5,7 +5,7 @@
 一只会陪你写代码的鲸鱼娘：待机安静陪伴，工作开始就抱起笔记本陪你干活；可以摸头养成、解锁成就，也可以拖着她到处走。所有资源本地运行，无遥测、无外部请求。
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Version](https://img.shields.io/badge/version-1.1.0-blue)
+![Version](https://img.shields.io/badge/version-1.1.1-blue)
 ![DSH](https://img.shields.io/badge/DSH-0.1.0--rc.6-blue)
 
 ---
@@ -182,7 +182,7 @@ node scripts/apply-theme.mjs --mascot-settings
 | --- | --- |
 | 投喂小点心 | 提升饱食度与好感度 |
 | 戳一下 | 降低心情，触发生气立绘 |
-| 夸夸 DS娘 | 提升心情与好感度，触发星星眼 |
+| 夸夸 鲸鱼娘 | 提升心情与好感度，触发星星眼 |
 | 回到原位 | 清除保存的悬浮位置 |
 | 打开看板娘设置 | 跳转 DSH 设置页 |
 
@@ -302,4 +302,4 @@ node test/cdp-whale-moe.mjs
 
 ---
 
-**DS娘陪你写代码，也陪你摸鱼。** 🐳
+**鲸鱼娘陪你写代码，也陪你摸鱼。** 🐳

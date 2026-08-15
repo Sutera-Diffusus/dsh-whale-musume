@@ -477,7 +477,7 @@
     var items = [
       { label: "投喂小点心", action: function () { var out = applyGrowth({ type: "feed" }, Date.now(), 0); burst("🍰"); showMood("eat", 3000); var line = say("interact", "feed"); if (line) showLine(line); if (out.unlocks.length) announceUnlocks(out.unlocks); } },
       { label: "戳一下", action: function () { applyGrowth({ type: "poke" }, Date.now(), 0); burst("💢"); showMood("angry", 3000); var line = say("interact", "poke"); if (line) showLine(line); } },
-      { label: "夸夸 DS娘", action: function () { applyGrowth({ type: "praise" }, Date.now(), 0); burst("✨"); showMood("star", 3000); var line = say("interact", "praise"); if (line) showLine(line); } },
+      { label: "夸夸 鲸鱼娘", action: function () { applyGrowth({ type: "praise" }, Date.now(), 0); burst("✨"); showMood("star", 3000); var line = say("interact", "praise"); if (line) showLine(line); } },
       { label: "回到原位", action: function () { try { root.localStorage.removeItem("whale-moe:floatX"); root.localStorage.removeItem("whale-moe:floatY"); } catch (e) { /* ignore */ } reconcile(); } },
       { label: "打开看板娘设置", action: function () { var b = [...doc.querySelectorAll("button")].find(function (n) { return (n.textContent || "").trim() === "设置"; }); if (b) b.click(); } },
       { label: "关闭菜单", action: function () { menu.remove(); } }
@@ -510,17 +510,19 @@
   var lastPatSpeechAt = 0;
   var lastBalanceLowAt = 0;
   var IDLE_ACTION_POOL = ["daily-eat", "daily-coffee", "daily-stretch", "daily-pajama", "daily-shower", "cool-shades", "meme-smug"];
-  function showMood(kind, duration) {
+  function showMood(kind, duration, animate) {
     var rootNode = doc.querySelector("[data-dsh-whale-root]");
     if (!rootNode) return;
     memory.moodPose = kind;
     memory.moodUntil = Date.now() + (duration || 3000);
+    memory.moodAnimate = animate === true;
     schedule();
     if (moodTimer) { root.clearTimeout(moodTimer); moodTimer = null; }
     moodTimer = root.setTimeout(function () {
       moodTimer = null;
       memory.moodPose = "";
       memory.moodUntil = 0;
+      memory.moodAnimate = false;
       schedule();
     }, duration || 3000);
   }
@@ -837,6 +839,7 @@
     lastEventState: "",
     moodPose: "",
     moodUntil: 0,
+    moodAnimate: false,
     celebrationVisible: false,
     currentTypingLine: "",
     pendingLine: "",
@@ -1002,7 +1005,7 @@
         if (idleChip) idleChip.remove();
       }
     }
-    if (!layout.hidden) setPose(layout.src, true, !moodActive);
+    if (!layout.hidden) setPose(layout.src, true, moodActive ? memory.moodAnimate : true);
 
     /* celebration override: 3 quick pats — type once, then keep the finished
        bubble stable so repeated renders/reconciles can never re-jump it */
@@ -1607,7 +1610,7 @@
           if (!memory.nextIdleActionAt) memory.nextIdleActionAt = now + 35000 + Math.floor(Math.random() * 25000);
           if (now >= memory.nextIdleActionAt) {
             memory.nextIdleActionAt = now + 35000 + Math.floor(Math.random() * 25000);
-            showMood(IDLE_ACTION_POOL[Math.floor(Math.random() * IDLE_ACTION_POOL.length)], 4200 + Math.floor(Math.random() * 1600));
+            showMood(IDLE_ACTION_POOL[Math.floor(Math.random() * IDLE_ACTION_POOL.length)], 4200 + Math.floor(Math.random() * 1600), true);
           }
         }
         /* 工作状态保持 running 姿势稳定，不再随机切工作小剧场；
