@@ -237,8 +237,8 @@ export function untheme(target = DEFAULT_TARGET, options = {}) {
 
 /* ---- mascot settings section: DS娘（鲸鱼娘） ---- */
 
-const MASCOT_SETTINGS_MARKER = "DSH-WHALE-MOE:MASCOT-SETTINGS v10";
-const MASCOT_SETTINGS_LEGACY = ["DSH-WHALE-MOE:MASCOT-SETTINGS v1", "DSH-WHALE-MOE:MASCOT-SETTINGS v2", "DSH-WHALE-MOE:MASCOT-SETTINGS v3", "DSH-WHALE-MOE:MASCOT-SETTINGS v4", "DSH-WHALE-MOE:MASCOT-SETTINGS v5", "DSH-WHALE-MOE:MASCOT-SETTINGS v6", "DSH-WHALE-MOE:MASCOT-SETTINGS v7", "DSH-WHALE-MOE:MASCOT-SETTINGS v8", "DSH-WHALE-MOE:MASCOT-SETTINGS v9"];
+const MASCOT_SETTINGS_MARKER = "DSH-WHALE-MOE:MASCOT-SETTINGS v11";
+const MASCOT_SETTINGS_LEGACY = ["DSH-WHALE-MOE:MASCOT-SETTINGS v1", "DSH-WHALE-MOE:MASCOT-SETTINGS v2", "DSH-WHALE-MOE:MASCOT-SETTINGS v3", "DSH-WHALE-MOE:MASCOT-SETTINGS v4", "DSH-WHALE-MOE:MASCOT-SETTINGS v5", "DSH-WHALE-MOE:MASCOT-SETTINGS v6", "DSH-WHALE-MOE:MASCOT-SETTINGS v7", "DSH-WHALE-MOE:MASCOT-SETTINGS v8", "DSH-WHALE-MOE:MASCOT-SETTINGS v9", "DSH-WHALE-MOE:MASCOT-SETTINGS v10"];
 const MASCOT_SETTINGS_ANCHOR = "}, ThemePackRow));";
 
 function mascotBlock(marker) {
@@ -282,6 +282,45 @@ function mascotBlock(marker) {
 					window.dispatchEvent(new CustomEvent("whale-moe-prefs-change", { detail: { key: "title", value: event.target.value } }));
 				}
 			})] });
+		}
+		function MascotWeatherRow() {
+			const [status, setStatus] = mascotReact.useState("");
+			const [busy, setBusy] = mascotReact.useState(false);
+			const save = (key, value) => {
+				try { window.localStorage.setItem("whale-moe:" + key, value); } catch (e) {}
+				window.dispatchEvent(new CustomEvent("whale-moe-prefs-change", { detail: { key, value } }));
+			};
+			const testNow = () => {
+				setBusy(true);
+				setStatus("⏳ 正在连接 Open-Meteo…");
+				const city = window.localStorage.getItem("whale-moe:weatherCity") || "";
+				const key = window.localStorage.getItem("whale-moe:weatherKey") || "";
+				const p = window.DshWhaleMoeWeatherTest ? window.DshWhaleMoeWeatherTest(city, key) : Promise.reject(new Error("天气服务未就绪"));
+				p.then((text) => { setStatus(text); setBusy(false); }, (error) => {
+					setStatus("❌ 连接失败：" + (error && error.message ? error.message : "未知错误") + "（无 Key 也可用）");
+					setBusy(false);
+				});
+			};
+			return (0, react_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", width: "100%" }, children: [
+				(0, react_jsx_runtime.jsxs)("label", { style: MASCOT_ROW_STYLE, children: [(0, react_jsx_runtime.jsx)("span", { children: "天气城市" }), (0, react_jsx_runtime.jsx)("input", {
+					type: "text",
+					defaultValue: MascotValue("weatherCity", ""),
+					placeholder: "如：上海（留空不联网）",
+					maxLength: 24,
+					onChange: (event) => save("weatherCity", event.target.value)
+				})] }),
+				(0, react_jsx_runtime.jsxs)("label", { style: MASCOT_ROW_STYLE, children: [(0, react_jsx_runtime.jsx)("span", { children: "API Key（选填）" }), (0, react_jsx_runtime.jsx)("input", {
+					type: "password",
+					defaultValue: MascotValue("weatherKey", ""),
+					placeholder: "Open-Meteo 免费无需 Key",
+					maxLength: 128,
+					onChange: (event) => save("weatherKey", event.target.value)
+				})] }),
+				(0, react_jsx_runtime.jsxs)("div", { style: { ...MASCOT_ROW_STYLE, borderBottom: "none", flexWrap: "wrap" }, children: [
+					(0, react_jsx_runtime.jsx)("span", { style: { color: "var(--dsw-alias-label-secondary)", fontSize: "12px", lineHeight: "16px", wordBreak: "break-all" }, children: status }),
+					(0, react_jsx_runtime.jsx)("button", { type: "button", disabled: busy, onClick: testNow, children: busy ? "测试中…" : "测试连接" })
+				] })
+			]});
 		}
 		function MascotStatRow({ label, value, suffix }) {
 			return (0, react_jsx_runtime.jsxs)("label", { style: MASCOT_ROW_STYLE, children: [(0, react_jsx_runtime.jsx)("span", { children: label }), (0, react_jsx_runtime.jsx)("span", { children: String(value) + (suffix || "") })] });
@@ -340,6 +379,7 @@ function mascotBlock(marker) {
 			return (0, react_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", width: "100%" }, children: [
 				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "基础", children: [(0, react_jsx_runtime.jsx)(MascotTitleRow, {}), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "DS娘（鲸鱼娘）", prefKey: "pet" }), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "台词气泡", prefKey: "chat" }), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "粒子效果", prefKey: "particles" })] }),
 				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "智能", children: [(0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "关键词感知（默认关）", prefKey: "keywords" }), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "摸鱼提醒", prefKey: "idle-nudge" }), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "深夜模式", prefKey: "night" })] }),
+				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "天气", children: [(0, react_jsx_runtime.jsx)(MascotWeatherRow, {})] }),
 				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "养成", children: [(0, react_jsx_runtime.jsx)(MascotGrowthStats, {})] }),
 				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "成就", children: [(0, react_jsx_runtime.jsx)(MascotAchievementRow, {})] }),
 				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "位置与数据", children: [(0, react_jsx_runtime.jsx)(MascotResetRow, {}), (0, react_jsx_runtime.jsx)(MascotGrowthResetRow, {})] })

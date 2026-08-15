@@ -183,7 +183,7 @@ test("patchMascotClient adds the mascot settings section and is idempotent", () 
   const fixture = 'const store = 1;\nconst injected = (a) => a;\nctx.slots.inject("settings.theme.item", () => ctx.slots.register({}, ThemePackRow));';
   const out = patchMascotClient(fixture);
   assert.equal(out.changed, true);
-  assert.ok(out.source.includes("/* DSH-WHALE-MOE:MASCOT-SETTINGS v10 */"));
+  assert.ok(out.source.includes("/* DSH-WHALE-MOE:MASCOT-SETTINGS v11 */"));
   assert.ok(out.source.includes('id: "mascot"'));
   assert.ok(out.source.includes('label: "看板娘"'));
   assert.ok(out.source.includes('label: "DS娘（鲸鱼娘）"'));
@@ -194,12 +194,16 @@ test("patchMascotClient adds the mascot settings section and is idempotent", () 
   assert.ok(!out.source.includes('装饰衣柜'));
   assert.ok(out.source.includes('如何称呼我'));
   assert.ok(out.source.includes('关键词感知（默认关）'));
+  assert.ok(out.source.includes('天气城市'));
+  assert.ok(out.source.includes('API Key（选填）'));
+  assert.ok(out.source.includes('测试连接'));
+  assert.ok(out.source.includes('留空不联网'));
   assert.ok(out.source.includes('陪伴'));
   assert.ok(out.source.includes('成就墙'));
   assert.ok(out.source.includes('余额告急'));
   assert.ok(out.source.includes('工具百连'));
   assert.ok(out.source.includes('MASCOT_CARD_STYLE'));
-  assert.ok(out.source.includes('title: "基础"') && out.source.includes('title: "智能"') && out.source.includes('title: "位置与数据"'));
+  assert.ok(out.source.includes('title: "基础"') && out.source.includes('title: "智能"') && out.source.includes('title: "天气"') && out.source.includes('title: "位置与数据"'));
   assert.ok(out.source.includes('repeat(3, minmax(0, 1fr))'));
   assert.ok(out.source.includes('borderRadius: "999px"') && out.source.includes('mascotReact.useState'));
   assert.ok(out.source.includes('"whale-moe-prefs-change"'));
@@ -207,13 +211,13 @@ test("patchMascotClient adds the mascot settings section and is idempotent", () 
   assert.equal(second.changed, false);
 });
 
-test("patchMascotClient upgrades legacy v1-v9 blocks to v10", () => {
+test("patchMascotClient upgrades legacy v1-v10 blocks to v11", () => {
   const fixture = 'const store = 1;\nconst injected = (a) => a;\nctx.slots.inject("settings.theme.item", () => ctx.slots.register({}, ThemePackRow));';
-  const legacy = patchMascotClient(fixture).source.replace("DSH-WHALE-MOE:MASCOT-SETTINGS v10", "DSH-WHALE-MOE:MASCOT-SETTINGS v3");
+  const legacy = patchMascotClient(fixture).source.replace("DSH-WHALE-MOE:MASCOT-SETTINGS v11", "DSH-WHALE-MOE:MASCOT-SETTINGS v4");
   const upgraded = patchMascotClient(legacy);
   assert.equal(upgraded.changed, true);
-  assert.ok(upgraded.source.includes("DSH-WHALE-MOE:MASCOT-SETTINGS v10"));
-  assert.ok(!upgraded.source.includes("DSH-WHALE-MOE:MASCOT-SETTINGS v3"));
+  assert.ok(upgraded.source.includes("DSH-WHALE-MOE:MASCOT-SETTINGS v11"));
+  assert.ok(!upgraded.source.includes("DSH-WHALE-MOE:MASCOT-SETTINGS v4"));
   assert.equal((upgraded.source.match(/id: "mascot"/g) || []).length, 1);
 });
 
