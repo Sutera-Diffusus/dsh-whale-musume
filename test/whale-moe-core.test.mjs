@@ -109,3 +109,45 @@ test("non-finite or future success timestamps are ignored", () => {
   assert.notEqual(core.computeState(null, freshSignals({ successAt: T0 + 5000 }), T0, () => 1).state, "success");
   assert.equal(core.computeState(null, freshSignals({ successAt: T0 - 500 }), T0, () => 1).state, "success");
 });
+
+test("greetBucket maps all six time buckets", () => {
+  assert.equal(core.greetBucket(5), "night");
+  assert.equal(core.greetBucket(6), "morning");
+  assert.equal(core.greetBucket(8), "morning");
+  assert.equal(core.greetBucket(9), "forenoon");
+  assert.equal(core.greetBucket(11), "forenoon");
+  assert.equal(core.greetBucket(12), "noon");
+  assert.equal(core.greetBucket(13), "noon");
+  assert.equal(core.greetBucket(14), "afternoon");
+  assert.equal(core.greetBucket(17), "afternoon");
+  assert.equal(core.greetBucket(18), "evening");
+  assert.equal(core.greetBucket(22), "evening");
+  assert.equal(core.greetBucket(23), "night");
+});
+
+test("weatherText maps WMO codes", () => {
+  assert.equal(core.weatherText(0).kind, "sunny");
+  assert.equal(core.weatherText(2).kind, "cloudy");
+  assert.equal(core.weatherText(61).kind, "rain");
+  assert.equal(core.weatherText(71).kind, "snow");
+  assert.equal(core.weatherText(95).kind, "thunder");
+  assert.equal(core.weatherText(3).kind, "cloudy");
+  assert.equal(core.weatherText(45).kind, "fog");
+  assert.equal(core.weatherText(999).kind, "unknown");
+});
+
+test("classifyTask sorts text into topic buckets", () => {
+  assert.equal(core.classifyTask("帮我写一个 React 组件"), "code");
+  assert.equal(core.classifyTask("把这段文章润色成周报"), "write");
+  assert.equal(core.classifyTask("调研一下 Server-Sent Events 的原理"), "research");
+  assert.equal(core.classifyTask("这个报错怎么修复"), "bug");
+  assert.equal(core.classifyTask("把 CSV 清洗后做统计"), "data");
+  assert.equal(core.classifyTask("部署到服务器上线"), "deploy");
+  assert.equal(core.classifyTask("今天心情不错"), "general");
+});
+
+test("pickDialogueAvoidRecent avoids recent lines", () => {
+  const recent = ["早啊主人，太阳都晒到尾巴了才来🌞", "主人早安！DS娘今天也是精神百倍😤"];
+  const pick = core.pickDialogueAvoidRecent("daily", "morning", 0, () => 0.99, recent);
+  assert.equal(pick, "早～再不起来我就把你的咖啡喝光啦☕");
+});

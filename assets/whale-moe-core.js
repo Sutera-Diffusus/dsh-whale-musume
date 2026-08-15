@@ -310,11 +310,86 @@
     return total;
   }
 
+  function greetBucket(hour) {
+    var h = typeof hour === "number" && Number.isFinite(hour) ? hour : new Date().getHours();
+    if (h >= 23 || h < 6) return "night";
+    if (h < 9) return "morning";
+    if (h < 12) return "forenoon";
+    if (h < 14) return "noon";
+    if (h < 18) return "afternoon";
+    return "evening";
+  }
+
+  var WEATHER_MAP = Object.freeze({
+    "0": Object.freeze({ emoji: "☀️", label: "晴", kind: "sunny" }),
+    "1": Object.freeze({ emoji: "🌤️", label: "大致晴朗", kind: "sunny" }),
+    "2": Object.freeze({ emoji: "⛅", label: "多云间晴", kind: "cloudy" }),
+    "3": Object.freeze({ emoji: "☁️", label: "阴", kind: "cloudy" }),
+    "45": Object.freeze({ emoji: "🌫️", label: "有雾", kind: "fog" }),
+    "48": Object.freeze({ emoji: "🌫️", label: "雾凇", kind: "fog" }),
+    "51": Object.freeze({ emoji: "🌦️", label: "毛毛雨", kind: "rain" }),
+    "53": Object.freeze({ emoji: "🌦️", label: "毛毛雨", kind: "rain" }),
+    "55": Object.freeze({ emoji: "🌧️", label: "小雨", kind: "rain" }),
+    "61": Object.freeze({ emoji: "🌧️", label: "小雨", kind: "rain" }),
+    "63": Object.freeze({ emoji: "🌧️", label: "中雨", kind: "rain" }),
+    "65": Object.freeze({ emoji: "🌧️", label: "大雨", kind: "rain" }),
+    "71": Object.freeze({ emoji: "🌨️", label: "小雪", kind: "snow" }),
+    "73": Object.freeze({ emoji: "🌨️", label: "中雪", kind: "snow" }),
+    "75": Object.freeze({ emoji: "❄️", label: "大雪", kind: "snow" }),
+    "77": Object.freeze({ emoji: "❄️", label: "雪粒", kind: "snow" }),
+    "80": Object.freeze({ emoji: "🌦️", label: "小阵雨", kind: "rain" }),
+    "81": Object.freeze({ emoji: "🌧️", label: "阵雨", kind: "rain" }),
+    "82": Object.freeze({ emoji: "⛈️", label: "强阵雨", kind: "rain" }),
+    "85": Object.freeze({ emoji: "🌨️", label: "阵雪", kind: "snow" }),
+    "86": Object.freeze({ emoji: "🌨️", label: "强阵雪", kind: "snow" }),
+    "95": Object.freeze({ emoji: "⛈️", label: "雷雨", kind: "thunder" }),
+    "96": Object.freeze({ emoji: "⛈️", label: "雷雨伴冰雹", kind: "thunder" }),
+    "99": Object.freeze({ emoji: "⛈️", label: "强雷暴", kind: "thunder" })
+  });
+
+  function weatherText(code) {
+    return WEATHER_MAP[String(code)] || Object.freeze({ emoji: "🌈", label: "天气未知", kind: "unknown" });
+  }
+
+  var TASK_TOPICS = Object.freeze([
+    Object.freeze({ id: "deploy", words: ["部署", "上线", "发布", "deploy", "release", "docker", "kubernetes", "k8s", "服务器", "nginx", "环境"] }),
+    Object.freeze({ id: "bug", words: ["报错", "error", "bug", "崩溃", "闪退", "异常", "修复", "fix", "调试", "debug", "失败", "warning", "警告"] }),
+    Object.freeze({ id: "data", words: ["数据", "表格", "excel", "csv", "json", "统计", "分析", "图表", "清洗", "数据库", "sql", "可视化"] }),
+    Object.freeze({ id: "code", words: ["代码", "函数", "变量", "class", "python", "javascript", "typescript", "react", "vue", "java", "golang", "rust", "算法", "接口", "api", "重构", "编译", "前端", "后端", "组件", "脚本", "npm", "git"] }),
+    Object.freeze({ id: "write", words: ["写一", "文案", "文章", "报告", "翻译", "润色", "总结", "邮件", "文档", "周报", "标题", "大纲"] }),
+    Object.freeze({ id: "research", words: ["调研", "搜索", "资料", "原理", "是什么", "为什么", "如何", "区别", "比较", "最新", "论文", "介绍一下", "有哪些"] })
+  ]);
+
+  function classifyTask(text) {
+    if (typeof text !== "string") return "general";
+    var lower = text.toLowerCase();
+    for (var i = 0; i < TASK_TOPICS.length; i += 1) {
+      var words = TASK_TOPICS[i].words;
+      for (var j = 0; j < words.length; j += 1) {
+        if (lower.indexOf(words[j].toLowerCase()) !== -1) return TASK_TOPICS[i].id;
+      }
+    }
+    return "general";
+  }
+
   function pickDialogue(bank, event, counter, rng) {
     var lines = DIALOGUE[bank] && DIALOGUE[bank][event];
     if (!lines || lines.length === 0) return "";
     var r = typeof rng === "function" ? rng() : Math.random();
     return lines[(Math.abs(counter | 0) + Math.floor(r * 97)) % lines.length];
+  }
+
+  function pickDialogueAvoidRecent(bank, event, counter, rng, recent) {
+    var lines = DIALOGUE[bank] && DIALOGUE[bank][event];
+    if (!lines || lines.length === 0) return "";
+    var recentSet = Array.isArray(recent) ? recent : [];
+    var candidates = [];
+    for (var i = 0; i < lines.length; i += 1) {
+      if (recentSet.indexOf(lines[i]) === -1) candidates.push(lines[i]);
+    }
+    var pool = candidates.length > 0 ? candidates : lines;
+    var r = typeof rng === "function" ? rng() : Math.random();
+    return pool[(Math.abs(counter | 0) + Math.floor(r * 97)) % pool.length];
   }
 
   return Object.freeze({
@@ -336,6 +411,10 @@
     evaluateAchievements: evaluateAchievements,
     matchKeyword: matchKeyword,
     pickDialogue: pickDialogue,
+    pickDialogueAvoidRecent: pickDialogueAvoidRecent,
+    greetBucket: greetBucket,
+    weatherText: weatherText,
+    classifyTask: classifyTask,
     dialogueCount: dialogueCount,
   });
 });
