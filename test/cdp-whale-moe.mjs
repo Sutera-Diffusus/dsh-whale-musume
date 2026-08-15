@@ -131,7 +131,7 @@ async function main() {
   await Promise.all([call("Page.enable"), call("Runtime.enable"), call("Log.enable"), call("Network.enable")]);
   await call("Emulation.setDeviceMetricsOverride", { width: 1560, height: 980, deviceScaleFactor: 1, mobile: false });
   await call("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: "light" }, { name: "prefers-reduced-motion", value: "no-preference" }] });
-  await evaluate(call, `localStorage.setItem('whale-moe:pet','1'); localStorage.setItem('whale-moe:chat','1'); localStorage.setItem('whale-moe:particles','1'); localStorage.setItem('whale-moe:mode','auto'); localStorage.removeItem('whale-moe:floatX'); localStorage.removeItem('whale-moe:floatY'); true`);
+  await evaluate(call, `localStorage.setItem('whale-moe:pet','1'); localStorage.setItem('whale-moe:chat','1'); localStorage.setItem('whale-moe:particles','1'); localStorage.setItem('whale-moe:mode','auto'); localStorage.removeItem('whale-moe:floatX'); localStorage.removeItem('whale-moe:floatY'); localStorage.removeItem('whale-moe:weatherCity'); localStorage.removeItem('whale-moe:weatherKey'); true`);
   await call("Page.reload", { ignoreCache: true });
   await waitReady(call);
   await delay(800);
@@ -217,6 +217,20 @@ async function main() {
   check("settings: wardrobe removed", settings.wardrobeGone === true, settings);
   check("settings: mode selector hidden (float only)", settings.modeGone === true, settings);
   check("settings: call-me title input", settings.hasTitle === true, settings.hasTitle);
+
+  // Weather block: three controls + zero network while city is empty
+  const weatherUI = await evaluate(call, `(() => {
+    const inputs = [...document.querySelectorAll('[role="dialog"] input')];
+    const city = inputs.find((n) => n.placeholder && n.placeholder.includes('留空不联网'));
+    const key = inputs.find((n) => n.placeholder && n.placeholder.includes('免费无需 Key'));
+    const testBtn = [...document.querySelectorAll('[role="dialog"] button')].find((b) => (b.textContent || '').includes('测试连接'));
+    const weather = window.__dshWhaleMoeWeather;
+    return { hasCity: !!city, hasKey: !!key, hasTest: !!testBtn, idleChat: !!window.__dshWhaleMoeIdleChat, fetchedAt: weather ? weather.fetchedAt : 0 };
+  })()`);
+  check("settings: weather city/key/test controls present", weatherUI.hasCity && weatherUI.hasKey && weatherUI.hasTest && weatherUI.idleChat, weatherUI);
+  await delay(1200);
+  const noFetch = await evaluate(call, `window.__dshWhaleMoeWeather && window.__dshWhaleMoeWeather.fetchedAt === 0`);
+  check("weather: empty city makes zero weather requests", noFetch === true, { noFetch });
   await screenshot(call, "02-settings-light.png");
   await evaluate(call, `(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true; })()`);
   await waitFor(call, `!document.querySelector('[role="dialog"]')`, "settings closed", 6000).catch(async () => {

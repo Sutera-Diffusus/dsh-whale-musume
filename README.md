@@ -5,7 +5,7 @@
 一只会陪你写代码的鲸鱼娘：待机安静陪伴，工作开始就抱起笔记本陪你干活；可以摸头养成、解锁成就，也可以拖着她到处走。所有资源本地运行，无遥测、无外部请求。
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Version](https://img.shields.io/badge/version-1.0.2-blue)
+![Version](https://img.shields.io/badge/version-1.1.0-blue)
 ![DSH](https://img.shields.io/badge/DSH-0.1.0--rc.6-blue)
 
 ---
@@ -40,6 +40,13 @@
 - 检测到工具运行（`data-running` / `data-state="ongoing"`）自动切换为「抱笔记本工作」；
 - 工作中带淡蓝光晕和「工作中」标签；
 - 工作状态下点击她，会随机出现「害羞抱电脑」或「偷吃内存条」的反应，不会打断工作状态；工作期间保持 running 姿势稳定，不再随机切小剧场。
+
+### 💬 梗聊天与天气陪伴
+
+- 494 条台词：全场景覆盖，可爱为主，叠加打工人、摸鱼、DDL、画饼、发疯文学等安全梗；
+- 5–8 分钟主动闲聊：按当前任务内容本地分类贴题，不尬聊；工作态绝不插嘴；
+- 分时问候：早上/上午/中午/下午/傍晚带关心话，深夜 23:00–5:59 不主动打扰；
+- 天气陪伴：设置 → 看板娘 → 天气，填写城市（选填 API Key）并测试连接；Open-Meteo 免费无需 Key，城市留空零联网。
 
 ### 🎀 互动与特效
 
