@@ -49,8 +49,8 @@ test("keyword matcher only works when enabled", () => {
   assert.equal(core.matchKeyword("无关内容", true), null);
 });
 
-test("dialogue bank meets the 150-line quota", () => {
-  assert.ok(core.dialogueCount() >= 150, String(core.dialogueCount()));
+test("dialogue bank meets the 480-line quota", () => {
+  assert.ok(core.dialogueCount() >= 480, String(core.dialogueCount()));
 });
 
 test("pickDialogue rotates within the requested event", () => {
