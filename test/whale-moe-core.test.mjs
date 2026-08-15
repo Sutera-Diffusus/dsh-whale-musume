@@ -151,3 +151,28 @@ test("pickDialogueAvoidRecent avoids recent lines", () => {
   const pick = core.pickDialogueAvoidRecent("daily", "morning", 0, () => 0.99, recent);
   assert.equal(pick, "早～再不起来我就把你的咖啡喝光啦☕");
 });
+
+test("meme keyword groups match and have lines", () => {
+  assert.equal(core.matchKeyword("我是打工人", true), "worker");
+  assert.equal(core.matchKeyword("今天一直在摸鱼", true), "slack");
+  assert.equal(core.matchKeyword("DDL 要到了", true), "ddl");
+  assert.equal(core.matchKeyword("老板又在画饼", true), "cake");
+  assert.equal(core.matchKeyword("已老实求放过", true), "crazy");
+  assert.equal(core.matchKeyword("我立个 flag", true), "flag");
+  assert.equal(core.matchKeyword("这个 bug 好玄学", true), "bugtalk");
+  ["worker", "slack", "ddl", "cake", "crazy", "flag", "bugtalk"].forEach((id) => {
+    assert.ok(core.DIALOGUE.keyword[id] && core.DIALOGUE.keyword[id].length >= 5, id);
+  });
+  ["worker", "slack", "ddl", "cake", "crazy", "flag"].forEach((id) => {
+    assert.ok(core.DIALOGUE.meme[id] && core.DIALOGUE.meme[id].length >= 5, "meme " + id);
+  });
+  ["code", "write", "research", "bug", "data", "deploy", "general"].forEach((id) => {
+    assert.ok(core.DIALOGUE.context[id] && core.DIALOGUE.context[id].length >= 4, id);
+  });
+  ["sunny", "rain", "snow", "thunder", "cloudy", "fog", "hot", "cold", "wind"].forEach((id) => {
+    assert.ok(core.DIALOGUE.weather[id] && core.DIALOGUE.weather[id].length >= 3, id);
+  });
+  ["morning", "forenoon", "noon", "afternoon", "evening", "night"].forEach((id) => {
+    assert.ok(core.DIALOGUE.greet[id] && core.DIALOGUE.greet[id].length >= 5, id);
+  });
+});
