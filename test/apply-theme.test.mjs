@@ -183,7 +183,7 @@ test("patchMascotClient adds the mascot settings section and is idempotent", () 
   const fixture = 'const store = 1;\nconst injected = (a) => a;\nctx.slots.inject("settings.theme.item", () => ctx.slots.register({}, ThemePackRow));';
   const out = patchMascotClient(fixture);
   assert.equal(out.changed, true);
-  assert.ok(out.source.includes("/* DSH-WHALE-MOE:MASCOT-SETTINGS v9 */"));
+  assert.ok(out.source.includes("/* DSH-WHALE-MOE:MASCOT-SETTINGS v10 */"));
   assert.ok(out.source.includes('id: "mascot"'));
   assert.ok(out.source.includes('label: "看板娘"'));
   assert.ok(out.source.includes('label: "DS娘（鲸鱼娘）"'));
@@ -201,17 +201,18 @@ test("patchMascotClient adds the mascot settings section and is idempotent", () 
   assert.ok(out.source.includes('MASCOT_CARD_STYLE'));
   assert.ok(out.source.includes('title: "基础"') && out.source.includes('title: "智能"') && out.source.includes('title: "位置与数据"'));
   assert.ok(out.source.includes('repeat(3, minmax(0, 1fr))'));
+  assert.ok(out.source.includes('borderRadius: "999px"') && out.source.includes('mascotReact.useState'));
   assert.ok(out.source.includes('"whale-moe-prefs-change"'));
   const second = patchMascotClient(out.source);
   assert.equal(second.changed, false);
 });
 
-test("patchMascotClient upgrades legacy v1-v8 blocks to v9", () => {
+test("patchMascotClient upgrades legacy v1-v9 blocks to v10", () => {
   const fixture = 'const store = 1;\nconst injected = (a) => a;\nctx.slots.inject("settings.theme.item", () => ctx.slots.register({}, ThemePackRow));';
-  const legacy = patchMascotClient(fixture).source.replace("DSH-WHALE-MOE:MASCOT-SETTINGS v9", "DSH-WHALE-MOE:MASCOT-SETTINGS v3");
+  const legacy = patchMascotClient(fixture).source.replace("DSH-WHALE-MOE:MASCOT-SETTINGS v10", "DSH-WHALE-MOE:MASCOT-SETTINGS v3");
   const upgraded = patchMascotClient(legacy);
   assert.equal(upgraded.changed, true);
-  assert.ok(upgraded.source.includes("DSH-WHALE-MOE:MASCOT-SETTINGS v9"));
+  assert.ok(upgraded.source.includes("DSH-WHALE-MOE:MASCOT-SETTINGS v10"));
   assert.ok(!upgraded.source.includes("DSH-WHALE-MOE:MASCOT-SETTINGS v3"));
   assert.equal((upgraded.source.match(/id: "mascot"/g) || []).length, 1);
 });

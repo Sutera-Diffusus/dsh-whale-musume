@@ -35,7 +35,7 @@
      test fixtures and older builds. */
   var SIGNAL_BANKS = Object.freeze({
     thinking: ['[aria-busy="true"]', '[data-status="pending"]', '[data-state="loading"]', '[data-slot="conversation.chat.node"] [class*="stream" i]'],
-    tool: ['[data-role="tool"]', '[data-tool="true"]', '[data-tool-card="true"]', '[data-status="running"]', '[data-running]', '[data-state="ongoing"]'],
+    tool: ['[data-role="tool"]', '[data-tool="true"]', '[data-tool-card="true"]', '[data-status="running"]', '[data-running]', '[data-state="ongoing"]', '[data-state="running"]'],
     error: ['[data-state="error"]:not([class*="turnErrorDot"])', '[data-status="error"]', '[aria-invalid="true"]'],
     success: ['[data-state="success"]', '[data-status="success"]'],
     code: ['pre', '[data-slot="terminal"]', '[data-role="log"]', '[data-terminal]'],
@@ -179,6 +179,8 @@
         applyLayers();
         return;
       }
+      /* 待机微动作和换图动画不能叠在同一节点上，先取消 */
+      motionNode.classList.remove("dsh-whale-hop", "dsh-whale-squint");
       var swapGen = layerState.gen;
       layerState.pendingSwap = src;
       var hide = motionNode.animate(
@@ -188,6 +190,11 @@
         ],
         { duration: 140, easing: "cubic-bezier(0.55, 0, 1, 0.45)" }
       );
+      hide.oncancel = function () {
+        hide.onfinish = null;
+        if (swapGen !== layerState.gen) { layerState.pendingSwap = ""; return; }
+        applyLayers();
+      };
       hide.onfinish = function () {
         hide.onfinish = null;
         if (swapGen !== layerState.gen) { layerState.pendingSwap = ""; return; } /* superseded by a newer pose */
@@ -803,6 +810,10 @@
     viewChangedAt: -Infinity,
     lastInteractionAt: Date.now(),
     toolWasActive: false,
+    toolSeenAt: 0,
+    toolGoneAt: 0,
+    thinkingSeenAt: 0,
+    thinkingGoneAt: 0,
     lastSuccessAt: -Infinity,
     state: { state: "idle", lastSpeechAt: -Infinity },
     idleTick: 0,
@@ -825,13 +836,15 @@
     lastPoseSrc: "",
     lastLine: "",
     bubbleHideAt: 0,
-    errorSeen: [],
+    errorBaseline: null,
     failed: false
   };
 
   function errorVisible() {
     memory.lastErrorMatches = [];
-    var seen = memory.errorSeen || (memory.errorSeen = []);
+    var baseline = memory.errorBaseline;
+    var firstPass = baseline === null;
+    if (firstPass) baseline = memory.errorBaseline = [];
     for (var i = 0; i < SIGNAL_BANKS.error.length; i += 1) {
       var nodes = doc.querySelectorAll(SIGNAL_BANKS.error[i]);
       for (var j = 0; j < nodes.length; j += 1) {
@@ -839,23 +852,16 @@
         /* Historical DSH log clusters carry data-state="error" for a failed
            step that already finished; they are records, not live failures. */
         if (typeof n.closest === "function" && n.closest('[class*="dshLogCluster"]')) continue;
+        /* First pass: seed every pre-existing error node as history.
+           Any node created after this pass is live and keeps the failure
+           state for as long as it remains visible. */
+        if (firstPass) { baseline.push(n); continue; }
+        if (baseline.indexOf(n) !== -1) continue;
         if (!isVisible(n)) continue;
         var meaningful = n.getAttribute("role") === "alert"
           || n.getAttribute("aria-invalid") === "true"
           || (n.textContent || "").trim().length > 0;
         if (!meaningful) continue;
-        /* History cards for old turns sit inside conversation chat nodes.
-           Seed them on first pass and only treat *newly created* error nodes
-           as live failures, so an old failed step can never pin the mascot
-           in the failure pose forever. */
-        var known = seen.indexOf(n) !== -1;
-        if (!known) {
-          seen.push(n);
-          if (seen.length > 400) seen.shift();
-          if (seen.length <= 400 && (n.closest ? n.closest('[data-slot="conversation.chat.node"]') : null)) continue;
-        } else {
-          continue;
-        }
         memory.lastErrorMatches.push({
           sel: SIGNAL_BANKS.error[i],
           tag: n.tagName,
@@ -870,11 +876,37 @@
     return false;
   }
 
+  function toolVisible() {
+    for (var i = 0; i < SIGNAL_BANKS.tool.length; i += 1) {
+      var nodes = doc.querySelectorAll(SIGNAL_BANKS.tool[i]);
+      for (var j = 0; j < nodes.length; j += 1) {
+        var n = nodes[j];
+        /* 历史步骤卡片会永久带着 data-state="running"；会话消息流内的
+           视为历史，消息流之外的运行标记才代表当前正在工作。 */
+        if (SIGNAL_BANKS.tool[i] === '[data-state="running"]') {
+          if (typeof n.closest === "function" && n.closest('[data-slot="conversation.chat.node"]')) continue;
+        }
+        if (isVisible(n)) return true;
+      }
+    }
+    return false;
+  }
+
   function collectSignals() {
     var now = Date.now();
     var view = detectView();
-    var toolActive = anyVisible(SIGNAL_BANKS.tool);
+    var rawTool = toolVisible();
+    var rawThinking = anyVisible(SIGNAL_BANKS.thinking);
+    /* 消抖：信号必须连续存在 400ms 才算数；消失后至少保持 1.4s，
+       避免 DSH 装饰性的 ongoing 小点把待机闪成“工作中”。 */
+    if (rawTool) { if (!memory.toolSeenAt) memory.toolSeenAt = now; memory.toolGoneAt = 0; }
+    else { memory.toolSeenAt = 0; if (!memory.toolGoneAt) memory.toolGoneAt = now; }
+    if (rawThinking) { if (!memory.thinkingSeenAt) memory.thinkingSeenAt = now; memory.thinkingGoneAt = 0; }
+    else { memory.thinkingSeenAt = 0; if (!memory.thinkingGoneAt) memory.thinkingGoneAt = now; }
+    var toolActive = rawTool ? now - memory.toolSeenAt >= 300 : memory.toolGoneAt !== 0 && now - memory.toolGoneAt < 2000;
+    var thinkingActive = rawThinking ? now - memory.thinkingSeenAt >= 300 : memory.thinkingGoneAt !== 0 && now - memory.thinkingGoneAt < 1600;
     var errorActive = errorVisible();
+    memory.lastErrorActive = errorActive;
     if (view === "workbench" && memory.toolWasActive && !toolActive && !errorActive) memory.lastSuccessAt = now;
     memory.toolWasActive = toolActive;
     var dense = countVisible(SIGNAL_BANKS.code) >= 3;
@@ -883,7 +915,7 @@
     return {
       view: view,
       waiting: false,
-      thinking: anyVisible(SIGNAL_BANKS.thinking),
+      thinking: thinkingActive,
       tool: toolActive,
       successAt: anyVisible(SIGNAL_BANKS.success) ? now : memory.lastSuccessAt,
       error: errorActive,
@@ -1033,7 +1065,7 @@
 
     memory.state = computed;
     memory.lastLine = computed.line;
-    root.__dshWhaleMoeDebug = { state: computed.state, pose: computed.pose, line: computed.line, view: view, mode: readMode(), layout: layout.kind, failed: memory.failed, errorMatches: memory.lastErrorMatches, lastEventState: memory.lastEventState, stateHoldUntil: memory.stateHoldUntil, holdLeft: Math.max(0, memory.stateHoldUntil - Date.now()) };
+    root.__dshWhaleMoeDebug = { state: computed.state, pose: computed.pose, line: computed.line, view: view, mode: readMode(), layout: layout.kind, failed: memory.failed, errorMatches: memory.lastErrorMatches, errorActive: memory.lastErrorActive, lastEventState: memory.lastEventState, stateHoldUntil: memory.stateHoldUntil, holdLeft: Math.max(0, memory.stateHoldUntil - Date.now()), moodPose: memory.moodPose, moodUntil: memory.moodUntil };
   }
 
   /* 待机 base 稳定为 idle-cute；情绪动作只由随机低频的 showMood 覆盖。
@@ -1275,7 +1307,7 @@
           if (now >= memory.nextIdleMicroAt) {
             memory.nextIdleMicroAt = now + 18000 + Math.floor(Math.random() * 10000);
             var motionNode = node.querySelector("[data-dsh-whale-motion]");
-            if (motionNode) {
+            if (motionNode && !layerState.pendingSwap) {
               var cls = Math.random() < 0.5 ? "dsh-whale-hop" : "dsh-whale-squint";
               motionNode.classList.remove("dsh-whale-hop", "dsh-whale-squint");
               void motionNode.offsetWidth;

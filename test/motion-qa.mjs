@@ -85,7 +85,7 @@ async function main() {
     await delay(100);
   }
   await delay(250);
-  const busyDiag = await ev(call, `({ state: window.__dshWhaleMoeDebug?.state, src: document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src'), busy: document.querySelector('[data-dsh-whale-root]')?.hasAttribute('data-dsh-whale-busy') })`);
+  const busyDiag = await ev(call, `({ state: window.__dshWhaleMoeDebug?.state, src: document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src'), busy: document.querySelector('[data-dsh-whale-root]')?.hasAttribute('data-dsh-whale-busy'), debug: window.__dshWhaleMoeDebug })`);
   check("float: busy pose + glow while running", busyDiag.state === "tool" && busyDiag.src.includes("dsh-whale-state-running.webp") && busyDiag.busy === true, busyDiag);
   await shot(call, "qa-2-switch-after.png");
   await ev(call, `document.querySelectorAll('[data-dsh-qa-fake]').forEach(n=>n.remove()); true`);

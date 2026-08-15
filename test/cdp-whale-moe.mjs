@@ -205,13 +205,13 @@ async function main() {
   await delay(500);
   const settings = await evaluate(call, `(() => {
     const root = document.querySelector('[data-dsh-whale-root]');
-    const switches = [...document.querySelectorAll('[role="dialog"] button[role="switch"]')].map((b) => ({ pressed: b.getAttribute('aria-checked'), txt: (b.textContent || '').trim() }));
+    const switches = [...document.querySelectorAll('[role="dialog"] button[role="switch"]')].map((b) => ({ pressed: b.getAttribute('aria-checked'), capsule: getComputedStyle(b).borderRadius }));
     const dialog = document.querySelector('[role="dialog"]');
     const text = dialog ? dialog.textContent : '';
     return { rootDisplay: root ? getComputedStyle(root).display : 'missing', switches, hasGrowth: text.includes('心情') && text.includes('好感度') && text.includes('重置养成'), hasKeyword: text.includes('关键词感知'), hasTitle: text.includes('如何称呼我'), hasStats: text.includes('陪伴') && text.includes('成就墙') && text.includes('工具百连') && !text.includes('—'), wardrobeGone: !text.includes('装饰衣柜') && !text.includes('小皇冠'), modeGone: !text.includes('形态') && !text.includes('悬浮（可拖拽）') };
   })()`);
   check("settings: mascot stays out", settings.rootDisplay === "none", settings.rootDisplay);
-  check("settings: mascot panel has 6 switches", settings.switches.length === 6, settings.switches);
+  check("settings: mascot panel has 6 capsule switches", settings.switches.length === 6 && settings.switches.every((s) => s.pressed === "true" && String(s.capsule).includes("999")), settings.switches);
   check("settings: growth + keyword rows", settings.hasGrowth && settings.hasKeyword, settings);
   check("settings: live stats + companionship + achievements", settings.hasStats === true, settings);
   check("settings: wardrobe removed", settings.wardrobeGone === true, settings);
@@ -234,7 +234,7 @@ async function main() {
   const idleDiag = await evaluate(call, `({ state: window.__dshWhaleMoeDebug.state, src: document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src'), moodOverlays: document.querySelectorAll('[data-dsh-whale-mood]').length })`);
   check("state: workbench idle pose distinct from busy", idleDiag.state !== "waiting" && idleDiag.src.includes("workbench-peek"), idleDiag);
   check("mood: no vector expression overlay", idleDiag.moodOverlays === 0, idleDiag.moodOverlays);
-  await evaluate(call, addFake(`node.setAttribute('data-state','running'); node.textContent='运行中·历史步骤';`));
+  await evaluate(call, `(() => { const chat = document.querySelector('[data-slot="conversation.chat.node"]'); const n = document.createElement('div'); n.setAttribute('data-dsh-qa-fake','true'); n.setAttribute('data-state','running'); n.textContent='运行中·历史步骤'; chat.appendChild(n); return true; })()`);
   await delay(500);
   const staleRunning = await evaluate(call, `({ state: window.__dshWhaleMoeDebug.state, matches: document.querySelectorAll('[data-state="running"]').length })`);
   check("state: historical data-state=running card is not live work", staleRunning.state !== "tool" && staleRunning.state !== "thinking", staleRunning);
@@ -271,7 +271,12 @@ async function main() {
   await waitFor(call, `(document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || '').includes('dsh-whale-state-running.webp')`, "work-pat returns to running");
   await evaluate(call, dropFakes);
   await evaluate(call, addFake(`node.setAttribute('data-state','error'); node.setAttribute('aria-invalid','true');`));
-  await waitFor(call, `window.__dshWhaleMoeDebug && window.__dshWhaleMoeDebug.state === 'failure'`, "failure state");
+  try {
+    await waitFor(call, `window.__dshWhaleMoeDebug && window.__dshWhaleMoeDebug.state === 'failure'`, "failure state");
+  } catch (e) {
+    const fd = await evaluate(call, `JSON.stringify({ debug: window.__dshWhaleMoeDebug, errorNodes: [...document.querySelectorAll('[aria-invalid="true"],[data-state="error"]')].map(n=>({tag:n.tagName,cls:String(n.className).slice(0,60),txt:(n.textContent||'').trim().slice(0,40),vis:n.getBoundingClientRect().width>1&&n.getBoundingClientRect().height>1})) })`);
+    throw new Error("failure diag " + fd);
+  }
   check("state: failure state + burst", await evaluate(call, `({ state: window.__dshWhaleMoeDebug.state, burst: document.querySelectorAll('[data-dsh-whale-burst]').length })`).then((v) => v.state === "failure" && v.burst >= 0));
   await screenshot(call, "04-failure-state.png");
   await evaluate(call, dropFakes);
@@ -323,6 +328,7 @@ async function main() {
   const setMode = (value) => `localStorage.setItem('whale-moe:mode','${value}'); window.dispatchEvent(new CustomEvent('whale-moe-prefs-change', { detail: { key: 'mode', value: '${value}' } })); true`;
   await evaluate(call, setMode("float"));
   await waitFor(call, `document.querySelector('[data-dsh-whale-root]').getAttribute('data-dsh-whale-mode') === 'float'`, "float mode");
+  await waitFor(call, `window.__dshWhaleMoeDebug && !['tool','thinking','failure'].includes(window.__dshWhaleMoeDebug.state)`, "calm before drag");
   const dragStart = await evaluate(call, `(() => {
     const m = document.querySelector('[data-dsh-whale-mascot]');
     const r = m.getBoundingClientRect();

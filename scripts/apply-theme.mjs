@@ -237,8 +237,8 @@ export function untheme(target = DEFAULT_TARGET, options = {}) {
 
 /* ---- mascot settings section: DS娘（鲸鱼娘） ---- */
 
-const MASCOT_SETTINGS_MARKER = "DSH-WHALE-MOE:MASCOT-SETTINGS v9";
-const MASCOT_SETTINGS_LEGACY = ["DSH-WHALE-MOE:MASCOT-SETTINGS v1", "DSH-WHALE-MOE:MASCOT-SETTINGS v2", "DSH-WHALE-MOE:MASCOT-SETTINGS v3", "DSH-WHALE-MOE:MASCOT-SETTINGS v4", "DSH-WHALE-MOE:MASCOT-SETTINGS v5", "DSH-WHALE-MOE:MASCOT-SETTINGS v6", "DSH-WHALE-MOE:MASCOT-SETTINGS v7", "DSH-WHALE-MOE:MASCOT-SETTINGS v8"];
+const MASCOT_SETTINGS_MARKER = "DSH-WHALE-MOE:MASCOT-SETTINGS v10";
+const MASCOT_SETTINGS_LEGACY = ["DSH-WHALE-MOE:MASCOT-SETTINGS v1", "DSH-WHALE-MOE:MASCOT-SETTINGS v2", "DSH-WHALE-MOE:MASCOT-SETTINGS v3", "DSH-WHALE-MOE:MASCOT-SETTINGS v4", "DSH-WHALE-MOE:MASCOT-SETTINGS v5", "DSH-WHALE-MOE:MASCOT-SETTINGS v6", "DSH-WHALE-MOE:MASCOT-SETTINGS v7", "DSH-WHALE-MOE:MASCOT-SETTINGS v8", "DSH-WHALE-MOE:MASCOT-SETTINGS v9"];
 const MASCOT_SETTINGS_ANCHOR = "}, ThemePackRow));";
 
 function mascotBlock(marker) {
@@ -255,18 +255,20 @@ function mascotBlock(marker) {
 			try { const v = window.localStorage.getItem("whale-moe:" + key); return v === null ? fallback : v; } catch (e) { return fallback; }
 		}
 		function MascotPrefRow({ label, prefKey }) {
-			const isOn = MascotValue(prefKey, prefKey === "keywords" ? "0" : "1") !== "0";
-			return (0, react_jsx_runtime.jsxs)("label", { style: MASCOT_ROW_STYLE, children: [(0, react_jsx_runtime.jsx)("span", { children: label }), (0, react_jsx_runtime.jsx)("button", {
+			const [isOn, setIsOn] = mascotReact.useState(MascotValue(prefKey, prefKey === "keywords" ? "0" : "1") !== "0");
+			return (0, react_jsx_runtime.jsxs)("div", { style: MASCOT_ROW_STYLE, children: [(0, react_jsx_runtime.jsx)("span", { children: label }), (0, react_jsx_runtime.jsx)("button", {
 				type: "button", role: "switch",
 				"aria-checked": isOn,
+				style: { alignItems: "center", background: isOn ? "var(--dsw-static-accent, #4da3ff)" : "var(--dsw-alias-border-l3, #c9cdd6)", border: "none", borderRadius: "999px", cursor: "pointer", display: "flex", height: "24px", justifyContent: isOn ? "flex-end" : "flex-start", padding: "3px", transition: "background 160ms ease", width: "44px" },
 				onClick: (event) => {
-					const next = isOn ? "0" : "1";
-					try { window.localStorage.setItem("whale-moe:" + prefKey, next); } catch (e) {}
-					event.currentTarget.setAttribute("aria-checked", String(next === "1"));
-					event.currentTarget.textContent = next === "1" ? "开" : "关";
-					window.dispatchEvent(new CustomEvent("whale-moe-prefs-change", { detail: { key: prefKey, value: next } }));
+					event.stopPropagation();
+					event.preventDefault();
+					const next = !isOn;
+					try { window.localStorage.setItem("whale-moe:" + prefKey, next ? "1" : "0"); } catch (e) {}
+					setIsOn(next);
+					window.dispatchEvent(new CustomEvent("whale-moe-prefs-change", { detail: { key: prefKey, value: next ? "1" : "0" } }));
 				},
-				children: isOn ? "开" : "关"
+				children: (0, react_jsx_runtime.jsx)("span", { style: { background: "#fff", borderRadius: "50%", boxShadow: "0 1px 3px rgb(0 0 0 / 25%)", height: "18px", width: "18px" } })
 			})] });
 		}
 		function MascotTitleRow() {
