@@ -192,12 +192,21 @@
       );
       hide.oncancel = function () {
         hide.onfinish = null;
-        if (swapGen !== layerState.gen) { layerState.pendingSwap = ""; return; }
+        if (swapGen !== layerState.gen) {
+          /* 本次换图已被更新的换图取代：只清理属于自己的标记，
+             绝不能把新一代动画的 pendingSwap 一起抹掉，否则渲染循环
+             会反复重启同一组动画，表现为“抽搐”。 */
+          if (layerState.pendingSwap === src) layerState.pendingSwap = "";
+          return;
+        }
         applyLayers();
       };
       hide.onfinish = function () {
         hide.onfinish = null;
-        if (swapGen !== layerState.gen) { layerState.pendingSwap = ""; return; } /* superseded by a newer pose */
+        if (swapGen !== layerState.gen) {
+          if (layerState.pendingSwap === src) layerState.pendingSwap = "";
+          return;
+        }
         applyLayers();
         motionNode.animate(
           [
@@ -499,10 +508,8 @@
   var lastTripleAt = 0;
   var lastPatProcessedAt = 0;
   var lastPatSpeechAt = 0;
-  var lastWorkSlackAt = 0;
   var lastBalanceLowAt = 0;
   var IDLE_ACTION_POOL = ["daily-eat", "daily-coffee", "daily-stretch", "daily-pajama", "daily-shower", "cool-shades", "meme-smug"];
-  var BUSY_ACTION_POOL = ["work-slack", "work-idea", "work-deadline", "work-boss", "work-slack-phone", "work-sleep"];
   function showMood(kind, duration) {
     var rootNode = doc.querySelector("[data-dsh-whale-root]");
     if (!rootNode) return;
@@ -812,8 +819,10 @@
     toolWasActive: false,
     toolSeenAt: 0,
     toolGoneAt: 0,
+    toolRawSeen: false,
     thinkingSeenAt: 0,
     thinkingGoneAt: 0,
+    thinkingRawSeen: false,
     lastSuccessAt: -Infinity,
     state: { state: "idle", lastSpeechAt: -Infinity },
     idleTick: 0,
@@ -822,7 +831,6 @@
     lastIdlePoseAt: 0,
     nextIdleMicroAt: 0,
     nextIdleActionAt: 0,
-    nextBusyActionAt: 0,
     failureStreak: 0,
     lastGrowthTick: 0,
     stateHoldUntil: 0,
@@ -897,14 +905,37 @@
     var view = detectView();
     var rawTool = toolVisible();
     var rawThinking = anyVisible(SIGNAL_BANKS.thinking);
-    /* 消抖：信号必须连续存在 400ms 才算数；消失后至少保持 1.4s，
-       避免 DSH 装饰性的 ongoing 小点把待机闪成“工作中”。 */
-    if (rawTool) { if (!memory.toolSeenAt) memory.toolSeenAt = now; memory.toolGoneAt = 0; }
-    else { memory.toolSeenAt = 0; if (!memory.toolGoneAt) memory.toolGoneAt = now; }
-    if (rawThinking) { if (!memory.thinkingSeenAt) memory.thinkingSeenAt = now; memory.thinkingGoneAt = 0; }
-    else { memory.thinkingSeenAt = 0; if (!memory.thinkingGoneAt) memory.thinkingGoneAt = now; }
-    var toolActive = rawTool ? now - memory.toolSeenAt >= 300 : memory.toolGoneAt !== 0 && now - memory.toolGoneAt < 2000;
-    var thinkingActive = rawThinking ? now - memory.thinkingSeenAt >= 300 : memory.thinkingGoneAt !== 0 && now - memory.thinkingGoneAt < 1600;
+    /* 消抖：信号必须连续存在 300ms 才算数；消失后按场景保持——
+       主页 4s、工作台 8s。工作台的工具面板在任务间会短暂空白，
+       拉长保持时间让工作姿势在整段工作期间钉住，不再反复切换。 */
+    var goneHold = view === "workbench" ? 8000 : 4000;
+    var wasRawTool = memory.toolRawSeen;
+    if (rawTool) {
+      if (!memory.toolSeenAt) memory.toolSeenAt = now;
+      memory.toolRawSeen = true;
+    } else {
+      memory.toolSeenAt = 0;
+      /* 只在下沿记录“开始消失的时刻”，中间回来又消失则重新起算 */
+      if (wasRawTool || !memory.toolGoneAt) memory.toolGoneAt = now;
+      memory.toolRawSeen = false;
+    }
+    var wasRawThinking = memory.thinkingRawSeen;
+    if (rawThinking) {
+      if (!memory.thinkingSeenAt) memory.thinkingSeenAt = now;
+      memory.thinkingRawSeen = true;
+    } else {
+      memory.thinkingSeenAt = 0;
+      if (wasRawThinking || !memory.thinkingGoneAt) memory.thinkingGoneAt = now;
+      memory.thinkingRawSeen = false;
+    }
+    /* 关键：信号短暂消失又回来时，seenAt 会归零重算。不能因此把
+       active 直接打回 false —— 只要没离开满 goneHold，就一直钉在工作态。 */
+    var toolActive = rawTool
+      ? (now - memory.toolSeenAt >= 300 || (memory.toolGoneAt !== 0 && now - memory.toolGoneAt < goneHold))
+      : memory.toolGoneAt !== 0 && now - memory.toolGoneAt < goneHold;
+    var thinkingActive = rawThinking
+      ? (now - memory.thinkingSeenAt >= 300 || (memory.thinkingGoneAt !== 0 && now - memory.thinkingGoneAt < goneHold))
+      : memory.thinkingGoneAt !== 0 && now - memory.thinkingGoneAt < goneHold;
     var errorActive = errorVisible();
     memory.lastErrorActive = errorActive;
     if (view === "workbench" && memory.toolWasActive && !toolActive && !errorActive) memory.lastSuccessAt = now;
@@ -941,10 +972,13 @@
     /* layout routing */
     var layout = resolveLayout(view, computed);
     var moodActive = memory.moodUntil > Date.now() && !!memory.moodPose;
+    /* 工作态优先级最高：只要在忙，情绪姿势一律让位给 running，
+       只有点击互动专用的 work-pat/work-ram 可以短暂覆盖。 */
+    var moodAllowed = BUSY_STATES[computed.state] !== 1 || memory.moodPose === "work-pat" || memory.moodPose === "work-ram";
     if (!layout || layout.hidden) {
       rootNode.style.display = "none";
     } else {
-      if (moodActive) {
+      if (moodActive && moodAllowed) {
         layout.src = ASSET_ROOT + "dsh-whale-state-" + memory.moodPose + ".webp";
       }
       if (layout.anchor) placeAnchored(rootNode, layout);
@@ -1322,19 +1356,11 @@
             showMood(IDLE_ACTION_POOL[Math.floor(Math.random() * IDLE_ACTION_POOL.length)], 4200 + Math.floor(Math.random() * 1600));
           }
         }
-        /* 工作中长时间没人碰 → 随机工作小剧场；有低余额标记 → 眼巴巴 */
-        if (BUSY_STATES[memory.state.state] === 1 && now - memory.lastInteractionAt > 24000) {
-          if (!memory.nextBusyActionAt) memory.nextBusyActionAt = now + 45000 + Math.floor(Math.random() * 25000);
-          if (now >= memory.nextBusyActionAt) {
-            memory.nextBusyActionAt = now + 45000 + Math.floor(Math.random() * 25000);
-            showMood(BUSY_ACTION_POOL[Math.floor(Math.random() * BUSY_ACTION_POOL.length)], 4800 + Math.floor(Math.random() * 1200));
-          }
-        } else {
-          memory.nextBusyActionAt = 0;
-        }
+        /* 工作状态保持 running 姿势稳定，不再随机切工作小剧场；
+           低余额提示也只在不忙时露脸，免得打断工作态。 */
         try {
           var low = root.localStorage.getItem("dsh.balance.low") === "1";
-          if (low && now - lastBalanceLowAt > 60000) {
+          if (low && !BUSY_STATES[memory.state.state] && now - lastBalanceLowAt > 60000) {
             lastBalanceLowAt = now;
             showMood("balance-low", 5000);
           }
@@ -1344,7 +1370,7 @@
     }
     root.addEventListener("dsh-whale-balance-low", function () {
       lastBalanceLowAt = Date.now();
-      showMood("balance-low", 5000);
+      if (!BUSY_STATES[memory.state.state]) showMood("balance-low", 5000);
       if (growth && growth.achievements.indexOf("balance-low") === -1) {
         growth.achievements.push("balance-low");
         saveGrowth();

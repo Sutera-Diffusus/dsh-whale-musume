@@ -88,6 +88,24 @@ async function main() {
   const busyDiag = await ev(call, `({ state: window.__dshWhaleMoeDebug?.state, src: document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src'), busy: document.querySelector('[data-dsh-whale-root]')?.hasAttribute('data-dsh-whale-busy'), debug: window.__dshWhaleMoeDebug })`);
   check("float: busy pose + glow while running", busyDiag.state === "tool" && busyDiag.src.includes("dsh-whale-state-running.webp") && busyDiag.busy === true, busyDiag);
   await shot(call, "qa-2-switch-after.png");
+
+  // ---- work-state stickiness: a transient signal gap must not flip pose ----
+  const gapProbe = await ev(call, `(async () => {
+    const fake = document.querySelector('[data-dsh-qa-fake]');
+    fake.remove();
+    const samples = [];
+    for (let i = 0; i < 15; i++) {
+      samples.push({ state: window.__dshWhaleMoeDebug?.state, src: document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || '' });
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    document.body.appendChild(fake);
+    await new Promise((r) => setTimeout(r, 600));
+    const after = { state: window.__dshWhaleMoeDebug?.state, src: document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || '' };
+    const flips = samples.filter((s) => s.state !== 'tool' || !s.src.includes('running.webp')).length;
+    return { flips, samples, after };
+  })()`);
+  check("work: signal gap < hold never flips pose", gapProbe.flips === 0 && gapProbe.after.state === "tool" && gapProbe.after.src.includes("running.webp"), gapProbe);
+
   await ev(call, `document.querySelectorAll('[data-dsh-qa-fake]').forEach(n=>n.remove()); true`);
   for (let i = 0; i < 40; i++) { if (await ev(call, `window.__dshWhaleMoeDebug?.state === 'idle'`).catch(() => false)) break; await delay(200); }
   await delay(300);
@@ -112,7 +130,7 @@ async function main() {
   check("blink: smooth opacity dip (max jump <= 0.15, min >= 0.93)", blinkJump <= 0.15 && blinkMin >= 0.93, { blink, blinkJump });
   await shot(call, "qa-3-blink-mid.png");
 
-  const report = { pass: failures.length === 0, failures, overlapFrames: overlapFrames.slice(0, 12), busyDiag, blink };
+  const report = { pass: failures.length === 0, failures, overlapFrames: overlapFrames.slice(0, 12), busyDiag, gapProbe, blink };
   fs.writeFileSync(path.join(SHOTS, "motion-qa.json"), JSON.stringify(report, null, 2), "utf8");
   console.log("REPORT", JSON.stringify(report));
   ws.close();

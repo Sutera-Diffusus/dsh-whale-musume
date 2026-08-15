@@ -5,7 +5,7 @@
 一只会陪你写代码的鲸鱼娘：待机安静陪伴，工作开始就抱起笔记本陪你干活；可以摸头养成、解锁成就，也可以拖着她到处走。所有资源本地运行，无遥测、无外部请求。
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.0.1-blue)
 ![DSH](https://img.shields.io/badge/DSH-0.1.0--rc.6-blue)
 
 ---
@@ -39,8 +39,7 @@
 
 - 检测到工具运行（`data-running` / `data-state="ongoing"`）自动切换为「抱笔记本工作」；
 - 工作中带淡蓝光晕和「工作中」标签；
-- 工作状态下点击她，会随机出现「害羞抱电脑」或「偷吃内存条」的反应，不会打断工作状态；
-- 长时间无人互动时，会出现摸鱼、赶 deadline、假装认真等工作小剧场。
+- 工作状态下点击她，会随机出现「害羞抱电脑」或「偷吃内存条」的反应，不会打断工作状态；工作期间保持 running 姿势稳定，不再随机切小剧场。
 
 ### 🎀 互动与特效
 
