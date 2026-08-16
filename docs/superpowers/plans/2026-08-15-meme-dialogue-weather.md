@@ -185,13 +185,13 @@ Expected: PASS（新 4 项 + 旧全部）
 
 - [ ] **Step 5: 部署副本自检**
 
-Run: `node scripts/apply-theme.mjs --target "D:\DeepseekHarness_WorkSpace\_dsh-copies\dsh-whale-moe" --assets-only`
+Run: `node scripts/apply-theme.mjs --target "<TEST_DSH_COPY>" --assets-only`
 
 - [ ] **Step 6: Commit（staging 仓库）**
 
 ```powershell
-Copy-Item "D:\DeepseekHarness_WorkSpace\dsh-whale-moe-theme-extension\assets\whale-moe-core.js" "assets\whale-moe-core.js" -Force
-Copy-Item "D:\DeepseekHarness_WorkSpace\dsh-whale-moe-theme-extension\test\whale-moe-core.test.mjs" "test\whale-moe-core.test.mjs" -Force
+Copy-Item "<PROJECT_ROOT>\assets\whale-moe-core.js" "assets\whale-moe-core.js" -Force
+Copy-Item "<PROJECT_ROOT>\test\whale-moe-core.test.mjs" "test\whale-moe-core.test.mjs" -Force
 git add assets/whale-moe-core.js test/whale-moe-core.test.mjs
 git commit -m "feat(core): dialogue helper APIs for greetings weather and topics"
 ```
@@ -684,10 +684,10 @@ Expected: PASS（若 quota 仍未满 480，属于预期，Task 3 会补齐；但
 - [ ] **Step 7: 部署副本 + Commit**
 
 ```powershell
-node scripts/apply-theme.mjs --target "D:\DeepseekHarness_WorkSpace\_dsh-copies\dsh-whale-moe" --assets-only
-Copy-Item assets\whale-moe-core.js "D:\DeepseekHarness_WorkSpace\dist\dsh-whale-musume\assets\whale-moe-core.js" -Force
-git -C "D:\DeepseekHarness_WorkSpace\dist\dsh-whale-musume" add assets/whale-moe-core.js
-git -C "D:\DeepseekHarness_WorkSpace\dist\dsh-whale-musume" commit -m "feat(core): expand state daily work and interaction dialogue"
+node scripts/apply-theme.mjs --target "<TEST_DSH_COPY>" --assets-only
+Copy-Item assets\whale-moe-core.js "<STAGING_REPO>\assets\whale-moe-core.js" -Force
+git -C "<STAGING_REPO>" add assets/whale-moe-core.js
+git -C "<STAGING_REPO>" commit -m "feat(core): expand state daily work and interaction dialogue"
 ```
 
 ---
@@ -1061,11 +1061,11 @@ Expected: PASS（dialogueCount ≥ 480，关键词全命中）
 - [ ] **Step 6: 部署副本 + Commit**
 
 ```powershell
-node scripts/apply-theme.mjs --target "D:\DeepseekHarness_WorkSpace\_dsh-copies\dsh-whale-moe" --assets-only
-Copy-Item assets\whale-moe-core.js "D:\DeepseekHarness_WorkSpace\dist\dsh-whale-musume\assets\whale-moe-core.js" -Force
-Copy-Item test\whale-moe-core.test.mjs "D:\DeepseekHarness_WorkSpace\dist\dsh-whale-musume\test\whale-moe-core.test.mjs" -Force
-git -C "D:\DeepseekHarness_WorkSpace\dist\dsh-whale-musume" add assets/whale-moe-core.js test/whale-moe-core.test.mjs
-git -C "D:\DeepseekHarness_WorkSpace\dist\dsh-whale-musume" commit -m "feat(core): add meme topic weather and greeting dialogue banks"
+node scripts/apply-theme.mjs --target "<TEST_DSH_COPY>" --assets-only
+Copy-Item assets\whale-moe-core.js "<STAGING_REPO>\assets\whale-moe-core.js" -Force
+Copy-Item test\whale-moe-core.test.mjs "<STAGING_REPO>\test\whale-moe-core.test.mjs" -Force
+git -C "<STAGING_REPO>" add assets/whale-moe-core.js test/whale-moe-core.test.mjs
+git -C "<STAGING_REPO>" commit -m "feat(core): add meme topic weather and greeting dialogue banks"
 ```
 
 ---
@@ -1257,10 +1257,10 @@ Expected: 无语法错误；单元全绿
 - [ ] **Step 3: 部署副本 + Commit**
 
 ```powershell
-node scripts/apply-theme.mjs --target "D:\DeepseekHarness_WorkSpace\_dsh-copies\dsh-whale-moe" --assets-only
-Copy-Item assets\dsh-whale-moe.js "D:\DeepseekHarness_WorkSpace\dist\dsh-whale-musume\assets\dsh-whale-moe.js" -Force
-git -C "D:\DeepseekHarness_WorkSpace\dist\dsh-whale-musume" add assets/dsh-whale-moe.js
-git -C "D:\DeepseekHarness_WorkSpace\dist\dsh-whale-musume" commit -m "feat(weather): add Open-Meteo weather service and test hook"
+node scripts/apply-theme.mjs --target "<TEST_DSH_COPY>" --assets-only
+Copy-Item assets\dsh-whale-moe.js "<STAGING_REPO>\assets\dsh-whale-moe.js" -Force
+git -C "<STAGING_REPO>" add assets/dsh-whale-moe.js
+git -C "<STAGING_REPO>" commit -m "feat(weather): add Open-Meteo weather service and test hook"
 ```
 
 ---
@@ -1391,10 +1391,10 @@ Expected: 语法通过；motion QA 仍全绿（工作态不被闲聊打断）
 - [ ] **Step 3: 部署副本 + Commit**
 
 ```powershell
-node scripts/apply-theme.mjs --target "D:\DeepseekHarness_WorkSpace\_dsh-copies\dsh-whale-moe" --assets-only
-Copy-Item assets\dsh-whale-moe.js "D:\DeepseekHarness_WorkSpace\dist\dsh-whale-musume\assets\dsh-whale-moe.js" -Force
-git -C "D:\DeepseekHarness_WorkSpace\dist\dsh-whale-musume" add assets/dsh-whale-moe.js
-git -C "D:\DeepseekHarness_WorkSpace\dist\dsh-whale-musume" commit -m "feat(chat): add context-aware idle chatter and time greetings"
+node scripts/apply-theme.mjs --target "<TEST_DSH_COPY>" --assets-only
+Copy-Item assets\dsh-whale-moe.js "<STAGING_REPO>\assets\dsh-whale-moe.js" -Force
+git -C "<STAGING_REPO>" add assets/dsh-whale-moe.js
+git -C "<STAGING_REPO>" commit -m "feat(chat): add context-aware idle chatter and time greetings"
 ```
 
 ---
@@ -1494,12 +1494,12 @@ Expected: 15 项 PASS
 - [ ] **Step 6: 部署副本 + Commit**
 
 ```powershell
-node scripts/apply-theme.mjs --target "D:\DeepseekHarness_WorkSpace\_dsh-copies\dsh-whale-moe"
+node scripts/apply-theme.mjs --target "<TEST_DSH_COPY>"
 node scripts/apply-theme.mjs --mascot-settings
-Copy-Item scripts\apply-theme.mjs "D:\DeepseekHarness_WorkSpace\dist\dsh-whale-musume\scripts\apply-theme.mjs" -Force
-Copy-Item test\apply-theme.test.mjs "D:\DeepseekHarness_WorkSpace\dist\dsh-whale-musume\test\apply-theme.test.mjs" -Force
-git -C "D:\DeepseekHarness_WorkSpace\dist\dsh-whale-musume" add scripts/apply-theme.mjs test/apply-theme.test.mjs
-git -C "D:\DeepseekHarness_WorkSpace\dist\dsh-whale-musume" commit -m "feat(settings): add weather city key and connection test card"
+Copy-Item scripts\apply-theme.mjs "<STAGING_REPO>\scripts\apply-theme.mjs" -Force
+Copy-Item test\apply-theme.test.mjs "<STAGING_REPO>\test\apply-theme.test.mjs" -Force
+git -C "<STAGING_REPO>" add scripts/apply-theme.mjs test/apply-theme.test.mjs
+git -C "<STAGING_REPO>" commit -m "feat(settings): add weather city key and connection test card"
 ```
 
 ---

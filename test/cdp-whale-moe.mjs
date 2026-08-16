@@ -4,7 +4,7 @@ import path from "node:path";
 
 const CDP = "http://127.0.0.1:9223";
 const APP = "http://127.0.0.1:3181";
-const SHOTS = process.env.DSH_QA_SHOTS || "D:/DeepseekHarness_WorkSpace/_shots/dsh-whale-moe";
+const SHOTS = process.env.DSH_QA_SHOTS || "<QA_SHOTS_DIR>";
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const log = (...parts) => console.log(`[${new Date().toISOString().slice(11, 19)}]`, ...parts);
 const watchdog = setTimeout(() => { console.error("WATCHDOG: forced exit after 240s"); process.exit(2); }, 240000);

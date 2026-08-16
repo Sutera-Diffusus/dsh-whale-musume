@@ -4,7 +4,7 @@ import path from "node:path";
 
 const CDP = "http://127.0.0.1:9223";
 const APP = "http://127.0.0.1:3181";
-const OUT = "D:/DeepseekHarness_WorkSpace/dsh-whale-moe-theme-extension/assets/peek-calibration.json";
+const OUT = "<PROJECT_ROOT>/assets/peek-calibration.json";
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function newTarget(url) {

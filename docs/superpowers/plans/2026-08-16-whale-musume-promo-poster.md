@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Preview workspace: `D:\Zcode\artifacts\dsh-whale-musume-promo`.
+- Preview workspace: `<ARTIFACT_DIR>`.
 - Canvas: exactly `2048 x 1152` pixels.
 - Main title: `我来陪你啦！`.
 - Subtitle: `DeepSeek Harness 桌面看板娘插件`.
@@ -24,11 +24,11 @@
 ### Task 1: Build the deterministic poster source
 
 **Files:**
-- Create: `D:\Zcode\artifacts\dsh-whale-musume-promo\poster.html`
-- Read: `D:\DeepseekHarness_WorkSpace\_shots\dsh-whale-moe\01-home-light.png`
-- Read: `D:\DeepseekHarness_WorkSpace\dist\dsh-whale-musume\assets\generated\dsh-whale-state-running.webp`
-- Read: `D:\DeepseekHarness_WorkSpace\dist\dsh-whale-musume\assets\generated\dsh-whale-home-peek.webp`
-- Read: `D:\DeepseekHarness_WorkSpace\dist\dsh-whale-musume\assets\generated\dsh-whale-state-pick-up.webp`
+- Create: `<ARTIFACT_DIR>\poster.html`
+- Read: `<QA_SHOTS_DIR>\01-home-light.png`
+- Read: `<STAGING_REPO>\assets\generated\dsh-whale-state-running.webp`
+- Read: `<STAGING_REPO>\assets\generated\dsh-whale-home-peek.webp`
+- Read: `<STAGING_REPO>\assets\generated\dsh-whale-state-pick-up.webp`
 
 **Interfaces:**
 - Consumes: local image files through `file:///D:/...` URLs.
@@ -62,9 +62,9 @@ Place it in the main left-side workspace whitespace, with a dark ink title and w
 - [ ] **Step 3: Add the character hierarchy**
 
 ```html
-<img class="hero" src="file:///D:/DeepseekHarness_WorkSpace/dist/dsh-whale-musume/assets/generated/dsh-whale-state-running.webp" alt="">
-<img class="peek" src="file:///D:/DeepseekHarness_WorkSpace/dist/dsh-whale-musume/assets/generated/dsh-whale-home-peek.webp" alt="">
-<img class="pickup" src="file:///D:/DeepseekHarness_WorkSpace/dist/dsh-whale-musume/assets/generated/dsh-whale-state-pick-up.webp" alt="">
+<img class="hero" src="file:///<STAGING_REPO>/assets/generated/dsh-whale-state-running.webp" alt="">
+<img class="peek" src="file:///<STAGING_REPO>/assets/generated/dsh-whale-home-peek.webp" alt="">
+<img class="pickup" src="file:///<STAGING_REPO>/assets/generated/dsh-whale-state-pick-up.webp" alt="">
 ```
 
 The `running` pose is the only large subject at `520-600px` high. `home-peek` must sit on the real input boundary, while `pick-up` stays small and is connected with a restrained cursor trace. Apply only natural shadow and a subtle blue work glow; do not add a white sticker outline.
@@ -74,7 +74,7 @@ The `running` pose is the only large subject at `520-600px` high. `home-peek` mu
 Run:
 
 ```powershell
-& 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe' --headless=new --disable-gpu --allow-file-access-from-files --dump-dom 'file:///D:/Zcode/artifacts/dsh-whale-musume-promo/poster.html'
+& '<EDGE_EXE>' --headless=new --disable-gpu --allow-file-access-from-files --dump-dom 'file:///<ARTIFACT_DIR>/poster.html'
 ```
 
 Expected: output contains `我来陪你啦！`, all three `<img>` elements, and no browser load error.
@@ -82,8 +82,8 @@ Expected: output contains `我来陪你啦！`, all three `<img>` elements, and 
 ### Task 2: Export the PNG
 
 **Files:**
-- Read: `D:\Zcode\artifacts\dsh-whale-musume-promo\poster.html`
-- Create: `D:\Zcode\artifacts\dsh-whale-musume-promo\poster.png`
+- Read: `<ARTIFACT_DIR>\poster.html`
+- Create: `<ARTIFACT_DIR>\poster.png`
 
 **Interfaces:**
 - Consumes: the fixed HTML poster surface.
@@ -94,7 +94,7 @@ Expected: output contains `我来陪你啦！`, all three `<img>` elements, and 
 Run:
 
 ```powershell
-& 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe' --headless=new --disable-gpu --hide-scrollbars --allow-file-access-from-files --force-device-scale-factor=1 --window-size=2048,1152 --screenshot='D:\Zcode\artifacts\dsh-whale-musume-promo\poster.png' 'file:///D:/Zcode/artifacts/dsh-whale-musume-promo/poster.html'
+& '<EDGE_EXE>' --headless=new --disable-gpu --hide-scrollbars --allow-file-access-from-files --force-device-scale-factor=1 --window-size=2048,1152 --screenshot='<ARTIFACT_DIR>\poster.png' 'file:///<ARTIFACT_DIR>/poster.html'
 ```
 
 Expected: Edge reports a successful screenshot write.
@@ -105,7 +105,7 @@ Run:
 
 ```powershell
 Add-Type -AssemblyName System.Drawing
-$image = [System.Drawing.Image]::FromFile('D:\Zcode\artifacts\dsh-whale-musume-promo\poster.png')
+$image = [System.Drawing.Image]::FromFile('<ARTIFACT_DIR>\poster.png')
 if ($image.Width -ne 2048 -or $image.Height -ne 1152) { throw "Unexpected poster size: $($image.Width)x$($image.Height)" }
 $image.Dispose()
 ```
@@ -115,8 +115,8 @@ Expected: exit code `0` with no exception.
 ### Task 3: Visual QA and one refinement pass
 
 **Files:**
-- Modify if needed: `D:\Zcode\artifacts\dsh-whale-musume-promo\poster.html`
-- Regenerate: `D:\Zcode\artifacts\dsh-whale-musume-promo\poster.png`
+- Modify if needed: `<ARTIFACT_DIR>\poster.html`
+- Regenerate: `<ARTIFACT_DIR>\poster.png`
 
 **Interfaces:**
 - Consumes: the first rendered PNG.
@@ -144,4 +144,4 @@ Change only positioning, scale, opacity, shadow, or type size in `poster.html`, 
 
 - [ ] **Step 4: Present without committing**
 
-Show `D:\Zcode\artifacts\dsh-whale-musume-promo\poster.png` to the user and identify it as a first visual draft. Keep both preview files outside Git until the user approves the direction.
+Show `<ARTIFACT_DIR>\poster.png` to the user and identify it as a first visual draft. Keep both preview files outside Git until the user approves the direction.

@@ -125,7 +125,7 @@ cd dsh-whale-musume
 DSH 安装目录通常包含 `DeepSeekHarness-Launcher.exe` 和 `node_modules`。如果不确定，可以查看启动器配置：
 
 ```powershell
-Get-Content "D:\Deepseek harness\DeepSeekHarness-Launcher.cfg"
+Get-Content "<DSH_INSTALL_DIR>\DeepSeekHarness-Launcher.cfg"
 ```
 
 其中 `workDir` 字段指向的就是安装目录。下文统一用 `<DSH_INSTALL_DIR>` 代替该路径。
@@ -142,14 +142,14 @@ node scripts/apply-theme.mjs --mascot-settings --target "<DSH_INSTALL_DIR>"
 示例（默认安装路径）：
 
 ```powershell
-node scripts/apply-theme.mjs --assets-only --target "D:\Deepseek harness"
-node scripts/apply-theme.mjs --mascot-settings --target "D:\Deepseek harness"
+node scripts/apply-theme.mjs --assets-only --target "<DSH_INSTALL_DIR>"
+node scripts/apply-theme.mjs --mascot-settings --target "<DSH_INSTALL_DIR>"
 ```
 
 也可以通过环境变量指定安装目录：
 
 ```powershell
-$env:DSH_INSTALL_DIR = "D:\Deepseek harness"
+$env:DSH_INSTALL_DIR = "<DSH_INSTALL_DIR>"
 node scripts/apply-theme.mjs --assets-only
 node scripts/apply-theme.mjs --mascot-settings
 ```
@@ -212,7 +212,7 @@ node scripts/apply-theme.mjs --mascot-settings
 
 ### 回滚
 
-安装脚本会在 `DSH_WHALE_BACKUP`（默认 `D:\ai-temp`）目录生成备份：
+安装脚本会在 `DSH_WHALE_BACKUP`（默认 `<BACKUP_DIR>`）目录生成备份：
 
 ```powershell
 node scripts/apply-theme.mjs --rollback "<backup dir>"

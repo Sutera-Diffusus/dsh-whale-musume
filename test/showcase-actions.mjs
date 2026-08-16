@@ -5,7 +5,7 @@ import path from "node:path";
 
 const CDP = "http://127.0.0.1:9223";
 const APP = "http://127.0.0.1:3181";
-const SHOTS = "D:/DeepseekHarness_WorkSpace/_shots/dsh-whale-moe/actions";
+const SHOTS = "<QA_SHOTS_DIR>/actions";
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function main() {

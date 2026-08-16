@@ -4,15 +4,16 @@
 //   node scripts/apply-theme.mjs --target <dir>  # apply to a specific install
 //   node scripts/apply-theme.mjs --rollback <backupDir>
 // Every modified file is backed up (original content + SHA-256 manifest) to
-//   D:\ai-temp\dsh-whale-moe-<timestamp>\ before the first modification.
+//   <BACKUP_DIR>\dsh-whale-moe-<timestamp>\ before the first modification.
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const EXT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const DEFAULT_TARGET = process.env.DSH_INSTALL_DIR || "D:/Deepseek harness";
-const BACKUP_ROOT = process.env.DSH_WHALE_BACKUP || "D:/ai-temp";
+const DEFAULT_TARGET = process.env.DSH_INSTALL_DIR || "DeepSeekHarness";
+const BACKUP_ROOT = process.env.DSH_WHALE_BACKUP || path.join(os.tmpdir(), "dsh-whale-moe-backup");
 const MARKER = "DSH-WHALE-MOE-THEME v1";
 const PACK_ID = "whale-moe";
 const LABEL = "鲸鱼娘·海洋甜点工房";

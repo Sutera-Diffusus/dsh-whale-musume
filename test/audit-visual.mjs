@@ -4,7 +4,7 @@ import path from "node:path";
 
 const CDP = "http://127.0.0.1:9223";
 const APP = "http://127.0.0.1:3181";
-const OUT = "D:/DeepseekHarness_WorkSpace/_shots/dsh-whale-moe/audit.json";
+const OUT = "<QA_SHOTS_DIR>/audit.json";
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const watchdog = setTimeout(() => process.exit(2), 120000);
 
