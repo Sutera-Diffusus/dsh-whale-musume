@@ -160,7 +160,7 @@ export function apply(target = DEFAULT_TARGET, options = {}) {
     return "already";
   }
   const backupDir = path.join(backupRoot, `dsh-whale-moe-${timestamp()}`);
-  fs.mkdirSync(backupDir, { recursive: false });
+  fs.mkdirSync(backupDir, { recursive: true });
   for (const record of records) {
     if (record.originalExists) {
       fs.mkdirSync(path.dirname(path.join(backupDir, record.backupName)), { recursive: true });

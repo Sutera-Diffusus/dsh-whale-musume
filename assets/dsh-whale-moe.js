@@ -144,7 +144,7 @@
     return btn;
   }
 
-  var layerState = { active: "a", loaded: { a: "", b: "" }, gen: 0, pendingSwap: "" };
+  var layerState = { active: "a", loaded: { a: "", b: "" }, gen: 0, pendingSwap: "", pendingSince: 0 };
 
   function setPose(src, animate, soft) {
     var rootNode = doc.querySelector("[data-dsh-whale-root]");
@@ -160,6 +160,18 @@
     current.style.opacity = "";
     next.style.opacity = "";
 
+    /* Stuck-animation recovery: background/throttled tabs can pause WAAPI so
+       neither onfinish nor oncancel fires. If a swap has been pending too long,
+       land it immediately on the layer that was already loaded for the swap. */
+    if (layerState.pendingSwap && Date.now() - layerState.pendingSince > 1600) {
+      layerState.gen += 1;
+      layerState.pendingSwap = "";
+      layerState.pendingSince = 0;
+      next.classList.add("dsh-whale-active");
+      current.classList.remove("dsh-whale-active");
+      layerState.active = nextName;
+    }
+
     if (layerState.loaded[layerState.active] === src) return;
 
     /* Motion-hide swap (industry sprite/VTuber style): old pose squashes down
@@ -174,6 +186,7 @@
         current.classList.remove("dsh-whale-active");
         layerState.active = nextName;
         layerState.pendingSwap = "";
+        layerState.pendingSince = 0;
       }
       if (!soft || motionReduced() || !motionNode || typeof motionNode.animate !== "function") {
         applyLayers();
@@ -183,6 +196,7 @@
       motionNode.classList.remove("dsh-whale-hop", "dsh-whale-squint");
       var swapGen = layerState.gen;
       layerState.pendingSwap = src;
+      layerState.pendingSince = Date.now();
       var hide = motionNode.animate(
         [
           { transform: "translateY(0) scale(1)" },
@@ -196,7 +210,10 @@
           /* 本次换图已被更新的换图取代：只清理属于自己的标记，
              绝不能把新一代动画的 pendingSwap 一起抹掉，否则渲染循环
              会反复重启同一组动画，表现为“抽搐”。 */
-          if (layerState.pendingSwap === src) layerState.pendingSwap = "";
+          if (layerState.pendingSwap === src) {
+            layerState.pendingSwap = "";
+            layerState.pendingSince = 0;
+          }
           return;
         }
         applyLayers();
@@ -204,7 +221,10 @@
       hide.onfinish = function () {
         hide.onfinish = null;
         if (swapGen !== layerState.gen) {
-          if (layerState.pendingSwap === src) layerState.pendingSwap = "";
+          if (layerState.pendingSwap === src) {
+            layerState.pendingSwap = "";
+            layerState.pendingSince = 0;
+          }
           return;
         }
         applyLayers();
@@ -221,6 +241,7 @@
     if (!animate || layerState.loaded[layerState.active] === "") {
       layerState.gen += 1;
       layerState.pendingSwap = "";
+      layerState.pendingSince = 0;
       current.setAttribute("src", src);
       current.classList.add("dsh-whale-active");
       next.classList.remove("dsh-whale-active");
@@ -1102,7 +1123,7 @@
 
     memory.state = computed;
     memory.lastLine = computed.line;
-    root.__dshWhaleMoeDebug = { state: computed.state, pose: computed.pose, line: computed.line, view: view, mode: readMode(), layout: layout.kind, failed: memory.failed, errorMatches: memory.lastErrorMatches, errorActive: memory.lastErrorActive, lastEventState: memory.lastEventState, stateHoldUntil: memory.stateHoldUntil, holdLeft: Math.max(0, memory.stateHoldUntil - Date.now()), moodPose: memory.moodPose, moodUntil: memory.moodUntil, moodAnimate: memory.moodAnimate, toolWasActive: memory.toolWasActive, lastSuccessAt: memory.lastSuccessAt, toolGoneAt: memory.toolGoneAt, toolSeenAt: memory.toolSeenAt, at: Date.now(), idleChat: { nextAt: idleChat.nextAt, lastGreetAt: idleChat.lastGreetAt, lastGreetBucket: idleChat.lastGreetBucket }, weather: weatherSummary() };
+    root.__dshWhaleMoeDebug = { state: computed.state, pose: computed.pose, line: computed.line, view: view, mode: readMode(), layout: layout.kind, failed: memory.failed, errorMatches: memory.lastErrorMatches, errorActive: memory.lastErrorActive, lastEventState: memory.lastEventState, stateHoldUntil: memory.stateHoldUntil, holdLeft: Math.max(0, memory.stateHoldUntil - Date.now()), moodPose: memory.moodPose, moodUntil: memory.moodUntil, moodAnimate: memory.moodAnimate, layers: { active: layerState.active, loaded: layerState.loaded, gen: layerState.gen, pendingSwap: layerState.pendingSwap, pendingSince: layerState.pendingSince }, toolWasActive: memory.toolWasActive, lastSuccessAt: memory.lastSuccessAt, toolGoneAt: memory.toolGoneAt, toolSeenAt: memory.toolSeenAt, at: Date.now(), idleChat: { nextAt: idleChat.nextAt, lastGreetAt: idleChat.lastGreetAt, lastGreetBucket: idleChat.lastGreetBucket }, weather: weatherSummary() };
   }
 
   /* 待机 base 稳定为 idle-cute；情绪动作只由随机低频的 showMood 覆盖。

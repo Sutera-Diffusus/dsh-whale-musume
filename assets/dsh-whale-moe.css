@@ -203,18 +203,13 @@
   75% { transform: translateX(2px); }
 }
 
-/* 代码密集时迷你化 */
+/* 代码密集时迷你化（仅手动 mini 形态使用 dense 标记） */
 [data-dsh-whale-root][data-dsh-whale-dense] [data-dsh-whale-frame] {
   width: 64px !important;
   height: 64px !important;
 }
 [data-dsh-whale-root][data-dsh-whale-dense] :is([data-dsh-whale-bubble], [data-dsh-whale-prefs]) {
   display: none;
-}
-
-@media (max-width: 980px) {
-  [data-dsh-whale-frame] { width: 48px !important; height: 48px !important; }
-  :is([data-dsh-whale-bubble], [data-dsh-whale-prefs]) { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

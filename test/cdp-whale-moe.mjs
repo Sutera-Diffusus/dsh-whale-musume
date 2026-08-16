@@ -4,7 +4,7 @@ import path from "node:path";
 
 const CDP = "http://127.0.0.1:9223";
 const APP = "http://127.0.0.1:3181";
-const SHOTS = process.env.DSH_QA_SHOTS || "<QA_SHOTS_DIR>";
+const SHOTS = process.env.DSH_QA_SHOTS || "D:/DeepseekHarness_WorkSpace/_shots/dsh-whale-moe";
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const log = (...parts) => console.log(`[${new Date().toISOString().slice(11, 19)}]`, ...parts);
 const watchdog = setTimeout(() => { console.error("WATCHDOG: forced exit after 240s"); process.exit(2); }, 240000);
@@ -191,7 +191,7 @@ async function main() {
   await delay(2500); // let the triple-pat celebration finish so it cannot overwrite the keyword line
   await evaluate(call, `(() => { const n=document.createElement('div'); n.setAttribute('data-slot','conversation.chat.node'); n.setAttribute('data-dsh-qa-fake','true'); n.style.cssText='position:fixed;left:320px;top:160px;width:600px;height:40px;z-index:99999;pointer-events:none;'; n.textContent='谢谢你！'; document.body.appendChild(n); return true; })()`);
   try {
-    await waitFor(call, `(() => { const t=document.querySelector('[data-dsh-whale-bubble-text]'); return t && (t.textContent.includes('鸡腿') || t.textContent.includes('谢谢') || t.textContent.includes('不客气') || t.textContent.includes('不用谢') || t.textContent.includes('感谢') || t.textContent.includes('燃料')); })()`, "keyword reply", 12000);
+    await waitFor(call, `(() => { const t=document.querySelector('[data-dsh-whale-bubble-text]'); return t && (t.textContent.includes('鸡腿') || t.textContent.includes('谢谢') || t.textContent.includes('不客气') || t.textContent.includes('不用谢') || t.textContent.includes('谢什么') || t.textContent.includes('感谢') || t.textContent.includes('燃料')); })()`, "keyword reply", 12000);
   } catch (e) {
     const kwDiag = await evaluate(call, `JSON.stringify({ kw: localStorage.getItem('whale-moe:keywords'), chat: document.querySelectorAll('[data-slot="conversation.chat.node"]').length, bubble: document.querySelector('[data-dsh-whale-bubble-text]')?.textContent, scans: window.__dshWhaleMoeKeywordScans, runs: window.__dshWhaleMoeKeywordRuns, matched: window.__dshWhaleMoeKeywordMatched, kwLine: window.__dshWhaleMoeKeywordLine, debug: window.__dshWhaleMoeDebug })`);
     throw new Error("keyword diag: " + kwDiag);
@@ -415,7 +415,7 @@ async function main() {
     const mascot = document.querySelector('[data-dsh-whale-mascot]');
     return { w: mascot ? mascot.getBoundingClientRect().width : 0, overflow: document.documentElement.scrollWidth > innerWidth + 2 };
   })()`);
-  check("narrow: mini 48px", narrow.w === 48, narrow.w);
+  check("narrow: keeps normal size (no shrink)", narrow.w > 100, narrow.w);
   check("narrow: no overflow", narrow.overflow === false, narrow.overflow);
   await screenshot(call, "08-narrow.png");
   await call("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
