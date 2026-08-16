@@ -77,7 +77,8 @@ test("apply + rollback round-trip on a fixture install", () => {
     const backupDir = apply(target, { backupRoot });
     assert.ok(fs.existsSync(path.join(backupDir, "manifest.json")));
     assert.ok(fs.existsSync(path.join(webDir, "assets", "dsh-whale-moe.css")));
-    assert.ok(fs.readFileSync(path.join(clientDir, "client.js"), "utf8").includes("whale-moe"));
+    assert.ok(!fs.readFileSync(path.join(clientDir, "client.js"), "utf8").includes("whale-moe"));
+    assert.ok(fs.readFileSync(path.join(webDir, "index.html"), "utf8").includes("dsh-whale-moe.js"));
     assert.equal(apply(target, { backupRoot }), "already");
     rollback(backupDir);
     assert.equal(fs.readFileSync(path.join(clientDir, "client.js"), "utf8"), before.client);
@@ -128,7 +129,8 @@ test("apply→rollback→apply sequence keeps every step idempotent", () => {
     rollback(first);
     assert.ok(!fs.readFileSync(path.join(clientDir, "client.js"), "utf8").includes("whale-moe"));
     const second = apply(target, { backupRoot });
-    assert.ok(fs.readFileSync(path.join(clientDir, "client.js"), "utf8").includes("whale-moe"));
+    assert.ok(!fs.readFileSync(path.join(clientDir, "client.js"), "utf8").includes("whale-moe"));
+    assert.ok(fs.readFileSync(path.join(webDir, "index.html"), "utf8").includes("dsh-whale-moe.js"));
     assert.equal(apply(target, { backupRoot }), "already");
     rollback(second);
   } finally {
@@ -165,6 +167,8 @@ test("untheme round-trip removes only the option/whitelist and keeps assets", ()
     const backupRoot = path.join(tmp, "backups");
     fs.mkdirSync(backupRoot, { recursive: true });
     const applied = apply(target, { backupRoot });
+    fs.writeFileSync(path.join(clientDir, "client.js"), patchClient(CLIENT_BASE).source, "utf8");
+    fs.writeFileSync(path.join(clientDir, "index.js"), patchHost(HOST_BASE).source, "utf8");
     const clientPatched = fs.readFileSync(path.join(clientDir, "client.js"), "utf8");
     const unthemed = untheme(target, { backupRoot });
     assert.ok(!fs.readFileSync(path.join(clientDir, "client.js"), "utf8").includes("whale-moe"));

@@ -127,8 +127,8 @@ export function planWrites(target, assetsOnly = false) {
   const push = (rel, content) => writes.push({ rel, content });
   if (!assetsOnly) {
     push(REL.indexHtml, patchIndexHtml(read(path.join(base, ...REL.indexHtml.split("/")))).source);
-    push(REL.themeHost, patchHost(read(path.join(base, ...REL.themeHost.split("/")))).source);
-    push(REL.themeClient, patchClient(read(path.join(base, ...REL.themeClient.split("/")))).source);
+    /* Mascot-only install: no theme-pack option is registered. The pure
+       patchHost/patchClient/untheme helpers stay exported for legacy installs. */
   }
   const assetsRoot = path.join(base, "node_modules/@deepseek-ai/dsh-web-frontend/dist/assets");
   for (const name of ASSETS) {
