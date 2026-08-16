@@ -6,6 +6,9 @@
 
 ![鲸鱼娘：我来找你啦](docs/images/homepage-promo.png)
 
+[![下载最新版](https://img.shields.io/badge/下载-最新版-4da3ff)](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/latest)
+[![GitHub Discussions](https://img.shields.io/badge/Discussions-交流-blue)](https://github.com/Sutera-Diffusus/dsh-whale-musume/discussions)
+
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Version](https://img.shields.io/badge/version-1.1.3-blue)
 ![DSH](https://img.shields.io/badge/DSH-0.1.0--rc.6-blue)
