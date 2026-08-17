@@ -1,0 +1,9 @@
+# dsh-whale-musume bundle patch —— 把鲸鱼娘桌宠叠加到 profile 组合上(零侵入)。
+# 单包双面(dsh.bundle + dsh.client):
+#   · 宿主插件(worker 侧):注册 /api/dsh-whale-musume/assets 只读静态资源路由,
+#     把包内 assets(CSS / JS / generated/*.webp / 校准表)供给浏览器;
+#   · 浏览器插件(dsh.client):注入鲸鱼娘样式与状态机脚本,资源根指向上述路由,
+#     首次挂载自动唤醒看板娘;全部资源本地加载,无外部请求、无遥测。
+- insert:
+    - id: dsh-whale-musume
+      name: dsh-whale-musume
