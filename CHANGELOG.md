@@ -1,7 +1,14 @@
 # Changelog
 
-## v1.1.5 (2026-08-16)
+## v1.2.0 (2026-08-17)
 
+- 新增标准组合包形态：package.json 声明 dsh.bundle.patch + dsh.client.platform: web，可通过 dsh plugin --profile web add github:Sutera-Diffusus/dsh-whale-musume 或插件市场安装（通过 mydsh.dev 严格校验）
+- 新增宿主插件 lib/index.js：只读静态资源路由 /api/dsh-whale-musume/assets（含路径穿越防护、MIME 与缓存头），不改任何内置包文件
+- 新增浏览器插件 lib/client.js：注入样式 → 状态机 → 表现层，资源根改写为宿主路由，防重复引导
+- bundle 模式验证：真实 DSH 0.1.0-rc.6（3181 测试副本）安装 + 重启 + CDP 全量验收 38/38 通过，零控制台错误
+- README 新增「组合包安装」章节并修正设置面板说明（bundle 模式自带面板，实测确认）
+
+## v1.1.5 (2026-08-16)
 - 修复全新安装体验：`apply` 不再注册「鲸鱼娘·海洋甜点工房」主题选项，全新安装即是纯桌宠模式
 - 保留 legacy `patchHost/patchClient/untheme` 帮助函数用于老版本清理
 - 新增「从 Release zip 到全新 DSH 副本启动」的端到端验收流程，CDP 全绿
