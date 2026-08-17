@@ -10,7 +10,7 @@
 [![GitHub Discussions](https://img.shields.io/badge/Discussions-交流-blue)](https://github.com/Sutera-Diffusus/dsh-whale-musume/discussions)
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Version](https://img.shields.io/badge/version-1.1.5-blue)
+![Version](https://img.shields.io/badge/version-1.2.0-blue)
 ![DSH](https://img.shields.io/badge/DSH-0.1.0--rc.6-blue)
 
 ---
@@ -308,3 +308,22 @@ node test/cdp-whale-moe.mjs
 ---
 
 **鲸鱼娘陪你写代码，也陪你摸鱼。** 🐳
+
+---
+
+## 组合包安装(bundle,零侵入)
+
+鲸鱼娘同时提供标准 DSH 组合包形态(声明 dsh.bundle.patch),可直接经 dsh plugin 或插件市场(如 mydsh.dev)安装,无需脚本改写任何内置包文件:
+
+```powershell
+dsh plugin --profile web add github:Sutera-Diffusus/dsh-whale-musume
+```
+
+安装后重启 dsh web 并强制刷新页面(Ctrl+F5),鲸鱼娘会自动出现。此模式:
+
+- 宿主插件只注册只读静态资源路由 /api/dsh-whale-musume/assets,向浏览器提供样式/脚本/立绘;
+- 浏览器插件注入鲸鱼娘本体,资源全部来自本机,无外部请求、无遥测;
+- 开关与模式偏好走鲸鱼娘自带齿轮菜单(localStorage,键名 whale-moe:*);
+- 完整的「设置 → 看板娘」养成面板(成就墙等)目前仍由脚本方式(--mascot-settings)提供。
+
+两种安装方式二选一,不要混用:脚本方式功能完整,bundle 方式零侵入、即装即用。
