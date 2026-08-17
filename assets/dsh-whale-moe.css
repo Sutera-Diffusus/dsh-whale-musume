@@ -468,3 +468,130 @@ body[data-dsh-whale-night]::after {
   font-size: 13px;
 }
 [data-dsh-whale-context] button:hover { background: var(--dsw-alias-bg-layer-2, #f3f3f3); }
+
+/* ===== v1.2 mini game: bubble pop ===== */
+[data-dsh-whale-game] {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 65;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(320px, 92vw);
+  padding: 14px;
+  color: var(--dsw-alias-label-primary, #1a1a1a);
+  background: var(--dsw-alias-bg-overlay, #fff);
+  border: 1px solid var(--dsw-alias-border-l3, rgb(0 0 0 / 18%));
+  border-radius: 16px;
+  box-shadow: 0 14px 34px rgb(0 0 0 / 26%);
+}
+[data-dsh-whale-game-head] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+[data-dsh-whale-game-combo] { color: #e85d7f; }
+[data-dsh-whale-game-grid] {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+[data-dsh-whale-cell] {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 20px;
+  color: inherit;
+  background: var(--dsw-alias-bg-layer-2, #f3f3f3);
+  border: 1px solid var(--dsw-alias-border-l2, rgb(0 0 0 / 10%));
+  border-radius: 12px;
+  cursor: pointer;
+}
+[data-dsh-whale-cell]:hover { background: var(--dsw-alias-interactive-bg-hover, #eef2f7); }
+[data-dsh-whale-cell][data-dsh-whale-bubble-kind] {
+  background: radial-gradient(circle at 35% 30%, rgb(255 255 255 / 90%), rgb(160 200 255 / 85%) 60%, rgb(120 170 235 / 80%));
+  border-color: rgb(120 170 235 / 60%);
+}
+[data-dsh-whale-cell][data-dsh-whale-bubble-kind="star"] {
+  background: radial-gradient(circle at 35% 30%, rgb(255 255 255 / 90%), rgb(255 214 138 / 85%) 60%, rgb(255 180 90 / 80%));
+  border-color: rgb(255 180 90 / 60%);
+}
+[data-dsh-whale-cell][data-dsh-whale-bubble-kind="bomb"] {
+  background: radial-gradient(circle at 35% 30%, rgb(255 255 255 / 80%), rgb(120 125 140 / 85%) 60%, rgb(70 75 90 / 80%));
+  border-color: rgb(70 75 90 / 60%);
+}
+[data-dsh-whale-cell].dsh-whale-cursor { outline: 2px solid var(--dsw-static-accent, #4da3ff); outline-offset: 1px; }
+[data-dsh-whale-game-paused] {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary-inverted, #fff);
+  background: rgb(60 60 70 / 85%);
+  border-radius: 999px;
+}
+[data-dsh-whale-game-overlay] {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px;
+  text-align: center;
+  color: var(--dsw-alias-label-primary, #1a1a1a);
+  background: var(--dsw-alias-bg-overlay, rgb(255 255 255 / 96%));
+  border-radius: 16px;
+}
+[data-dsh-whale-game-overlay] button {
+  padding: 7px 18px;
+  color: var(--dsw-alias-button-contrast-fill, #fff);
+  background: var(--dsw-alias-label-primary-inverted, #1a1a1a);
+  border: 0;
+  border-radius: 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* ===== v1.2 weather visual fx ===== */
+[data-dsh-whale-weather-fx] {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+@media (forced-colors: active) {
+  [data-dsh-whale-weather-fx] { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-dsh-whale-weather-fx] { opacity: 0.4; }
+  [data-dsh-whale-game] * { animation: none !important; transition: none !important; }
+}
+@media (forced-colors: active) {
+  [data-dsh-whale-game] {
+    color: CanvasText;
+    background: Canvas;
+    border: 1px solid ButtonFace;
+  }
+  [data-dsh-whale-cell] {
+    color: CanvasText;
+    background: Canvas;
+    border: 1px solid ButtonFace;
+  }
+  [data-dsh-whale-cell][data-dsh-whale-bubble-kind] { background: ButtonFace; }
+  [data-dsh-whale-cell][data-dsh-whale-bubble-kind="bomb"] { background: ButtonFace; border: 2px solid CanvasText; }
+  [data-dsh-whale-game-overlay] { background: Canvas; }
+}

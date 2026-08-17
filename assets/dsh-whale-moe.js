@@ -125,6 +125,11 @@
     for (var i = 0; i < nodes.length; i += 1) nodes[i].remove();
     var particles = doc.querySelectorAll("[data-dsh-whale-particle]");
     for (var p = 0; p < particles.length; p += 1) particles[p].remove();
+    var games = doc.querySelectorAll("[data-dsh-whale-game]");
+    for (var g = 0; g < games.length; g += 1) games[g].remove();
+    gameOpen = false;
+    if (gameTimer) { root.clearInterval(gameTimer); gameTimer = null; }
+    weatherFxStop();
   }
 
   function createToggleButton(label, key) {
@@ -496,13 +501,16 @@
     var menu = doc.createElement("div");
     menu.setAttribute("data-dsh-whale-context", "true");
     var items = [
-      { label: "投喂小点心", action: function () { var out = applyGrowth({ type: "feed" }, Date.now(), 0); burst("🍰"); showMood("eat", 3000); var line = say("interact", "feed"); if (line) showLine(line); if (out.unlocks.length) announceUnlocks(out.unlocks); } },
+      { label: "投喂小点心", action: function () { var out = applyGrowth({ type: "feed" }, Date.now(), 0); applyQuestSignal("feed", 1); burst("🍰"); showMood("eat", 3000); var line = say("interact", "feed"); if (line) showLine(line); if (out.unlocks.length) announceUnlocks(out.unlocks); } },
       { label: "戳一下", action: function () { applyGrowth({ type: "poke" }, Date.now(), 0); burst("💢"); showMood("angry", 3000); var line = say("interact", "poke"); if (line) showLine(line); } },
-      { label: "夸夸 鲸鱼娘", action: function () { applyGrowth({ type: "praise" }, Date.now(), 0); burst("✨"); showMood("star", 3000); var line = say("interact", "praise"); if (line) showLine(line); } },
+      { label: "夸夸 鲸鱼娘", action: function () { applyGrowth({ type: "praise" }, Date.now(), 0); burst("✨"); showMood("star", 3000); var line = say("interact", "praise"); if (line) showLine(line); } }
+    ];
+    if (readPref("game")) items.push({ label: "小游戏：戳泡泡", action: function () { openGame(); } });
+    items.push(
       { label: "回到原位", action: function () { try { root.localStorage.removeItem("whale-moe:floatX"); root.localStorage.removeItem("whale-moe:floatY"); } catch (e) { /* ignore */ } reconcile(); } },
       { label: "打开看板娘设置", action: function () { var b = [...doc.querySelectorAll("button")].find(function (n) { return (n.textContent || "").trim() === "设置"; }); if (b) b.click(); } },
       { label: "关闭菜单", action: function () { menu.remove(); } }
-    ];
+    );
     for (var i = 0; i < items.length; i += 1) {
       (function (item) {
         var btn = doc.createElement("button");
@@ -593,6 +601,7 @@
       emojiBurst(busyNow ? ["💻", "💦", "✨"] : ["💖", "✨", "⭐"]);
       if (rapid) { reconcile(); return; }
       var pat = applyGrowth({ type: "pat" }, now, patHistory.length);
+      applyQuestSignal("pat", 1);
       if (now - lastPatSpeechAt >= 2500) {
         lastPatSpeechAt = now;
         var patLine = say("interact", "pat");
@@ -678,6 +687,263 @@
 
   function motionReduced() {
     try { return root.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; }
+  }
+
+  /* ---------- mini game: bubble pop ---------- */
+
+  var gameStats = null;
+  var gameState = null;
+  var gameOpen = false;
+  var gamePausedFlag = false;
+  var gameTimer = null;
+  var gameCursor = 0;
+
+  function loadGameStats() {
+    try {
+      var raw = root.localStorage.getItem("whale-moe:gameStats");
+      gameStats = raw ? JSON.parse(raw) : { plays: 0, wins: 0, best: 0, comboMax: 0, today: "", playsToday: 0, highscore: false };
+    } catch (e) {
+      gameStats = { plays: 0, wins: 0, best: 0, comboMax: 0, today: "", playsToday: 0, highscore: false };
+    }
+    return gameStats;
+  }
+  function saveGameStats() {
+    try { root.localStorage.setItem("whale-moe:gameStats", JSON.stringify(gameStats)); } catch (e) { /* ignore */ }
+  }
+  function dayKeyOf(now) {
+    var d = new Date(typeof now === "number" ? now : Date.now());
+    return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+  }
+
+  function gamePaused() {
+    if (!gameOpen) return true;
+    if (BUSY_STATES[memory.state.state] === 1) return true;
+    if (doc.hidden) return true;
+    if (detectView() === "settings") return true;
+    return false;
+  }
+
+  function gamePanel() {
+    return doc.querySelector("[data-dsh-whale-game]");
+  }
+
+  function closeGame() {
+    gameOpen = false;
+    if (gameTimer) { root.clearInterval(gameTimer); gameTimer = null; }
+    var panel = gamePanel();
+    if (panel) panel.remove();
+    schedule();
+  }
+
+  function ensureGamePanel() {
+    var existing = gamePanel();
+    if (existing) return existing;
+    var panel = doc.createElement("div");
+    panel.setAttribute("data-dsh-whale-game", "true");
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-label", "小游戏：戳泡泡");
+    panel.innerHTML = "";
+    var head = doc.createElement("div");
+    head.setAttribute("data-dsh-whale-game-head", "true");
+    var score = doc.createElement("span");
+    score.setAttribute("data-dsh-whale-game-score", "true");
+    score.textContent = "得分 0";
+    var time = doc.createElement("span");
+    time.setAttribute("data-dsh-whale-game-time", "true");
+    time.textContent = "30s";
+    var combo = doc.createElement("span");
+    combo.setAttribute("data-dsh-whale-game-combo", "true");
+    combo.textContent = "";
+    var best = doc.createElement("span");
+    best.setAttribute("data-dsh-whale-game-best", "true");
+    best.textContent = "最佳 " + (gameStats ? gameStats.best : 0);
+    head.appendChild(score);
+    head.appendChild(time);
+    head.appendChild(combo);
+    head.appendChild(best);
+    panel.appendChild(head);
+    var grid = doc.createElement("div");
+    grid.setAttribute("data-dsh-whale-game-grid", "true");
+    for (var i = 0; i < core.GAME.GRID * core.GAME.GRID; i += 1) {
+      (function (cell) {
+        var btn = doc.createElement("button");
+        btn.type = "button";
+        btn.setAttribute("data-dsh-whale-cell", String(cell));
+        btn.setAttribute("aria-label", "第 " + (cell + 1) + " 格");
+        btn.addEventListener("pointerdown", function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          onGamePop(cell);
+        });
+        grid.appendChild(btn);
+      })(i);
+    }
+    panel.appendChild(grid);
+    var paused = doc.createElement("div");
+    paused.setAttribute("data-dsh-whale-game-paused", "true");
+    paused.textContent = "⏸ 已暂停";
+    paused.hidden = true;
+    panel.appendChild(paused);
+    doc.body.appendChild(panel);
+    panel.addEventListener("keydown", onGameKeydown);
+    panel.focus();
+    return panel;
+  }
+
+  function gamePauseBadge(on) {
+    var badge = doc.querySelector("[data-dsh-whale-game-paused]");
+    if (badge) badge.hidden = !on;
+  }
+
+  function openGame() {
+    if (!readPref("game")) return;
+    if (gameOpen) return;
+    if (BUSY_STATES[memory.state.state] === 1) return;
+    loadGameStats();
+    gameState = core.gameNewState(Date.now(), Math.random);
+    gameOpen = true;
+    gamePausedFlag = false;
+    gameCursor = 0;
+    ensureGamePanel();
+    showMood("curious", 3000);
+    gameTimer = root.setInterval(gameTickLoop, 250);
+    schedule();
+  }
+
+  function renderGamePanel() {
+    var panel = gamePanel();
+    if (!panel || !gameState) return;
+    var score = panel.querySelector("[data-dsh-whale-game-score]");
+    var time = panel.querySelector("[data-dsh-whale-game-time]");
+    var combo = panel.querySelector("[data-dsh-whale-game-combo]");
+    var best = panel.querySelector("[data-dsh-whale-game-best]");
+    if (score) score.textContent = "得分 " + gameState.score;
+    if (time) time.textContent = Math.ceil(gameState.remainingMs / 1000) + "s";
+    if (combo) combo.textContent = gameState.combo > 1 ? "连击 x" + gameState.combo : "";
+    if (best) best.textContent = "最佳 " + (gameStats ? gameStats.best : 0);
+    var cells = panel.querySelectorAll("[data-dsh-whale-cell]");
+    for (var i = 0; i < cells.length; i += 1) {
+      var bubble = gameState.board[i];
+      cells[i].textContent = "";
+      cells[i].removeAttribute("data-dsh-whale-bubble-kind");
+      cells[i].classList.remove("dsh-whale-cursor");
+      if (bubble) {
+        cells[i].setAttribute("data-dsh-whale-bubble-kind", bubble.kind);
+        cells[i].textContent = bubble.kind === "star" ? "⭐" : (bubble.kind === "bomb" ? "💣" : "");
+        cells[i].setAttribute("aria-label", "第 " + (i + 1) + " 格，" + (bubble.kind === "bomb" ? "炸弹" : "泡泡"));
+      } else {
+        cells[i].setAttribute("aria-label", "第 " + (i + 1) + " 格");
+      }
+      if (i === gameCursor) cells[i].classList.add("dsh-whale-cursor");
+    }
+  }
+
+  function gameTickLoop() {
+    if (!gameOpen || !gameState) return;
+    var now = Date.now();
+    if (gamePaused()) {
+      if (!gamePausedFlag) { gamePausedFlag = true; gamePauseBadge(true); }
+      return;
+    }
+    if (gamePausedFlag) { gamePausedFlag = false; gamePauseBadge(false); }
+    var out = core.gameTick(gameState, now, Math.random);
+    gameState = out.state;
+    renderGamePanel();
+    if (gameState.status === "ended") endGame(core.gameResult(gameState));
+  }
+
+  function onGamePop(cell) {
+    if (!gameOpen || !gameState || gameState.status !== "playing") return;
+    if (gamePaused()) return;
+    var now = Date.now();
+    var out = core.gamePop(gameState, cell, now, Math.random);
+    gameState = out.state;
+    if (out.hit) {
+      var btn = doc.querySelector('[data-dsh-whale-cell="' + cell + '"]');
+      if (btn) {
+        var rect = btn.getBoundingClientRect();
+        fxAt(rect.left + rect.width / 2, rect.top + rect.height / 2, "fx-ripple");
+      }
+      if (out.kind === "star") spawnParticles(6, now);
+      if (out.kind === "bomb") showMood("meme-shock", 1800);
+    }
+    renderGamePanel();
+  }
+
+  function onGameKeydown(event) {
+    if (!gameOpen) return;
+    var key = event.key;
+    if (key === "Escape") { event.preventDefault(); closeGame(); return; }
+    if (key === "ArrowUp" || key === "ArrowDown" || key === "ArrowLeft" || key === "ArrowRight") {
+      event.preventDefault();
+      var g = core.GAME.GRID;
+      var row = Math.floor(gameCursor / g);
+      var col = gameCursor % g;
+      if (key === "ArrowUp") row = (row + g - 1) % g;
+      if (key === "ArrowDown") row = (row + 1) % g;
+      if (key === "ArrowLeft") col = (col + g - 1) % g;
+      if (key === "ArrowRight") col = (col + 1) % g;
+      gameCursor = row * g + col;
+      renderGamePanel();
+      return;
+    }
+    if (key === "Enter" || key === " ") { event.preventDefault(); onGamePop(gameCursor); }
+  }
+
+  function endGame(result) {
+    if (!gameOpen) return;
+    gameOpen = false;
+    if (gameTimer) { root.clearInterval(gameTimer); gameTimer = null; }
+    loadGameStats();
+    gameStats.plays = (gameStats.plays || 0) + 1;
+    var today = dayKeyOf(Date.now());
+    if (gameStats.today !== today) { gameStats.today = today; gameStats.playsToday = 0; }
+    gameStats.playsToday = (gameStats.playsToday || 0) + 1;
+    if (result.grade === "win") gameStats.wins = (gameStats.wins || 0) + 1;
+    if (result.comboMax > (gameStats.comboMax || 0)) gameStats.comboMax = result.comboMax;
+    var rewardAllowed = core.gameRewardAllowed(gameStats, Date.now());
+    if (result.score > (gameStats.best || 0)) {
+      gameStats.best = result.score;
+      gameStats.highscore = true;
+      if (rewardAllowed) applyGrowth({ type: "high-score" }, Date.now(), 0);
+    }
+    saveGameStats();
+    var unlocks = core.evaluateGameAchievements(growth ? growth.achievements : [], gameStats);
+    if (unlocks.length) {
+      growth.achievements = growth.achievements.concat(unlocks);
+      saveGrowth();
+      announceUnlocks(unlocks);
+    }
+    if (rewardAllowed) {
+      var out = applyGrowth({ type: core.gameReward(result.grade) }, Date.now(), 0);
+      if (out.leveledUp) onBondLevelUp();
+    }
+    showMood(result.grade === "win" ? "celebrate" : (result.grade === "draw" ? "star" : "angry"), 3200);
+    var panel = gamePanel();
+    if (panel) {
+      var overlay = doc.createElement("div");
+      overlay.setAttribute("data-dsh-whale-game-overlay", "true");
+      var titleText = result.grade === "win" ? "🎉 大胜利！" : (result.grade === "draw" ? "及格！" : "再接再厉～");
+      var line = doc.createElement("div");
+      line.textContent = titleText + " 得分 " + result.score + " · 最佳 " + gameStats.best + " · 最高连击 " + result.comboMax + (rewardAllowed ? "" : "（今日奖励已达上限）");
+      overlay.appendChild(line);
+      if (unlocks.length) {
+        var ach = doc.createElement("div");
+        ach.textContent = "🏅 新成就解锁！";
+        overlay.appendChild(ach);
+      }
+      var again = doc.createElement("button");
+      again.type = "button";
+      again.textContent = "再玩一局";
+      again.addEventListener("click", function (event) { event.stopPropagation(); openGame(); });
+      var close = doc.createElement("button");
+      close.type = "button";
+      close.textContent = "关闭";
+      close.addEventListener("click", function (event) { event.stopPropagation(); closeGame(); });
+      overlay.appendChild(again);
+      overlay.appendChild(close);
+      panel.appendChild(overlay);
+    }
   }
 
   /* ---------- state plumbing ---------- */
@@ -774,12 +1040,112 @@
     var out = core.computeGrowth(growth, event, now, pats);
     growth = out.growth;
     saveGrowth();
+    if (out.leveledUp) onBondLevelUp();
     return out;
   }
   function say(bank, event) {
     if (!readPref("chat")) return "";
     dialogueCounters[bank][event] = (dialogueCounters[bank][event] || 0) + 1;
-    return core.pickDialogue(bank, event, dialogueCounters[bank][event], Math.random);
+    var line = core.pickDialogue(bank, event, dialogueCounters[bank][event], Math.random);
+    if (growth && (bank === "interact" || bank === "work")) {
+      var tier = core.moodTier(growth.mood);
+      if (tier === "low" && Math.random() < 0.15) {
+        line = core.pickDialogue("bond", "low-mood", dialogueCounters[bank][event], Math.random);
+      } else if (tier === "high" && Math.random() < 0.15) {
+        line = core.pickDialogue("bond", "high-mood", dialogueCounters[bank][event], Math.random);
+      }
+    }
+    return line;
+  }
+
+  /* ---------- daily quests / weekly signin / bond ---------- */
+
+  var quests = null;
+  var weekSignin = null;
+
+  function loadQuests() {
+    try {
+      var raw = root.localStorage.getItem("whale-moe:quests");
+      quests = raw ? JSON.parse(raw) : null;
+    } catch (e) { quests = null; }
+    return quests;
+  }
+  function saveQuests() {
+    try { root.localStorage.setItem("whale-moe:quests", JSON.stringify(quests)); } catch (e) { /* ignore */ }
+  }
+  function loadWeekSignin() {
+    try {
+      var raw = root.localStorage.getItem("whale-moe:weekSignin");
+      weekSignin = raw ? JSON.parse(raw) : null;
+    } catch (e) { weekSignin = null; }
+    return weekSignin;
+  }
+  function saveWeekSignin() {
+    try { root.localStorage.setItem("whale-moe:weekSignin", JSON.stringify(weekSignin)); } catch (e) { /* ignore */ }
+  }
+  function refreshQuestsIfNeeded(now) {
+    if (!quests) loadQuests();
+    var refreshed = core.refreshQuests(quests, now, Math.random);
+    if (refreshed !== quests) { quests = refreshed; saveQuests(); }
+  }
+  function applyQuestSignal(metric, amount) {
+    if (!quests) loadQuests();
+    var out = core.computeQuests(quests, { metric: metric, amount: amount }, Date.now());
+    quests = out.quests;
+    saveQuests();
+    return out;
+  }
+  function claimQuestById(id) {
+    if (!quests) loadQuests();
+    var out = core.claimQuest(quests, id, Date.now());
+    quests = out.quests;
+    saveQuests();
+    if (!out.claimed) return false;
+    applyGrowth({ type: "quest" }, Date.now(), 0);
+    if (out.newlyAll) applyGrowth({ type: "questAll" }, Date.now(), 0);
+    var unlocks = core.evaluateQuestAchievements(growth, quests, weekSignin);
+    if (unlocks.length) {
+      growth.achievements = growth.achievements.concat(unlocks);
+      saveGrowth();
+      announceUnlocks(unlocks);
+    }
+    burst("🎯");
+    if (!BUSY_STATES[memory.state.state] && readPref("chat") && bubbleFree()) {
+      showChatLine(core.pickDialogue("daily", "signin", 0, Math.random));
+    }
+    root.dispatchEvent(new CustomEvent("whale-moe-prefs-change", { detail: { key: "quests", value: 1 } }));
+    return true;
+  }
+  function syncWeekSignin(now) {
+    if (!weekSignin) loadWeekSignin();
+    var out = core.computeWeekSignin(weekSignin, dayKeyOf(now), now);
+    weekSignin = out.weekSignin;
+    saveWeekSignin();
+    if (out.milestoneHit === "7") {
+      applyGrowth({ type: "weekly" }, now, 0);
+      var unlocks = core.evaluateQuestAchievements(growth, quests, weekSignin);
+      if (unlocks.length) {
+        growth.achievements = growth.achievements.concat(unlocks);
+        saveGrowth();
+        announceUnlocks(unlocks);
+      }
+    }
+    return out.milestoneHit;
+  }
+  function applyBadge(id) {
+    try { root.localStorage.setItem("whale-moe:badge", String(id || "")); } catch (e) { /* ignore */ }
+    root.dispatchEvent(new CustomEvent("whale-moe-prefs-change", { detail: { key: "badge", value: id || "" } }));
+  }
+  function onBondLevelUp() {
+    if (!growth) return;
+    var unlocks = core.bondUnlocks(growth.level);
+    if (unlocks.action && IDLE_ACTION_POOL.indexOf("wink") === -1) IDLE_ACTION_POOL.push("wink");
+    var line = "";
+    if (growth.level >= 7 && unlocks.egg) line = say("bond", "l7");
+    else if (growth.level >= 5 && unlocks.badge) line = say("bond", "l5");
+    else if (unlocks.action) line = say("bond", "l3");
+    if (line && !BUSY_STATES[memory.state.state] && readPref("chat")) showLine(localizeLine(line));
+    if (unlocks.badges.length && !BUSY_STATES[memory.state.state]) showMood("celebrate", 3200);
   }
   function keywordsEnabled() {
     try { return root.localStorage.getItem("whale-moe:keywords") === "1"; } catch (e) { return false; }
@@ -1082,6 +1448,7 @@
       if (computed.state === "failure") {
         memory.failureStreak += 1;
         addUsageStat("failures", 1);
+        applyQuestSignal("failure", 1);
         applyGrowth({ type: "failure" }, Date.now(), 0);
         burst("！");
         if (view === "workbench") {
@@ -1098,6 +1465,7 @@
       if (computed.state === "success") {
         memory.failureStreak = 0;
         addUsageStat("successes", 1);
+        applyQuestSignal("success", 1);
         applyGrowth({ type: "success" }, Date.now(), 0);
         burst("★");
         spawnParticles(12, Date.now());
@@ -1108,6 +1476,7 @@
       }
       if (computed.state === "tool" || computed.state === "thinking") {
         addUsageStat("tools", 1);
+        applyQuestSignal("tool", 1);
         if (isNight(Date.now()) && growth && growth.achievements.indexOf("night-work") === -1) {
           growth.achievements.push("night-work");
           saveGrowth();
@@ -1268,7 +1637,8 @@
     var now = Date.now();
     if (!growth) loadGrowth();
     syncCompanionAchievements(now);
-    if (!memory.lastGrowthTick) { memory.lastGrowthTick = now; applyGrowth({ type: "signin" }, now, 0); }
+    refreshQuestsIfNeeded(now);
+    if (!memory.lastGrowthTick) { memory.lastGrowthTick = now; applyGrowth({ type: "signin" }, now, 0); applyQuestSignal("signin", 1); syncWeekSignin(now); }
     else if (now - memory.lastGrowthTick >= 60000) {
       var deltaMin = (now - memory.lastGrowthTick) / 60000;
       memory.lastGrowthTick = now;
@@ -1277,11 +1647,12 @@
     if (isNight(now)) doc.body.setAttribute("data-dsh-whale-night", "true");
     else doc.body.removeAttribute("data-dsh-whale-night");
     var codeNow = countVisible(SIGNAL_BANKS.code);
-    if (codeNow > lastCodeCount) addUsageStat("code", codeNow - lastCodeCount);
+    if (codeNow > lastCodeCount) { addUsageStat("code", codeNow - lastCodeCount); applyQuestSignal("code", codeNow - lastCodeCount); }
     lastCodeCount = codeNow;
     var chatNow = countVisible(SIGNAL_BANKS.chat);
     if (chatNow > lastChatCount) {
       addUsageStat("messages", chatNow - lastChatCount);
+      applyQuestSignal("messages", chatNow - lastChatCount);
       if (keywordsEnabled()) scheduleKeywordScan();
     }
     lastChatCount = chatNow;
@@ -1292,6 +1663,7 @@
     var signals = holdSignals(collectSignals(), now);
     var computed = core.computeState(memory.state, signals, now, Math.random);
     render(computed);
+    weatherFxReconcile(computed);
     if (readPref("pet")) idleChatTick(now);
     if (readPref("pet")) {
       if (doc.body) doc.body.setAttribute(VIEW_ATTR, view);
@@ -1316,6 +1688,7 @@
         root.__dshWhaleMoeKeywordLine = line;
         if (line) {
           addUsageStat("keywords", 1);
+          applyQuestSignal("keyword", 1);
           showLine(line);
         }
         if (id === "thanks") {
@@ -1501,6 +1874,229 @@
     });
   };
 
+  /* ---------- weather visual fx (gated canvas layer) ----------
+     rAF 门控例外(相对文件头 "no ambient rAF" 约定):
+     仅在 motion/flash kind 激活 && 特效开关开 && 城市已填 && 天气新鲜(<2h)
+     && 非 forced-colors && 非 reduced-motion && 页面可见时运行;
+     任一条件翻转即 weatherFxStop() 取消循环并摘除节点,不养常驻循环。 */
+
+  var WEATHER_FX_PARTICLE_MAX = 160;
+  var weatherFxState = {
+    canvas: null, ctx: null, rafId: 0, kind: "", mode: "", intensity: 1,
+    particles: [], lastFrame: 0, nextFlashAt: 0, flashUntil: 0,
+    running: false, busy: false, staticOnly: false, dpr: 1, frameMs: 0
+  };
+
+  function forcedColorsActive() {
+    try { return root.matchMedia("(forced-colors: active)").matches; } catch (e) { return false; }
+  }
+  function weatherFxCurrent() {
+    if (!weatherState.current) return null;
+    return core.weatherFx(weatherState.current.code, weatherState.current.temp, weatherState.current.wind);
+  }
+  function weatherFxGate(computed) {
+    var enabled = readPref("weatherFx")
+      && readWeather("weatherCity").trim().length > 0
+      && weatherState.current
+      && Date.now() - weatherState.fetchedAt < WEATHER_DATA_MS
+      && !forcedColorsActive();
+    var staticOnly = false;
+    if (enabled && motionReduced()) { staticOnly = true; }
+    var busy = !!(computed && BUSY_STATES[computed.state] === 1);
+    return { enabled: enabled, busy: busy, staticOnly: staticOnly };
+  }
+  function ensureFxLayer() {
+    var existing = doc.querySelector("[data-dsh-whale-weather-fx]");
+    if (existing) {
+      weatherFxState.canvas = existing;
+      weatherFxState.ctx = existing.getContext("2d");
+      return existing;
+    }
+    var canvas = doc.createElement("canvas");
+    canvas.setAttribute("data-dsh-whale-weather-fx", "true");
+    doc.body.appendChild(canvas);
+    weatherFxState.canvas = canvas;
+    weatherFxState.ctx = canvas.getContext("2d");
+    return canvas;
+  }
+  function weatherFxSize() {
+    var canvas = weatherFxState.canvas;
+    if (!canvas || !weatherFxState.ctx) return;
+    var dpr = Math.min(root.devicePixelRatio || 1, 1.5);
+    var w = root.innerWidth;
+    var h = root.innerHeight;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    canvas.style.width = w + "px";
+    canvas.style.height = h + "px";
+    weatherFxState.dpr = dpr;
+  }
+  function weatherFxSeedParticles(spec) {
+    var pool = [];
+    var count = Math.min(WEATHER_FX_PARTICLE_MAX, spec.count | 0);
+    for (var i = 0; i < count; i += 1) {
+      pool.push({
+        x: Math.random() * root.innerWidth,
+        y: Math.random() * root.innerHeight,
+        phase: Math.random() * Math.PI * 2,
+        speed: spec.speed * (0.85 + Math.random() * 0.3),
+        length: spec.length || 0,
+        size: spec.size || 2,
+        opacity: spec.opacity * (0.7 + Math.random() * 0.5)
+      });
+    }
+    return pool;
+  }
+  function weatherFxDrawStatic(spec) {
+    var ctx = weatherFxState.ctx;
+    var w = weatherFxState.canvas.width;
+    var h = weatherFxState.canvas.height;
+    var dpr = weatherFxState.dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, root.innerWidth, root.innerHeight);
+    var tint = spec.tint || "";
+    if (tint === "dim") {
+      ctx.fillStyle = "rgba(120,130,150," + (spec.opacity || 0.05) + ")";
+      ctx.fillRect(0, 0, root.innerWidth, root.innerHeight);
+    } else if (tint === "warm") {
+      ctx.fillStyle = "rgba(255,190,110," + (spec.opacity || 0.05) + ")";
+      ctx.fillRect(0, 0, root.innerWidth, root.innerHeight);
+    } else if (tint === "frost") {
+      var grad = ctx.createRadialGradient(root.innerWidth / 2, root.innerHeight / 2, Math.min(w, h) / 4, root.innerWidth / 2, root.innerHeight / 2, Math.max(w, h) / 2);
+      grad.addColorStop(0, "rgba(200,220,255,0)");
+      grad.addColorStop(1, "rgba(200,220,255," + (spec.opacity || 0.1) + ")");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, root.innerWidth, root.innerHeight);
+    }
+  }
+  function weatherFxDrawMotion(spec, ts, dim) {
+    var ctx = weatherFxState.ctx;
+    var w = root.innerWidth;
+    var h = root.innerHeight;
+    var dpr = weatherFxState.dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    var kind = weatherFxState.kind;
+    var busyDim = dim || 1;
+    for (var i = 0; i < weatherFxState.particles.length; i += 1) {
+      var p = weatherFxState.particles[i];
+      var drift = spec.drift || 0;
+      if (kind === "rain") {
+        p.y += p.speed / 60;
+        p.x += (spec.windDrift || 0) * 0.4 + Math.sin(p.phase) * 2;
+        if (p.y > h + 20) { p.y = -20; p.x = Math.random() * w; }
+        ctx.strokeStyle = "rgba(180,200,230," + (p.opacity * busyDim) + ")";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - 2, p.y - (p.length || 14));
+        ctx.stroke();
+      } else if (kind === "snow") {
+        p.y += p.speed / 60;
+        p.x += Math.sin(p.phase + ts / 800) * drift / 30;
+        if (p.y > h + 10) { p.y = -10; p.x = Math.random() * w; }
+        ctx.fillStyle = "rgba(255,255,255," + (p.opacity * busyDim) + ")";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size || 3, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (kind === "wind") {
+        p.x += p.speed / 60;
+        p.y += Math.sin(p.phase) * 0.6;
+        if (p.x > w + 160) { p.x = -160; p.y = Math.random() * h; }
+        ctx.strokeStyle = "rgba(220,230,245," + (p.opacity * busyDim) + ")";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - (p.length || 60), p.y + 2);
+        ctx.stroke();
+      } else if (kind === "fog" || kind === "hot") {
+        p.x += p.speed / 60;
+        if (p.x > w + 200) { p.x = -200; p.y = Math.random() * h; }
+        var gradX = p.x;
+        var grad = ctx.createLinearGradient(gradX - 160, 0, gradX + 160, 0);
+        var color = kind === "hot" ? "255,220,160" : "225,230,240";
+        grad.addColorStop(0, "rgba(" + color + ",0)");
+        grad.addColorStop(0.5, "rgba(" + color + "," + (p.opacity * busyDim) + ")");
+        grad.addColorStop(1, "rgba(" + color + ",0)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+      }
+    }
+  }
+  function weatherFxLoop(ts) {
+    if (doc.hidden) { weatherFxStop(); return; }
+    var spec = weatherFxCurrent();
+    var gate = weatherFxGate(memory.state);
+    if (!gate.enabled || !spec) { weatherFxStop(); return; }
+    var dim = gate.busy ? 0.6 : 1;
+    var intensity = gate.busy ? Math.max(1, spec.intensity - 1) : spec.intensity;
+    var now = Date.now();
+    if (spec.mode === "static" || gate.staticOnly) {
+      if (weatherFxState.staticOnly !== true) {
+        weatherFxState.staticOnly = true;
+        weatherFxDrawStatic({ tint: spec.params.tint, opacity: spec.params.opacity * dim });
+      }
+    } else {
+      weatherFxState.staticOnly = false;
+      weatherFxDrawMotion(spec.params, now, dim);
+      if (spec.kind === "thunder" && spec.params.flash) {
+        if (!weatherFxState.nextFlashAt) weatherFxState.nextFlashAt = now + spec.params.flash.minMs + Math.random() * (spec.params.flash.maxMs - spec.params.flash.minMs);
+        if (now >= weatherFxState.nextFlashAt && now >= weatherFxState.flashUntil) {
+          weatherFxState.flashUntil = now + 140;
+          weatherFxState.nextFlashAt = now + spec.params.flash.minMs + Math.random() * (spec.params.flash.maxMs - spec.params.flash.minMs);
+        }
+        if (now < weatherFxState.flashUntil) {
+          var ctx = weatherFxState.ctx;
+          ctx.setTransform(weatherFxState.dpr, 0, 0, weatherFxState.dpr, 0, 0);
+          ctx.fillStyle = "rgba(255,255,255," + (spec.params.flash.opacity * dim) + ")";
+          ctx.fillRect(0, 0, root.innerWidth, root.innerHeight);
+        }
+      }
+    }
+    weatherFxState.rafId = root.requestAnimationFrame(weatherFxLoop);
+  }
+  function weatherFxStart(spec) {
+    if (weatherFxState.running && weatherFxState.kind === spec.kind && weatherFxState.intensity === spec.intensity) return;
+    weatherFxStop();
+    ensureFxLayer();
+    weatherFxSize();
+    weatherFxState.kind = spec.kind;
+    weatherFxState.mode = spec.mode;
+    weatherFxState.intensity = spec.intensity;
+    weatherFxState.particles = (spec.mode === "motion") ? weatherFxSeedParticles(spec.params) : [];
+    weatherFxState.staticOnly = false;
+    weatherFxState.running = true;
+    weatherFxState.lastFrame = Date.now();
+    weatherFxState.rafId = root.requestAnimationFrame(weatherFxLoop);
+  }
+  function weatherFxStop() {
+    if (weatherFxState.rafId) { root.cancelAnimationFrame(weatherFxState.rafId); weatherFxState.rafId = 0; }
+    weatherFxState.running = false;
+    weatherFxState.particles = [];
+    weatherFxState.nextFlashAt = 0;
+    weatherFxState.flashUntil = 0;
+    var nodes = doc.querySelectorAll("[data-dsh-whale-weather-fx]");
+    for (var i = 0; i < nodes.length; i += 1) nodes[i].remove();
+    weatherFxState.canvas = null;
+    weatherFxState.ctx = null;
+  }
+  function weatherFxReconcile(computed) {
+    var gate = weatherFxGate(computed);
+    var spec = weatherFxCurrent();
+    if (!gate.enabled || !spec) { weatherFxStop(); return; }
+    if (!weatherFxState.running || weatherFxState.kind !== spec.kind || weatherFxState.intensity !== spec.intensity) {
+      weatherFxStart(spec);
+    }
+    if (weatherFxState.busy !== gate.busy) weatherFxState.busy = gate.busy;
+  }
+  root.__dshWhaleMoeWeatherFxDebug = {
+    get running() { return weatherFxState.running; },
+    get kind() { return weatherFxState.kind; },
+    get intensity() { return weatherFxState.intensity; },
+    get busy() { return weatherFxState.busy; },
+    get particles() { return weatherFxState.particles.length; }
+  };
+
   /* ---------- idle chat scheduler (5-8 min, context-aware) ---------- */
   var IDLE_CHAT_MIN = 5 * 60000;
   var IDLE_CHAT_MAX = 8 * 60000;
@@ -1581,6 +2177,13 @@
       var topic = latestTaskTopic();
       line = core.pickDialogueAvoidRecent("context", topic, 0, Math.random, recentLines);
     }
+    if (!line && growth && growth.level >= 3 && Math.random() < 0.25) {
+      var tier = core.moodTier(growth.mood);
+      var bondEvent = growth.level >= 7 ? "l7" : (growth.level >= 5 ? "l5" : "l3");
+      if (tier === "low") bondEvent = "low-mood";
+      else if (tier === "high" && Math.random() < 0.5) bondEvent = "high-mood";
+      line = core.pickDialogueAvoidRecent("bond", bondEvent, 0, Math.random, recentLines);
+    }
     if (!line) {
       var memeBank = Math.random() < 0.5 ? "worker" : (Math.random() < 0.5 ? "slack" : "ddl");
       line = core.pickDialogueAvoidRecent("meme", memeBank, 0, Math.random, recentLines);
@@ -1589,6 +2192,8 @@
   }
 
   root.__dshWhaleMoeIdleChat = idleChat;
+  root.__dshWhaleMoeClaimQuest = claimQuestById;
+  root.__dshWhaleMoeApplyBadge = applyBadge;
 
   function onUserActivity() {
     memory.lastInteractionAt = Date.now();
@@ -1603,6 +2208,14 @@
     root.addEventListener("resize", schedule);
     root.addEventListener("storage", schedule);
     root.addEventListener("whale-moe-prefs-change", schedule);
+    root.addEventListener("visibilitychange", function () {
+      if (doc.hidden) {
+        if (gameOpen) { gamePausedFlag = true; gamePauseBadge(true); }
+        weatherFxStop();
+      } else {
+        schedule();
+      }
+    });
     try {
       fetch("/assets/peek-calibration.json").then(function (r) { return r.json(); }).then(function (json) {
         root.__dshWhalePeekCalibration = json;
@@ -1627,11 +2240,22 @@
               root.setTimeout(function () { motionNode.classList.remove("dsh-whale-hop", "dsh-whale-squint"); }, 900);
             }
           }
-          /* 大动作：随机 35-60s 一次，无固定顺序，每张停留 4.2-5.8s */
+          /* 大动作：随机 35-60s 一次，无固定顺序，每张停留 4.2-5.8s。
+             D7: 复活低频毒舌(teasing)——仅非工作台视图、待机态、按
+             TEASE_CHANCE 概率触发，不进入状态机，工作态稳定规则不受影响。 */
           if (!memory.nextIdleActionAt) memory.nextIdleActionAt = now + 35000 + Math.floor(Math.random() * 25000);
           if (now >= memory.nextIdleActionAt) {
             memory.nextIdleActionAt = now + 35000 + Math.floor(Math.random() * 25000);
-            showMood(IDLE_ACTION_POOL[Math.floor(Math.random() * IDLE_ACTION_POOL.length)], 4200 + Math.floor(Math.random() * 1600), true);
+            var teasingView = detectView() !== "workbench";
+            if (teasingView && Math.random() < core.TEASE_CHANCE * 4) {
+              showMood("teasing", 3200, true);
+              if (readPref("chat")) {
+                var teaseLine = say("interact", "tease");
+                if (teaseLine) showChatLine(teaseLine);
+              }
+            } else {
+              showMood(IDLE_ACTION_POOL[Math.floor(Math.random() * IDLE_ACTION_POOL.length)], 4200 + Math.floor(Math.random() * 1600), true);
+            }
           }
         }
         /* 工作状态保持 running 姿势稳定，不再随机切工作小剧场；

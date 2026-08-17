@@ -238,8 +238,8 @@ export function untheme(target = DEFAULT_TARGET, options = {}) {
 
 /* ---- mascot settings section: 鲸鱼娘（鲸鱼娘） ---- */
 
-const MASCOT_SETTINGS_MARKER = "DSH-WHALE-MOE:MASCOT-SETTINGS v12";
-const MASCOT_SETTINGS_LEGACY = ["DSH-WHALE-MOE:MASCOT-SETTINGS v1", "DSH-WHALE-MOE:MASCOT-SETTINGS v2", "DSH-WHALE-MOE:MASCOT-SETTINGS v3", "DSH-WHALE-MOE:MASCOT-SETTINGS v4", "DSH-WHALE-MOE:MASCOT-SETTINGS v5", "DSH-WHALE-MOE:MASCOT-SETTINGS v6", "DSH-WHALE-MOE:MASCOT-SETTINGS v7", "DSH-WHALE-MOE:MASCOT-SETTINGS v8", "DSH-WHALE-MOE:MASCOT-SETTINGS v9", "DSH-WHALE-MOE:MASCOT-SETTINGS v10", "DSH-WHALE-MOE:MASCOT-SETTINGS v11"];
+const MASCOT_SETTINGS_MARKER = "DSH-WHALE-MOE:MASCOT-SETTINGS v13";
+const MASCOT_SETTINGS_LEGACY = ["DSH-WHALE-MOE:MASCOT-SETTINGS v1", "DSH-WHALE-MOE:MASCOT-SETTINGS v2", "DSH-WHALE-MOE:MASCOT-SETTINGS v3", "DSH-WHALE-MOE:MASCOT-SETTINGS v4", "DSH-WHALE-MOE:MASCOT-SETTINGS v5", "DSH-WHALE-MOE:MASCOT-SETTINGS v6", "DSH-WHALE-MOE:MASCOT-SETTINGS v7", "DSH-WHALE-MOE:MASCOT-SETTINGS v8", "DSH-WHALE-MOE:MASCOT-SETTINGS v9", "DSH-WHALE-MOE:MASCOT-SETTINGS v10", "DSH-WHALE-MOE:MASCOT-SETTINGS v11", "DSH-WHALE-MOE:MASCOT-SETTINGS v12"];
 const MASCOT_SETTINGS_ANCHOR = "}, ThemePackRow));";
 
 function mascotBlock(marker) {
@@ -336,7 +336,10 @@ function mascotBlock(marker) {
 			["first-code", "💻", "代码初体验", "第一次代码/终端"], ["code-20", "📟", "代码狂人", "代码/终端 20 个"], ["first-success", "✅", "旗开得胜", "第一次任务完成"],
 			["success-10", "🏆", "任务十连", "任务完成 10 次"], ["first-failure", "🩹", "初次翻车", "第一次任务报错"], ["fail-10", "🚑", "翻车十连", "任务报错 10 次"],
 			["messages-100", "💌", "会话百条", "会话消息 100 条"], ["messages-500", "📚", "消息五百条", "会话消息 500 条"], ["keyword-master", "🔍", "关键词大师", "关键词互动 10 次"],
-			["night-work", "🦉", "深夜赶工", "深夜工具仍在运行"], ["balance-low", "🪙", "余额告急", "触发余额不足提醒"]
+			["night-work", "🦉", "深夜赶工", "深夜工具仍在运行"], ["balance-low", "🪙", "余额告急", "触发余额不足提醒"],
+			["game-first", "🫧", "初次开玩", "第一次结算一局小游戏"], ["game-win", "👑", "泡泡之王", "单局戳泡泡得分达到 300"], ["game-combo10", "🔥", "连击达人", "单局最高连击达到 10"], ["game-highscore", "🏆", "纪录刷新", "打破一次历史最高分"],
+			["quest-first", "🎯", "任务初体验", "完成第一个每日任务"], ["quest-all", "🎟️", "一日全勤", "单日 3 个每日任务全部领取"], ["week-signin7", "🏆", "周常满勤", "本周签到板集满 7 格"],
+			["bond-action", "🌟", "新动作解锁", "好感度达到 Lv3"], ["bond-badge", "🎖️", "称号首解锁", "好感度达到 Lv5"]
 		];
 		function MascotAchievementWall({ ids }) {
 			const unlocked = ids.length;
@@ -366,6 +369,70 @@ function mascotBlock(marker) {
 			const stats = [["😊", "心情", mood + " / 100"], ["💗", "好感度", affinity], ["🍰", "饱食度", satiety + " / 100"], ["⭐", "等级", "Lv." + level], ["📅", "签到", streak + " 天"], ["⏳", "陪伴", days + " 天"]];
 			return (0, react_jsx_runtime.jsx)("div", { style: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "8px", padding: "4px 0 10px", width: "100%" }, children: stats.map(([icon, label, value]) => (0, react_jsx_runtime.jsxs)("div", { style: { alignItems: "center", background: "var(--dsw-alias-interactive-bg-hover, transparent)", border: "1px solid var(--dsw-alias-border-l2)", borderRadius: "12px", display: "flex", flexDirection: "column", gap: "2px", minWidth: 0, padding: "8px 4px" }, children: [(0, react_jsx_runtime.jsx)("span", { style: { fontSize: "16px" }, children: icon }), (0, react_jsx_runtime.jsx)("span", { style: { color: "var(--dsw-alias-label-secondary)", fontSize: "11px", lineHeight: "14px" }, children: label }), (0, react_jsx_runtime.jsx)("span", { style: { fontSize: "12px", fontWeight: "600", lineHeight: "16px", textAlign: "center" }, children: value })] })) });
 		}
+		function MascotDailyQuests() {
+			const [tick, setTick] = mascotReact.useState(0);
+			mascotReact.useEffect(() => {
+				const refresh = () => setTick((v) => v + 1);
+				window.addEventListener("whale-moe-prefs-change", refresh);
+				window.addEventListener("storage", refresh);
+				return () => { window.removeEventListener("whale-moe-prefs-change", refresh); window.removeEventListener("storage", refresh); };
+			}, []);
+			const pool = (window.DshWhaleMoeCore && window.DshWhaleMoeCore.QUEST_POOL) || [];
+			const defOf = (id) => pool.find((q) => q.id === id) || { id, desc: id, target: 1, reward: { affinity: 0, mood: 0 } };
+			let quests = null;
+			try { const raw = window.localStorage.getItem("whale-moe:quests"); quests = raw ? JSON.parse(raw) : null; } catch (e) { quests = null; }
+			const today = (() => { const d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); })();
+			const slots = quests && quests.date === today && Array.isArray(quests.slots) ? quests.slots : [];
+			const claim = (id) => {
+				try { if (window.__dshWhaleMoeClaimQuest) window.__dshWhaleMoeClaimQuest(id); } catch (e) {}
+				setTick((v) => v + 1);
+			};
+			if (!slots.length) return (0, react_jsx_runtime.jsx)("span", { style: { color: "var(--dsw-alias-label-secondary)", fontSize: "12px", padding: "4px 0" }, children: "今日任务加载中，稍后自动刷新" });
+			return (0, react_jsx_runtime.jsx)("div", { style: { display: "flex", flexDirection: "column", gap: "6px", padding: "4px 0 10px", width: "100%" }, children: slots.map((slot) => {
+				const def = defOf(slot.id);
+				const done = slot.progress >= def.target;
+				return (0, react_jsx_runtime.jsxs)("div", { style: { alignItems: "center", display: "flex", gap: "8px", justifyContent: "space-between" }, children: [
+					(0, react_jsx_runtime.jsx)("span", { style: { fontSize: "12px", minWidth: 0 }, children: def.desc }),
+					(0, react_jsx_runtime.jsxs)("span", { style: { color: done && !slot.claimed ? "var(--dsw-static-accent, #4da3ff)" : "var(--dsw-alias-label-secondary)", fontSize: "12px", fontWeight: "600" }, children: [String(Math.min(slot.progress, def.target)), " / ", String(def.target)] }),
+					slot.claimed
+						? (0, react_jsx_runtime.jsx)("span", { style: { color: "var(--dsw-alias-label-secondary)", fontSize: "12px" }, children: "✅ 已领取" })
+						: (0, react_jsx_runtime.jsx)("button", { type: "button", disabled: !done, onClick: () => claim(slot.id), style: { background: done ? "var(--dsw-static-accent, #4da3ff)" : "var(--dsw-alias-border-l3, #c9cdd6)", border: "none", borderRadius: "8px", color: done ? "#fff" : "var(--dsw-alias-label-secondary)", cursor: done ? "pointer" : "default", fontSize: "12px", padding: "4px 10px" }, children: "领取" })
+				] });
+			}) });
+		}
+		function MascotWeekSignin() {
+			const [tick, setTick] = mascotReact.useState(0);
+			mascotReact.useEffect(() => {
+				const refresh = () => setTick((v) => v + 1);
+				window.addEventListener("whale-moe-prefs-change", refresh);
+				return () => window.removeEventListener("whale-moe-prefs-change", refresh);
+			}, []);
+			let week = null;
+			try { const raw = window.localStorage.getItem("whale-moe:weekSignin"); week = raw ? JSON.parse(raw) : null; } catch (e) { week = null; }
+			const days = week && Array.isArray(week.days) ? week.days.length : 0;
+			return (0, react_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: "8px", padding: "4px 0 10px", width: "100%" }, children: [
+				(0, react_jsx_runtime.jsx)("div", { style: { display: "flex", gap: "6px" }, children: Array.from({ length: 7 }, (_, i) => (0, react_jsx_runtime.jsx)("span", { style: { alignItems: "center", background: i < days ? "var(--dsw-static-accent, #4da3ff)" : "var(--dsw-alias-border-l3, #c9cdd6)", borderRadius: "50%", color: i < days ? "#fff" : "transparent", display: "flex", fontSize: "11px", height: "22px", justifyContent: "center", width: "22px" }, children: "✓" })) }),
+				(0, react_jsx_runtime.jsx)("span", { style: { color: "var(--dsw-alias-label-secondary)", fontSize: "12px" }, children: "本周已签到 " + days + " / 7 天 · 集满 1/3/7 天有里程碑奖励" })
+			] });
+		}
+		function MascotBadgeRow() {
+			const [tick, setTick] = mascotReact.useState(0);
+			mascotReact.useEffect(() => {
+				const refresh = () => setTick((v) => v + 1);
+				window.addEventListener("whale-moe-prefs-change", refresh);
+				return () => window.removeEventListener("whale-moe-prefs-change", refresh);
+			}, []);
+			const level = Number(MascotValue("level", "1")) || 1;
+			const badges = (window.DshWhaleMoeCore && window.DshWhaleMoeCore.BOND && window.DshWhaleMoeCore.BOND.badges) || [];
+			const unlocked = badges.filter((b) => level >= b.minLevel);
+			const current = MascotValue("badge", "");
+			if (!unlocked.length) return (0, react_jsx_runtime.jsx)("span", { style: { color: "var(--dsw-alias-label-secondary)", fontSize: "12px", padding: "4px 0" }, children: "未解锁（好感度 Lv5 解锁首个称号）" });
+			return (0, react_jsx_runtime.jsxs)("label", { style: { ...MASCOT_ROW_STYLE, borderBottom: "none" }, children: [(0, react_jsx_runtime.jsx)("span", { children: "称号" }), (0, react_jsx_runtime.jsx)("select", {
+				value: current,
+				onChange: (event) => { const value = event.target.value; try { if (window.__dshWhaleMoeApplyBadge) window.__dshWhaleMoeApplyBadge(value); else window.localStorage.setItem("whale-moe:badge", value); } catch (e) {} setTick((v) => v + 1); },
+				children: [(0, react_jsx_runtime.jsx)("option", { value: "", children: "（不使用称号）" })].concat(unlocked.map((b) => (0, react_jsx_runtime.jsx)("option", { value: b.id, children: b.name })))
+			})] });
+		}
 		function MascotAchievementRow() {
 			const ids = MascotValue("achievements", "").split(",").filter(Boolean);
 			return (0, react_jsx_runtime.jsx)(MascotAchievementWall, { ids });
@@ -374,14 +441,16 @@ function mascotBlock(marker) {
 			return (0, react_jsx_runtime.jsxs)("label", { style: MASCOT_ROW_STYLE, children: [(0, react_jsx_runtime.jsx)("span", { children: "悬浮位置" }), (0, react_jsx_runtime.jsx)("button", { type: "button", onClick: () => { try { window.localStorage.removeItem("whale-moe:floatX"); window.localStorage.removeItem("whale-moe:floatY"); } catch (e) {} window.dispatchEvent(new CustomEvent("whale-moe-prefs-change", { detail: { key: "float-reset", value: true } })); }, children: "重置到默认位置" })] });
 		}
 		function MascotGrowthResetRow() {
-			return (0, react_jsx_runtime.jsxs)("label", { style: MASCOT_ROW_STYLE, children: [(0, react_jsx_runtime.jsx)("span", { children: "养成数据" }), (0, react_jsx_runtime.jsx)("button", { type: "button", onClick: () => { ["mood", "affinity", "satiety", "lastSignin", "signinStreak", "achievements", "companionSince", "level"].forEach((k) => { try { window.localStorage.removeItem("whale-moe:" + k); } catch (e) {} }); window.dispatchEvent(new CustomEvent("whale-moe-prefs-change", { detail: { key: "growth-reset", value: true } })); }, children: "重置养成" })] });
+			return (0, react_jsx_runtime.jsxs)("label", { style: MASCOT_ROW_STYLE, children: [(0, react_jsx_runtime.jsx)("span", { children: "养成数据" }), (0, react_jsx_runtime.jsx)("button", { type: "button", onClick: () => { ["mood", "affinity", "satiety", "lastSignin", "signinStreak", "achievements", "companionSince", "level", "quests", "weekSignin", "badge", "gameStats"].forEach((k) => { try { window.localStorage.removeItem("whale-moe:" + k); } catch (e) {} }); window.dispatchEvent(new CustomEvent("whale-moe-prefs-change", { detail: { key: "growth-reset", value: true } })); }, children: "重置养成" })] });
 		}
 		function MascotPrefRows() {
 			return (0, react_jsx_runtime.jsxs)("div", { style: { display: "flex", flexDirection: "column", width: "100%" }, children: [
-				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "基础", children: [(0, react_jsx_runtime.jsx)(MascotTitleRow, {}), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "鲸鱼娘", prefKey: "pet" }), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "台词气泡", prefKey: "chat" }), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "粒子效果", prefKey: "particles" })] }),
+				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "基础", children: [(0, react_jsx_runtime.jsx)(MascotTitleRow, {}), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "鲸鱼娘", prefKey: "pet" }), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "台词气泡", prefKey: "chat" }), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "粒子效果", prefKey: "particles" }), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "小游戏", prefKey: "game" })] }),
 				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "智能", children: [(0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "关键词感知（默认关）", prefKey: "keywords" }), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "摸鱼提醒", prefKey: "idle-nudge" }), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "深夜模式", prefKey: "night" })] }),
-				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "天气", children: [(0, react_jsx_runtime.jsx)(MascotWeatherRow, {})] }),
-				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "养成", children: [(0, react_jsx_runtime.jsx)(MascotGrowthStats, {})] }),
+				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "天气", children: [(0, react_jsx_runtime.jsx)(MascotWeatherRow, {}), (0, react_jsx_runtime.jsx)(MascotPrefRow, { label: "天气特效", prefKey: "weatherFx" })] }),
+				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "今日任务", children: [(0, react_jsx_runtime.jsx)(MascotDailyQuests, {})] }),
+				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "本周签到", children: [(0, react_jsx_runtime.jsx)(MascotWeekSignin, {})] }),
+				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "养成", children: [(0, react_jsx_runtime.jsx)(MascotGrowthStats, {}), (0, react_jsx_runtime.jsx)(MascotBadgeRow, {})] }),
 				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "成就", children: [(0, react_jsx_runtime.jsx)(MascotAchievementRow, {})] }),
 				(0, react_jsx_runtime.jsxs)(MascotCard, { title: "位置与数据", children: [(0, react_jsx_runtime.jsx)(MascotResetRow, {}), (0, react_jsx_runtime.jsx)(MascotGrowthResetRow, {})] })
 			]});

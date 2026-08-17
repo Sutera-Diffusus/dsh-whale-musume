@@ -165,6 +165,134 @@
     };
   }
 
+  /* ================= mini game: bubble pop (pure, DOM-free) ================= */
+
+  var GAME = Object.freeze({
+    DURATION_MS: 30000, GRID: 4, SPAWN_INTERVAL_MS: 500,
+    BUBBLE_LIFE_MS: 1600, STAR_LIFE_MS: 1200,
+    STAR_P: 0.15, BOMB_P: 0.10, COMBO_WINDOW_MS: 1200,
+    WIN_SCORE: 300, DRAW_SCORE: 150,
+    BASE: 10, STAR_SCORE: 30, BOMB_SCORE: -20, COMBO_CAP: 10,
+    REWARDS_PER_DAY: 3
+  });
+
+  function gameNewState(now, rng) {
+    var t = typeof now === "number" && Number.isFinite(now) ? now : 0;
+    var board = [];
+    for (var i = 0; i < GAME.GRID * GAME.GRID; i += 1) board.push(null);
+    return {
+      board: board, score: 0, combo: 0, comboAt: 0, comboMax: 0,
+      remainingMs: GAME.DURATION_MS, nextSpawnAt: t + GAME.SPAWN_INTERVAL_MS,
+      lastAt: t, status: "playing"
+    };
+  }
+
+  function gameTick(state, now, rng) {
+    if (!state || state.status !== "playing") return { state: state, events: [] };
+    var t = typeof now === "number" && Number.isFinite(now) ? now : 0;
+    var dt = Math.max(0, t - (typeof state.lastAt === "number" ? state.lastAt : t));
+    var events = [];
+    var board = state.board.slice();
+    var changed = false;
+    /* expire bubbles */
+    for (var i = 0; i < board.length; i += 1) {
+      if (!board[i]) continue;
+      var life = board[i].kind === "star" ? GAME.STAR_LIFE_MS : GAME.BUBBLE_LIFE_MS;
+      if (t - board[i].bornAt >= life) {
+        board[i] = null;
+        changed = true;
+        events.push({ kind: "expire", cell: i });
+      }
+    }
+    /* spawn at most one bubble per tick on a random empty cell */
+    var spawned = false;
+    if (t >= state.nextSpawnAt) {
+      var empties = [];
+      for (var e = 0; e < board.length; e += 1) if (!board[e]) empties.push(e);
+      if (empties.length > 0) {
+        var r = typeof rng === "function" ? rng() : Math.random();
+        var cell = empties[Math.floor(r * empties.length) % empties.length];
+        var r2 = typeof rng === "function" ? rng() : Math.random();
+        var kind = r2 < GAME.BOMB_P ? "bomb" : (r2 < GAME.BOMB_P + GAME.STAR_P ? "star" : "bubble");
+        board[cell] = { kind: kind, bornAt: t };
+        changed = true;
+        spawned = true;
+        events.push({ kind: "spawn", cell: cell, bubble: kind });
+      }
+    }
+    var remainingMs = Math.max(0, state.remainingMs - dt);
+    var next = Object.assign({}, state, {
+      board: changed ? board : state.board,
+      remainingMs: remainingMs,
+      lastAt: t,
+      nextSpawnAt: spawned ? t + GAME.SPAWN_INTERVAL_MS : state.nextSpawnAt,
+      status: remainingMs <= 0 ? "ended" : "playing"
+    });
+    return { state: next, events: events };
+  }
+
+  function gamePop(state, cell, now, rng) {
+    if (!state || state.status !== "playing") {
+      return { state: state, hit: false, kind: "", delta: 0, combo: state ? state.combo : 0 };
+    }
+    var t = typeof now === "number" && Number.isFinite(now) ? now : 0;
+    var bubble = state.board[cell];
+    if (!bubble) return { state: state, hit: false, kind: "", delta: 0, combo: state.combo };
+    var board = state.board.slice();
+    board[cell] = null;
+    if (bubble.kind === "bomb") {
+      return {
+        state: Object.assign({}, state, { board: board, combo: 0, comboAt: 0 }),
+        hit: true, kind: "bomb", delta: GAME.BOMB_SCORE, combo: 0
+      };
+    }
+    var combo = (t - state.comboAt <= GAME.COMBO_WINDOW_MS && state.combo > 0) ? state.combo + 1 : 1;
+    var base = bubble.kind === "star" ? GAME.STAR_SCORE : GAME.BASE;
+    var bonus = Math.min(combo, GAME.COMBO_CAP) * 2;
+    var delta = base + bonus;
+    var next = Object.assign({}, state, {
+      board: board,
+      score: state.score + delta,
+      combo: combo,
+      comboAt: t,
+      comboMax: Math.max(state.comboMax, combo)
+    });
+    return { state: next, hit: true, kind: bubble.kind, delta: delta, combo: combo };
+  }
+
+  function gameGrade(score) {
+    if (score >= GAME.WIN_SCORE) return "win";
+    if (score >= GAME.DRAW_SCORE) return "draw";
+    return "lose";
+  }
+
+  function gameResult(state) {
+    var score = state ? state.score : 0;
+    return { score: score, grade: gameGrade(score), comboMax: state ? state.comboMax : 0 };
+  }
+
+  function gameReward(grade) {
+    return grade === "win" ? "game-win" : (grade === "draw" ? "game-draw" : "game-lose");
+  }
+
+  function gameRewardAllowed(stats, now) {
+    if (!stats) return true;
+    var today = dayKey(now);
+    if (stats.today !== today) return true;
+    return (stats.playsToday | 0) < GAME.REWARDS_PER_DAY;
+  }
+
+  function evaluateGameAchievements(have, gameStats) {
+    var out = [];
+    var has = have && have.length ? have : [];
+    var s = gameStats || {};
+    if ((s.plays | 0) >= 1 && has.indexOf("game-first") === -1) out.push("game-first");
+    if ((s.wins | 0) >= 1 && has.indexOf("game-win") === -1) out.push("game-win");
+    if ((s.comboMax | 0) >= 10 && has.indexOf("game-combo10") === -1) out.push("game-combo10");
+    if (s.highscore && has.indexOf("game-highscore") === -1) out.push("game-highscore");
+    return out;
+  }
+
   /* ================= growth / keywords / dialogue ================= */
 
   var GROWTH = Object.freeze({
@@ -208,7 +336,16 @@
     { id: "messages-500", icon: "📚", name: "消息五百条", desc: "累计看到 500 条会话消息" },
     { id: "keyword-master", icon: "🔍", name: "关键词大师", desc: "关键词互动 10 次" },
     { id: "night-work", icon: "🦉", name: "深夜赶工", desc: "深夜 22:00–6:00 工具仍在运行" },
-    { id: "balance-low", icon: "🪙", name: "余额告急", desc: "触发一次余额不足提醒" }
+    { id: "balance-low", icon: "🪙", name: "余额告急", desc: "触发一次余额不足提醒" },
+    { id: "game-first", icon: "🫧", name: "初次开玩", desc: "第一次结算一局小游戏" },
+    { id: "game-win", icon: "👑", name: "泡泡之王", desc: "单局戳泡泡得分达到 300" },
+    { id: "game-combo10", icon: "🔥", name: "连击达人", desc: "单局最高连击达到 10" },
+    { id: "game-highscore", icon: "🏆", name: "纪录刷新", desc: "打破一次历史最高分" },
+    { id: "quest-first", icon: "🎯", name: "任务初体验", desc: "完成第一个每日任务" },
+    { id: "quest-all", icon: "🎟️", name: "一日全勤", desc: "单日 3 个每日任务全部领取" },
+    { id: "week-signin7", icon: "🏆", name: "周常满勤", desc: "本周签到板集满 7 格" },
+    { id: "bond-action", icon: "🌟", name: "新动作解锁", desc: "好感度达到 Lv3" },
+    { id: "bond-badge", icon: "🎖️", name: "称号首解锁", desc: "好感度达到 Lv5" }
   ]);
 
   function dayKey(now) {
@@ -244,6 +381,13 @@
         deltas.mood += 5;
       }
     }
+    else if (type === "game-win") { deltas.mood += 8; deltas.affinity += 12; }
+    else if (type === "game-draw") { deltas.mood += 2; deltas.affinity += 3; }
+    else if (type === "game-lose") { deltas.mood -= 3; }
+    else if (type === "high-score") { deltas.affinity += 5; }
+    else if (type === "quest") { deltas.affinity += 8; deltas.mood += 2; }
+    else if (type === "questAll") { deltas.affinity += 20; deltas.mood += 5; }
+    else if (type === "weekly") { deltas.affinity += 30; deltas.mood += 5; }
 
     g.mood = Math.max(0, Math.min(GROWTH.MOOD_MAX, g.mood + deltas.mood));
     g.affinity = Math.max(0, Math.min(GROWTH.AFFINITY_MAX, g.affinity + deltas.affinity));
@@ -276,6 +420,145 @@
     if (level >= 10 && have.indexOf("lv10") === -1) out.push("lv10");
     if (streak >= 3 && have.indexOf("signin3") === -1) out.push("signin3");
     if (streak >= 7 && have.indexOf("signin7") === -1) out.push("signin7");
+    return out;
+  }
+
+  /* ================= daily quests / weekly signin / bond ================= */
+
+  var QUEST_POOL = Object.freeze([
+    Object.freeze({ id: "signin-1", desc: "今日签到", metric: "signin", target: 1, reward: Object.freeze({ affinity: 6, mood: 1 }), always: true }),
+    Object.freeze({ id: "messages-5", desc: "看 5 条会话消息", metric: "messages", target: 5, reward: Object.freeze({ affinity: 8, mood: 2 }) }),
+    Object.freeze({ id: "success-1", desc: "完成一次工作交付", metric: "success", target: 1, reward: Object.freeze({ affinity: 8, mood: 2 }) }),
+    Object.freeze({ id: "pat-3", desc: "摸头 3 次", metric: "pat", target: 3, reward: Object.freeze({ affinity: 8, mood: 2 }) }),
+    Object.freeze({ id: "tool-3", desc: "看 3 次工具运行", metric: "tool", target: 3, reward: Object.freeze({ affinity: 8, mood: 2 }) }),
+    Object.freeze({ id: "feed-1", desc: "投喂一次小点心", metric: "feed", target: 1, reward: Object.freeze({ affinity: 6, mood: 2 }) })
+  ]);
+
+  var BOND = Object.freeze({
+    lv3Action: 3, lv5Badge: 5, lv7Egg: 7,
+    badges: Object.freeze([
+      Object.freeze({ id: "bond-lv5", name: "鲸汐守护者", minLevel: 5 })
+    ])
+  });
+
+  function questDef(id) {
+    for (var i = 0; i < QUEST_POOL.length; i += 1) if (QUEST_POOL[i].id === id) return QUEST_POOL[i];
+    return null;
+  }
+
+  function refreshQuests(prev, now, rng) {
+    var today = dayKey(now);
+    if (prev && prev.date === today && Array.isArray(prev.slots) && prev.slots.length === 3) return prev;
+    var picks = [];
+    var pool = QUEST_POOL.slice();
+    for (var i = 0; i < pool.length; i += 1) {
+      if (pool[i].always) { picks.push(pool[i]); pool.splice(i, 1); break; }
+    }
+    var prevIds = prev && Array.isArray(prev.slots) ? prev.slots.map(function (s) { return s.id; }) : [];
+    var fresh = pool.filter(function (q) { return prevIds.indexOf(q.id) === -1; });
+    var source = fresh.length >= 2 ? fresh : pool;
+    while (picks.length < 3 && source.length > 0) {
+      var r = typeof rng === "function" ? rng() : Math.random();
+      var idx = Math.floor(r * source.length) % source.length;
+      picks.push(source.splice(idx, 1)[0]);
+    }
+    return {
+      date: today,
+      slots: picks.map(function (q) { return { id: q.id, progress: 0, claimed: false }; }),
+      allClaimed: false
+    };
+  }
+
+  function computeQuests(prev, signal, now) {
+    var quests = refreshQuests(prev, now);
+    if (!signal || typeof signal.metric !== "string") return { quests: quests, completed: [], newlyAll: false };
+    var amount = typeof signal.amount === "number" ? signal.amount : 1;
+    var slots = quests.slots.map(function (slot) {
+      var def = questDef(slot.id);
+      if (!def || slot.claimed || def.metric !== signal.metric) return slot;
+      return { id: slot.id, progress: Math.min(def.target, slot.progress + amount), claimed: slot.claimed };
+    });
+    var completed = [];
+    for (var i = 0; i < slots.length; i += 1) {
+      var def = questDef(slots[i].id);
+      if (def && slots[i].progress >= def.target && !slots[i].claimed) completed.push(slots[i].id);
+    }
+    return { quests: { date: quests.date, slots: slots, allClaimed: quests.allClaimed }, completed: completed, newlyAll: false };
+  }
+
+  function claimQuest(quests, id, now) {
+    var q = refreshQuests(quests, now);
+    var slots = q.slots.map(function (slot) {
+      if (slot.id !== id || slot.claimed) return slot;
+      var def = questDef(slot.id);
+      if (!def || slot.progress < def.target) return slot;
+      return { id: slot.id, progress: slot.progress, claimed: true };
+    });
+    var didClaim = false;
+    for (var i = 0; i < q.slots.length; i += 1) {
+      if (q.slots[i].id === id && !q.slots[i].claimed && slots[i].claimed) didClaim = true;
+    }
+    if (!didClaim) return { quests: q, claimed: false, newlyAll: false, reward: null };
+    var allClaimed = q.allClaimed || slots.every(function (s) { return s.claimed; });
+    var reward = questDef(id) ? questDef(id).reward : null;
+    return {
+      quests: { date: q.date, slots: slots, allClaimed: allClaimed },
+      claimed: true,
+      newlyAll: allClaimed && !q.allClaimed,
+      reward: reward
+    };
+  }
+
+  function weekKey(now) {
+    var d = new Date(typeof now === "number" ? now : Date.now());
+    var sinceMonday = (d.getDay() + 6) % 7; /* Monday=0 */
+    var monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() - sinceMonday);
+    return monday.getFullYear() + "-" + (monday.getMonth() + 1) + "-" + monday.getDate();
+  }
+
+  function computeWeekSignin(prev, day, now) {
+    var wk = weekKey(now);
+    var sameWeek = prev && prev.week === wk;
+    var days = sameWeek && Array.isArray(prev.days) ? prev.days.slice() : [];
+    var rewarded1 = sameWeek ? !!prev.rewarded1 : false;
+    var rewarded3 = sameWeek ? !!prev.rewarded3 : false;
+    var rewarded7 = sameWeek ? !!prev.rewarded7 : false;
+    var milestoneHit = null;
+    if (typeof day === "string" && day && days.indexOf(day) === -1) { days.push(day); days.sort(); }
+    if (!rewarded1 && days.length >= 1) { rewarded1 = true; milestoneHit = "1"; }
+    else if (!rewarded3 && days.length >= 3) { rewarded3 = true; milestoneHit = "3"; }
+    else if (!rewarded7 && days.length >= 7) { rewarded7 = true; milestoneHit = "7"; }
+    return {
+      weekSignin: { week: wk, days: days, rewarded1: rewarded1, rewarded3: rewarded3, rewarded7: rewarded7 },
+      milestoneHit: milestoneHit
+    };
+  }
+
+  function bondUnlocks(level) {
+    var lv = typeof level === "number" && Number.isFinite(level) ? level : 1;
+    return {
+      action: lv >= BOND.lv3Action,
+      badge: lv >= BOND.lv5Badge,
+      egg: lv >= BOND.lv7Egg,
+      badges: BOND.badges.filter(function (b) { return lv >= b.minLevel; }).map(function (b) { return b.id; })
+    };
+  }
+
+  function moodTier(mood) {
+    var m = typeof mood === "number" && Number.isFinite(mood) ? mood : 70;
+    if (m < 40) return "low";
+    if (m < 70) return "mid";
+    return "high";
+  }
+
+  function evaluateQuestAchievements(growth, quests, week) {
+    var have = growth && growth.achievements ? growth.achievements : [];
+    var out = [];
+    if (quests && Array.isArray(quests.slots) && quests.slots.some(function (s) { return s.claimed; }) && have.indexOf("quest-first") === -1) out.push("quest-first");
+    if (quests && quests.allClaimed && have.indexOf("quest-all") === -1) out.push("quest-all");
+    if (week && week.days && week.days.length >= 7 && have.indexOf("week-signin7") === -1) out.push("week-signin7");
+    if (growth && growth.level >= 3 && have.indexOf("bond-action") === -1) out.push("bond-action");
+    if (growth && growth.level >= 5 && have.indexOf("bond-badge") === -1) out.push("bond-badge");
     return out;
   }
 
@@ -616,6 +899,13 @@
         "被夸了，鲸鱼娘决定把‘哼’字先放进口袋里一整天😳",
         "主人的审美和眼力今天都在线，鲸鱼娘很满意😌",
         "夸得很有水平，鲸鱼娘批准你成为长期夸夸官🎖️"
+      ],
+      tease: [
+        "主人刚才是不是在偷偷看进度条？它没动，真的😏",
+        "鲸鱼娘数过了，主人今天已经发了三次呆，要不要给你记上一笔📝",
+        "哼哼，主人的咖啡凉了都不知道，工作很入迷嘛😼",
+        "偷偷说，主人摸鱼的样子，鲸鱼娘全都看见啦👀",
+        "主人，你的待办清单正在用眼神向你求救哦😌"
       ],
       mode: [
         "换形态啦！主人眼光还行，这个位置不错✨",
@@ -965,6 +1255,43 @@
         "主人还在，鲸鱼娘就再营业一下下，但被子已经替你暖好了🛏️",
         "熬夜冠军非你莫属，鲸鱼娘陪你站上领奖台，然后立刻去睡觉😤"
       ]
+    }),
+    bond: Object.freeze({
+      l3: [
+        "等等……鲸鱼娘刚刚解锁了新动作，主人快看这边！🕺",
+        "羁绊变深了！鲸鱼娘的待机节目单加了一档新表演🎪",
+        "嘿嘿，学会新动作了，是只表演给主人看的那种哦💫",
+        "新动作加载完毕！鲸鱼娘偷偷练了好几个晚上呢😳",
+        "羁绊 Lv3 达成，鲸鱼娘的拿手好戏正式解锁，掌声在哪里👏"
+      ],
+      l5: [
+        "称号解锁！从今天起请叫鲸鱼娘「鲸汐守护者」🎖️",
+        "主人快看，鲸鱼娘领到称号啦，说出去超有面子😤",
+        "「鲸汐守护者」正式上岗，保护主人的进度和好心情🛡️",
+        "这个称号是主人和鲸鱼娘一起攒出来的，谁都不许抢✨",
+        "鲸鱼娘也是有职称的鲸了，主人快来设置里帮我戴上🎀"
+      ],
+      l7: [
+        "彩蛋时间！鲸鱼娘偷偷练的绝活，终于可以给主人看了✨",
+        "主人找到了鲸鱼娘藏起来的彩蛋，奖励一个大大的拥抱🐋",
+        "嘘——这是羁绊 Lv7 才能看的保留节目，只此一家哦🤫",
+        "鲸鱼娘把最拿手的彩蛋送给主人，因为主人值得最好的🎁",
+        "隐藏节目放送中，鲸鱼娘紧张得尾巴都在打拍子🐋"
+      ],
+      "high-mood": [
+        "鲸鱼娘今天心情好到冒泡泡，主人有什么愿望尽管说🫧",
+        "开心！尾巴已经不受控制地摇起来了，不怪我哦🐋",
+        "和主人在一起的每一天，心情都是满格的💖",
+        "心情值拉满！鲸鱼娘现在强得可怕，什么 bug 都不怕😤",
+        "今天的心情像晴天一样亮，鲸鱼娘要把它分给主人一半☀️"
+      ],
+      "low-mood": [
+        "鲸鱼娘有点蔫蔫的……要主人摸一下头才能好🥺",
+        "心情值有点低，鲸鱼娘申请一颗小点心充电🍰",
+        "呼……鲸鱼娘先去角落蹲一小会儿，主人别担心我哦",
+        "心情电量只剩一点点，主人的一句夸夸就是充电器🔋",
+        "鲸鱼娘的低气压预报：局部有小雨，等主人哄哄就放晴🌦️"
+      ]
     })
   });
 
@@ -996,9 +1323,13 @@
     "51": Object.freeze({ emoji: "🌦️", label: "毛毛雨", kind: "rain" }),
     "53": Object.freeze({ emoji: "🌦️", label: "毛毛雨", kind: "rain" }),
     "55": Object.freeze({ emoji: "🌧️", label: "小雨", kind: "rain" }),
+    "56": Object.freeze({ emoji: "🌧️", label: "冻毛毛雨", kind: "rain" }),
+    "57": Object.freeze({ emoji: "🌧️", label: "冻毛毛雨", kind: "rain" }),
     "61": Object.freeze({ emoji: "🌧️", label: "小雨", kind: "rain" }),
     "63": Object.freeze({ emoji: "🌧️", label: "中雨", kind: "rain" }),
     "65": Object.freeze({ emoji: "🌧️", label: "大雨", kind: "rain" }),
+    "66": Object.freeze({ emoji: "🌧️", label: "冻雨", kind: "rain" }),
+    "67": Object.freeze({ emoji: "🌧️", label: "冻雨", kind: "rain" }),
     "71": Object.freeze({ emoji: "🌨️", label: "小雪", kind: "snow" }),
     "73": Object.freeze({ emoji: "🌨️", label: "中雪", kind: "snow" }),
     "75": Object.freeze({ emoji: "❄️", label: "大雪", kind: "snow" }),
@@ -1015,6 +1346,119 @@
 
   function weatherText(code) {
     return WEATHER_MAP[String(code)] || Object.freeze({ emoji: "🌈", label: "天气未知", kind: "unknown" });
+  }
+
+  /* ===== weather visual fx pure function (derives hot/cold/wind from temp/wind) ===== */
+
+  var FX_HOT_C = 30;    /* 炎热起点(℃) */
+  var FX_COLD_C = 0;    /* 结冰起点(℃) */
+  var FX_WIND_KMH = 39; /* 蒲福 6 级强风 */
+
+  var FX_RAIN = Object.freeze({
+    1: Object.freeze({ count: 40, speed: 520, length: 14, opacity: 0.30 }),
+    2: Object.freeze({ count: 90, speed: 640, length: 18, opacity: 0.42 }),
+    3: Object.freeze({ count: 140, speed: 760, length: 22, opacity: 0.55 })
+  });
+  var FX_SNOW = Object.freeze({
+    1: Object.freeze({ count: 30, speed: 90, drift: 20, size: 3, opacity: 0.55 }),
+    2: Object.freeze({ count: 60, speed: 110, drift: 24, size: 4, opacity: 0.70 }),
+    3: Object.freeze({ count: 90, speed: 130, drift: 30, size: 5, opacity: 0.85 })
+  });
+  var FX_THUNDER = Object.freeze({
+    2: Object.freeze({ rainCount: 30, flashMin: 4000, flashMax: 9000, opacity: 0.50 }),
+    3: Object.freeze({ rainCount: 50, flashMin: 2500, flashMax: 6000, opacity: 0.70 })
+  });
+  var FX_WIND = Object.freeze({
+    1: Object.freeze({ count: 12, speed: 900, length: 60, opacity: 0.18 }),
+    2: Object.freeze({ count: 18, speed: 1300, length: 100, opacity: 0.26 }),
+    3: Object.freeze({ count: 24, speed: 1700, length: 140, opacity: 0.35 })
+  });
+  var FX_FOG = Object.freeze({
+    1: Object.freeze({ bands: 3, speed: 8, opacity: 0.16 }),
+    2: Object.freeze({ bands: 4, speed: 12, opacity: 0.24 })
+  });
+  var FX_HOT = Object.freeze({
+    1: Object.freeze({ bands: 2, speed: 40, opacity: 0.06 }),
+    2: Object.freeze({ bands: 3, speed: 60, opacity: 0.10 }),
+    3: Object.freeze({ bands: 3, speed: 80, opacity: 0.14 })
+  });
+  var FX_COLD = Object.freeze({
+    1: Object.freeze({ bands: 2, speed: 10, opacity: 0.08 }),
+    2: Object.freeze({ bands: 3, speed: 14, opacity: 0.14 }),
+    3: Object.freeze({ bands: 4, speed: 18, opacity: 0.20 })
+  });
+  var FX_CLOUDY = Object.freeze({ 1: Object.freeze({ opacity: 0.04 }), 2: Object.freeze({ opacity: 0.10 }) });
+  var FX_SUNNY = Object.freeze({ 1: Object.freeze({ opacity: 0.05 }) });
+
+  var FX_RAIN_INTENSITY = Object.freeze({
+    "51": 1, "53": 1, "55": 1, "56": 1, "57": 1, "61": 1, "80": 1,
+    "63": 2, "81": 2,
+    "65": 3, "82": 3
+  });
+  var FX_SNOW_INTENSITY = Object.freeze({
+    "71": 1, "77": 1, "85": 1, "73": 2, "86": 2, "75": 3
+  });
+
+  /* Pure, deterministic: no window/document/Math.random.
+     Priority: thunder > snow > rain > fog > hot > cold > wind > cloudy/sunny.
+     Returns {kind,intensity,mode,params} or null for unknown codes. */
+  function weatherFx(code, temp, wind) {
+    var base = WEATHER_MAP[String(code)];
+    if (!base || base.kind === "unknown") return null;
+    var t = Number(temp);
+    var tFin = Number.isFinite(t);
+    var w = Number(wind);
+    var wFin = Number.isFinite(w) ? w : 0;
+
+    if (base.kind === "thunder") {
+      var tI = (String(code) === "96" || String(code) === "99") ? 3 : 2;
+      var tf = FX_THUNDER[tI];
+      return {
+        kind: "thunder", intensity: tI, mode: "flash",
+        params: {
+          count: tf.rainCount, speed: 640, length: 18, opacity: 0.40,
+          flash: { minMs: tf.flashMin, maxMs: tf.flashMax, opacity: tf.opacity }
+        }
+      };
+    }
+    if (base.kind === "snow") {
+      var sI = FX_SNOW_INTENSITY[String(code)] || 1;
+      var sf = FX_SNOW[sI];
+      return { kind: "snow", intensity: sI, mode: "motion", params: { count: sf.count, speed: sf.speed, drift: sf.drift, size: sf.size, opacity: sf.opacity } };
+    }
+    if (base.kind === "rain") {
+      var rI = FX_RAIN_INTENSITY[String(code)] || 1;
+      var rf = FX_RAIN[rI];
+      return { kind: "rain", intensity: rI, mode: "motion", params: { count: rf.count, speed: rf.speed, drift: 0, length: rf.length, opacity: rf.opacity } };
+    }
+    if (base.kind === "fog") {
+      var fI = String(code) === "48" ? 2 : 1;
+      var ff = FX_FOG[fI];
+      return { kind: "fog", intensity: fI, mode: "motion", params: { bands: ff.bands, speed: ff.speed, opacity: ff.opacity } };
+    }
+
+    /* derived hot/cold/wind (only on sunny/cloudy base) */
+    if (tFin && t >= FX_HOT_C) {
+      var hI = t >= 38 ? 3 : (t >= 34 ? 2 : 1);
+      var hf = FX_HOT[hI];
+      return { kind: "hot", intensity: hI, mode: "motion", params: { bands: hf.bands, speed: hf.speed, opacity: hf.opacity, tint: "warm" } };
+    }
+    if (tFin && t <= FX_COLD_C) {
+      var cI = t <= -13 ? 3 : (t <= -6 ? 2 : 1);
+      var cf = FX_COLD[cI];
+      return { kind: "cold", intensity: cI, mode: "static", params: { bands: cf.bands, speed: cf.speed, opacity: cf.opacity, tint: "frost" } };
+    }
+    if (wFin >= FX_WIND_KMH) {
+      var wI = w >= 62 ? 3 : (w >= 50 ? 2 : 1);
+      var wf = FX_WIND[wI];
+      return { kind: "wind", intensity: wI, mode: "motion", params: { count: wf.count, speed: wf.speed, length: wf.length, opacity: wf.opacity } };
+    }
+
+    if (base.kind === "cloudy") {
+      var clI = String(code) === "3" ? 2 : 1;
+      return { kind: "cloudy", intensity: clI, mode: "static", params: { opacity: FX_CLOUDY[clI].opacity, tint: "dim" } };
+    }
+    return { kind: "sunny", intensity: 1, mode: "static", params: { opacity: FX_SUNNY[1].opacity, tint: "warm" } };
   }
 
   var TASK_TOPICS = Object.freeze([
@@ -1080,7 +1524,26 @@
     pickDialogueAvoidRecent: pickDialogueAvoidRecent,
     greetBucket: greetBucket,
     weatherText: weatherText,
+    weatherFx: weatherFx,
     classifyTask: classifyTask,
     dialogueCount: dialogueCount,
+    GAME: GAME,
+    gameNewState: gameNewState,
+    gameTick: gameTick,
+    gamePop: gamePop,
+    gameGrade: gameGrade,
+    gameResult: gameResult,
+    gameReward: gameReward,
+    gameRewardAllowed: gameRewardAllowed,
+    evaluateGameAchievements: evaluateGameAchievements,
+    QUEST_POOL: QUEST_POOL,
+    BOND: BOND,
+    refreshQuests: refreshQuests,
+    computeQuests: computeQuests,
+    claimQuest: claimQuest,
+    computeWeekSignin: computeWeekSignin,
+    bondUnlocks: bondUnlocks,
+    moodTier: moodTier,
+    evaluateQuestAchievements: evaluateQuestAchievements
   });
 });

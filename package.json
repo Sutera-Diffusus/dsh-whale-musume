@@ -1,6 +1,7 @@
 {
   "name": "dsh-whale-musume",
-  "version": "1.2.0",
+  "version": "1.3.0",
+  "private": true,
   "description": "A whale-girl Kanban Musume mascot for DeepSeek Harness",
   "publishConfig": {
     "access": "public"
@@ -21,7 +22,7 @@
     "cordis.patch.yml"
   ],
   "scripts": {
-    "test": "node --test test/whale-moe-core.test.mjs test/whale-moe-growth.test.mjs test/apply-theme.test.mjs",
+    "test": "node --test test/whale-moe-core.test.mjs test/whale-moe-growth.test.mjs test/apply-theme.test.mjs test/whale-moe-game.test.mjs test/whale-moe-fx.test.mjs test/whale-moe-quest.test.mjs",
     "qa": "node test/motion-qa.mjs && node test/cdp-whale-moe.mjs",
     "qa:soak": "node test/soak-work.mjs"
   },

@@ -10,7 +10,7 @@
 [![GitHub Discussions](https://img.shields.io/badge/Discussions-交流-blue)](https://github.com/Sutera-Diffusus/dsh-whale-musume/discussions)
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Version](https://img.shields.io/badge/version-1.2.0-blue)
+![Version](https://img.shields.io/badge/version-1.3.0-blue)
 ![DSH](https://img.shields.io/badge/DSH-0.1.0--rc.6-blue)
 
 ---
@@ -48,29 +48,42 @@
 
 ### 💬 梗聊天与天气陪伴
 
-- 494 条台词：全场景覆盖，可爱为主，叠加打工人、摸鱼、DDL、画饼、发疯文学等安全梗；
+- 530+ 条台词：全场景覆盖，可爱为主，叠加打工人、摸鱼、DDL、画饼、发疯文学等安全梗；
 - 5–8 分钟主动闲聊：按当前任务内容本地分类贴题，不尬聊；工作态绝不插嘴；
 - 分时问候：早上/上午/中午/下午/傍晚带关心话，深夜 23:00–5:59 不主动打扰；
-- 天气陪伴：设置 → 看板娘 → 天气，填写城市（选填 API Key）并测试连接；Open-Meteo 免费无需 Key，城市留空零联网。
+- 心情分层台词：心情低落时温柔、高涨时元气，羁绊等级解锁专属台词（Lv3/Lv5/Lv7）；
+- 天气陪伴：设置 → 看板娘 → 天气，填写城市（选填 API Key）并测试连接；Open-Meteo 免费无需 Key，城市留空零联网；
+- 天气视觉特效：全屏氛围特效（雨/雪/雷闪/风/雾/热浪/霜雾），随真实天气自动切换，工作态自动降档，可在设置中关闭。
 
 ### 🎀 互动与特效
 
 - 单击摸头：脸红立绘 + 爱心/星星 emoji 飞出；
 - 三连击：星星眼庆祝 + 粒子特效 + 旋转动画；
-- 右键菜单：投喂 / 戳一下 / 夸夸 / 回到原位 / 打开设置；
+- 右键菜单：投喂 / 戳一下 / 夸夸 / 小游戏：戳泡泡 / 回到原位 / 打开设置；
 - 点击反应即时切换，不做拖沓过渡。
+
+### 🫧 小游戏「戳泡泡·泡泡派对」
+
+- 4×4 泡泡网格，普通/星星/炸弹三种泡泡，连击加分，30 秒一局三档结算；
+- 鼠标点击 + 键盘方向键游标 + Enter 引爆 + Esc 退出，双通道可达；
+- 每日 3 局养成奖励上限，多玩只计分不刷好感；
+- 刷新纪录、连击、首胜均有专属成就。
 
 ### 📈 养成与成就
 
 - 心情、好感度、饱食度、等级、连续签到、陪伴时长；
-- 30 个成就：互动类、陪伴类、DSH 用量类（工具运行次数、代码块、任务成败、消息量、深夜工作等）；
+- 每日任务：3 个任务槽每日自动刷新，完成领取好感奖励；
+- 周签到：本周签到板 7 格，集满 1/3/7 天有里程碑奖励；
+- 羁绊等级解锁：Lv3 新待机动作、Lv5 称号「鲸汐守护者」、Lv7 隐藏彩蛋；
+- 39 个成就：互动类、陪伴类、DSH 用量类、游戏类、任务类；
 - 设置面板内置**成就墙**，已解锁高亮、未解锁灰显。
 
 ### ⚙️ 设置面板
 
 - 看板娘设置集成在 DSH 设置页中；
-- 胶囊开关：看板娘 / 台词气泡 / 粒子效果 / 关键词感知 / 摸鱼提醒 / 深夜模式；
-- 养成数据使用横排小卡片展示，信息密度合理。
+- 胶囊开关：看板娘 / 台词气泡 / 粒子效果 / 小游戏 / 关键词感知 / 摸鱼提醒 / 深夜模式 / 天气特效；
+- 养成数据使用横排小卡片展示，信息密度合理；
+- 今日任务 / 本周签到 / 称号三张养成卡与成就墙同区管理。
 
 ### 🧩 工程特性
 
@@ -275,8 +288,8 @@ dsh-whale-musume/
 ## 开发与测试
 
 ```powershell
-# 单元测试（37 个）
-node --test test/whale-moe-core.test.mjs test/whale-moe-growth.test.mjs test/apply-theme.test.mjs
+# 单元测试（73 个）
+node --test test/whale-moe-core.test.mjs test/whale-moe-growth.test.mjs test/apply-theme.test.mjs test/whale-moe-game.test.mjs test/whale-moe-fx.test.mjs test/whale-moe-quest.test.mjs
 
 # 动效质量检查（需要测试用 DSH 副本运行在 3181 端口）
 node test/motion-qa.mjs

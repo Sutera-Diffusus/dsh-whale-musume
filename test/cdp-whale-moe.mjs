@@ -219,11 +219,12 @@ async function main() {
     const switches = [...document.querySelectorAll('[role="dialog"] button[role="switch"]')].map((b) => ({ pressed: b.getAttribute('aria-checked'), capsule: getComputedStyle(b).borderRadius }));
     const dialog = document.querySelector('[role="dialog"]');
     const text = dialog ? dialog.textContent : '';
-    return { rootDisplay: root ? getComputedStyle(root).display : 'missing', switches, hasGrowth: text.includes('心情') && text.includes('好感度') && text.includes('重置养成'), hasKeyword: text.includes('关键词感知'), hasTitle: text.includes('如何称呼我'), hasStats: text.includes('陪伴') && text.includes('成就墙') && text.includes('工具百连') && !text.includes('—'), wardrobeGone: !text.includes('装饰衣柜') && !text.includes('小皇冠'), modeGone: !text.includes('形态') && !text.includes('悬浮（可拖拽）') };
+    return { rootDisplay: root ? getComputedStyle(root).display : 'missing', switches, hasGrowth: text.includes('心情') && text.includes('好感度') && text.includes('重置养成'), hasKeyword: text.includes('关键词感知'), hasTitle: text.includes('如何称呼我'), hasStats: text.includes('陪伴') && text.includes('成就墙') && text.includes('工具百连') && !text.includes('—'), hasV12: text.includes('今日任务') && text.includes('本周签到') && text.includes('天气特效') && text.includes('小游戏') && text.includes('称号'), wardrobeGone: !text.includes('装饰衣柜') && !text.includes('小皇冠'), modeGone: !text.includes('形态') && !text.includes('悬浮（可拖拽）') };
   })()`);
   check("settings: mascot stays out", settings.rootDisplay === "none", settings.rootDisplay);
-  check("settings: mascot panel has 6 capsule switches", settings.switches.length === 6 && settings.switches.every((s) => s.pressed === "true" && String(s.capsule).includes("999")), settings.switches);
+  check("settings: mascot panel has 8 capsule switches", settings.switches.length === 8 && settings.switches.every((s) => s.pressed === "true" && String(s.capsule).includes("999")), settings.switches);
   check("settings: growth + keyword rows", settings.hasGrowth && settings.hasKeyword, settings);
+  check("settings: v1.2 quest/week/game/weather-fx UI present", settings.hasV12 === true, settings);
   check("settings: live stats + companionship + achievements", settings.hasStats === true, settings);
   check("settings: wardrobe removed", settings.wardrobeGone === true, settings);
   check("settings: mode selector hidden (float only)", settings.modeGone === true, settings);
@@ -423,6 +424,53 @@ async function main() {
   await delay(200);
   const reducedParticles = await evaluate(call, `document.querySelectorAll('[data-dsh-whale-particle]').length`);
   check("reduced-motion: no particles", reducedParticles === 0, reducedParticles);
+
+  // Phase 7.5: v1.2 mini game + quest data + weather fx layer
+  await call("Emulation.setEmulatedMedia", { features: [] });
+  await call("Emulation.setDeviceMetricsOverride", { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
+  await delay(400);
+  const v12 = await evaluate(call, `(() => {
+    const quests = localStorage.getItem('whale-moe:quests');
+    let questOk = false;
+    try { const q = JSON.parse(quests); questOk = q && Array.isArray(q.slots) && q.slots.length === 3; } catch (e) {}
+    const noFx = document.querySelectorAll('[data-dsh-whale-weather-fx]').length === 0;
+    const mascot = document.querySelector('[data-dsh-whale-mascot]');
+    mascot && mascot.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 600, clientY: 300 }));
+    const menu = document.querySelector('[data-dsh-whale-context]');
+    const hasGameEntry = !!(menu && [...menu.querySelectorAll('button')].some((b) => (b.textContent || '').includes('小游戏')));
+    return { questOk, noFx, hasGameEntry };
+  })()`);
+  check("v1.2: daily quests seeded with 3 slots on boot", v12.questOk === true, v12);
+  check("v1.2: no weather fx layer while city is empty", v12.noFx === true, v12);
+  check("v1.2: context menu has mini-game entry", v12.hasGameEntry === true, v12);
+  const gameOpened = await evaluate(call, `(() => {
+    const menu = document.querySelector('[data-dsh-whale-context]');
+    const entry = menu && [...menu.querySelectorAll('button')].find((b) => (b.textContent || '').includes('小游戏'));
+    if (!entry) return false;
+    entry.click();
+    return true;
+  })()`);
+  check("v1.2: mini-game opens from context menu", gameOpened === true, gameOpened);
+  await delay(600);
+  const gameUi = await evaluate(call, `(() => {
+    const panel = document.querySelector('[data-dsh-whale-game]');
+    return { open: !!panel, cells: panel ? panel.querySelectorAll('[data-dsh-whale-cell]').length : 0, paused: !!(panel && panel.querySelector('[data-dsh-whale-game-paused]') && !panel.querySelector('[data-dsh-whale-game-paused]').hidden) };
+  })()`);
+  check("v1.2: game panel renders 16 cells", gameUi.open === true && gameUi.cells === 16, gameUi);
+  await delay(1600);
+  const gamePlay = await evaluate(call, `(() => {
+    const panel = document.querySelector('[data-dsh-whale-game]');
+    if (!panel) return { ok: false };
+    const cell = [...panel.querySelectorAll('[data-dsh-whale-cell]')].find((c) => c.hasAttribute('data-dsh-whale-bubble-kind'));
+    if (cell) cell.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    const score = panel.querySelector('[data-dsh-whale-game-score]');
+    return { ok: true, score: score ? score.textContent : '', kind: cell ? cell.getAttribute('data-dsh-whale-bubble-kind') : null };
+  })()`);
+  check("v1.2: game board receives input without errors", gamePlay.ok === true, gamePlay);
+  await evaluate(call, `document.querySelector('[data-dsh-whale-game]') && document.querySelector('[data-dsh-whale-game]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+  await delay(300);
+  const gameClosed = await evaluate(call, `document.querySelectorAll('[data-dsh-whale-game]').length === 0`);
+  check("v1.2: game closes via Escape", gameClosed === true, gameClosed);
 
   // Phase 8: off = zero residue
   await evaluate(call, `localStorage.setItem('whale-moe:pet','0'); window.dispatchEvent(new Event('storage'));`);

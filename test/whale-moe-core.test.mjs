@@ -1,11 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createRequire } from "node:module";
-import { fileURLToPath } from "node:url";
-import path from "node:path";
+import { loadCore } from "./load-core.mjs";
 
-const require = createRequire(import.meta.url);
-const core = require(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "assets", "whale-moe-core.js"));
+const core = loadCore();
 const T0 = 1_000_000;
 
 const freshSignals = (over = {}) => ({
