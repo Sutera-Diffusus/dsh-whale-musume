@@ -323,7 +323,5 @@ dsh plugin --profile web add github:Sutera-Diffusus/dsh-whale-musume
 
 - 宿主插件只注册只读静态资源路由 /api/dsh-whale-musume/assets,向浏览器提供样式/脚本/立绘;
 - 浏览器插件注入鲸鱼娘本体,资源全部来自本机,无外部请求、无遥测;
-- 开关与模式偏好走鲸鱼娘自带齿轮菜单(localStorage,键名 whale-moe:*);
-- 完整的「设置 → 看板娘」养成面板(成就墙等)目前仍由脚本方式(--mascot-settings)提供。
-
-两种安装方式二选一,不要混用:脚本方式功能完整,bundle 方式零侵入、即装即用。
+- 开关与模式偏好走鲸鱼娘自带齿轮菜单(localStorage,键名 whale-moe:*);看板娘自带设置面板(胶囊开关/养成数据/成就墙/天气)在 bundle 模式下同样可用——已通过 38 项 CDP 全量验收;
+- --mascot-settings 脚本方式仍保留,供主题集成场景使用。两种安装方式二选一,不要混用。
