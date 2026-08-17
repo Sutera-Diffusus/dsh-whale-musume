@@ -1,12 +1,54 @@
 {
   "name": "dsh-whale-musume",
-  "version": "1.1.5",
-  "private": true,
+  "version": "1.2.0",
   "description": "A whale-girl Kanban Musume mascot for DeepSeek Harness",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "assets",
+    "cordis.patch.yml"
+  ],
   "scripts": {
     "test": "node --test test/whale-moe-core.test.mjs test/whale-moe-growth.test.mjs test/apply-theme.test.mjs",
     "qa": "node test/motion-qa.mjs && node test/cdp-whale-moe.mjs",
     "qa:soak": "node test/soak-work.mjs"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "mascot",
+    "desktop-pet",
+    "whale-girl",
+    "cute"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sutera-Diffusus/dsh-whale-musume.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Sutera-Diffusus/dsh-whale-musume/issues"
+  },
+  "homepage": "https://github.com/Sutera-Diffusus/dsh-whale-musume#readme"
 }
