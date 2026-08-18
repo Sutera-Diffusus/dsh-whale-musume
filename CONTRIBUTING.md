@@ -11,12 +11,20 @@
 2. 将资源同步到副本后执行：
 
 ```bash
-node --test test/whale-moe-core.test.mjs test/whale-moe-growth.test.mjs test/apply-theme.test.mjs
+npm test
+# 或：
+node --test test/whale-moe-core.test.mjs test/whale-moe-growth.test.mjs test/apply-theme.test.mjs test/whale-moe-game.test.mjs test/whale-moe-fx.test.mjs test/whale-moe-quest.test.mjs test/whale-moe-zones.test.mjs
 node test/motion-qa.mjs
 node test/cdp-whale-moe.mjs
 ```
 
 3. 全部通过后再合并到主安装。
+
+## 立绘生成管线
+
+- `scripts/gen-assets.py` 调用第三方图像接口生成/编辑立绘，密钥只从环境变量 `DSH_JMRAI_API_KEY` 读取；
+- 生成的候选立绘先放审阅目录人工确认，确认后才进入 `assets/generated/`；
+- `scripts/build-review.py` 生成审阅页，`scripts/slice-batch.py` 用于海报切图。
 
 ## 提交规范
 

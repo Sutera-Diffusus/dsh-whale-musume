@@ -13,5 +13,6 @@ _dsh-copies/
 backup/
 backups/
 dist/
+output/
 .DS_Store
 Thumbs.db

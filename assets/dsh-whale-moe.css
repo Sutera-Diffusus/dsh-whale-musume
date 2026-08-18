@@ -566,6 +566,76 @@ body[data-dsh-whale-night]::after {
   cursor: pointer;
 }
 
+/* ===== v1.3 mini game 2: catch the snacks ===== */
+[data-dsh-whale-catch] {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 65;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(340px, 92vw);
+  padding: 14px;
+  color: var(--dsw-alias-label-primary, #1a1a1a);
+  background: var(--dsw-alias-bg-overlay, #fff);
+  border: 1px solid var(--dsw-alias-border-l3, rgb(0 0 0 / 18%));
+  border-radius: 16px;
+  box-shadow: 0 14px 34px rgb(0 0 0 / 26%);
+}
+[data-dsh-whale-catch-head] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+[data-dsh-whale-catch-combo] { color: #e85d7f; }
+[data-dsh-whale-catch-arena] {
+  position: relative;
+  height: 300px;
+  overflow: hidden;
+  background: linear-gradient(rgb(140 190 255 / 18%), rgb(140 190 255 / 4%));
+  border: 1px solid var(--dsw-alias-border-l2, rgb(0 0 0 / 10%));
+  border-radius: 12px;
+  cursor: pointer;
+}
+[data-dsh-whale-catch-item] {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: 22px;
+  pointer-events: none;
+}
+[data-dsh-whale-catch-basket] {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 28px;
+  pointer-events: none;
+}
+[data-dsh-whale-catch-paused] {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary-inverted, #fff);
+  background: rgb(60 60 70 / 85%);
+  border-radius: 999px;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-dsh-whale-catch] * { animation: none !important; transition: none !important; }
+}
+@media (forced-colors: active) {
+  [data-dsh-whale-catch] { color: CanvasText; background: Canvas; border: 1px solid ButtonFace; }
+  [data-dsh-whale-catch-arena] { border: 1px solid ButtonFace; }
+}
+
 /* ===== v1.2 weather visual fx ===== */
 [data-dsh-whale-weather-fx] {
   position: fixed;

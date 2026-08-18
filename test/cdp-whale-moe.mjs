@@ -189,12 +189,28 @@ async function main() {
   const growth1 = await evaluate(call, `JSON.stringify({ mood: localStorage.getItem('whale-moe:mood'), affinity: localStorage.getItem('whale-moe:affinity'), achievements: localStorage.getItem('whale-moe:achievements') })`);
   check("growth: pat/triple change values + unlock first-triple", growth0 !== growth1 && growth1.includes("first-triple"), { growth0, growth1 });
   await delay(2500); // let the triple-pat celebration finish so it cannot overwrite the keyword line
-  await evaluate(call, `(() => { const n=document.createElement('div'); n.setAttribute('data-slot','conversation.chat.node'); n.setAttribute('data-dsh-qa-fake','true'); n.style.cssText='position:fixed;left:320px;top:160px;width:600px;height:40px;z-index:99999;pointer-events:none;'; n.textContent='谢谢你！'; document.body.appendChild(n); return true; })()`);
-  try {
-    await waitFor(call, `(() => { const t=document.querySelector('[data-dsh-whale-bubble-text]'); return t && (t.textContent.includes('鸡腿') || t.textContent.includes('谢谢') || t.textContent.includes('不客气') || t.textContent.includes('不用谢') || t.textContent.includes('谢什么') || t.textContent.includes('感谢') || t.textContent.includes('燃料')); })()`, "keyword reply", 12000);
-  } catch (e) {
-    const kwDiag = await evaluate(call, `JSON.stringify({ kw: localStorage.getItem('whale-moe:keywords'), chat: document.querySelectorAll('[data-slot="conversation.chat.node"]').length, bubble: document.querySelector('[data-dsh-whale-bubble-text]')?.textContent, scans: window.__dshWhaleMoeKeywordScans, runs: window.__dshWhaleMoeKeywordRuns, matched: window.__dshWhaleMoeKeywordMatched, kwLine: window.__dshWhaleMoeKeywordLine, debug: window.__dshWhaleMoeDebug })`);
-    throw new Error("keyword diag: " + kwDiag);
+  // wait for a truly quiet state (no active mood pose, bubble free) so rare
+  // level-up celebrations cannot steal the keyword reply
+  await waitFor(call, `(() => {
+    const d = window.__dshWhaleMoeDebug || {};
+    const b = document.querySelector('[data-dsh-whale-bubble]');
+    return !d.moodPose && (!b || b.hidden || !(b.textContent || '').trim());
+  })()`, "quiet before keyword", 20000).catch(() => {});
+  const injectThanks = `(() => { const n=document.createElement('div'); n.setAttribute('data-slot','conversation.chat.node'); n.setAttribute('data-dsh-qa-fake','true'); n.style.cssText='position:fixed;left:320px;top:160px;width:600px;height:40px;z-index:99999;pointer-events:none;'; n.textContent='谢谢你！'; document.body.appendChild(n); return true; })()`;
+  const keywordReplyOk = `(() => { const t=document.querySelector('[data-dsh-whale-bubble-text]'); return t && (t.textContent.includes('鸡腿') || t.textContent.includes('谢谢') || t.textContent.includes('不客气') || t.textContent.includes('不用谢') || t.textContent.includes('谢什么') || t.textContent.includes('感谢') || t.textContent.includes('燃料')); })()`;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    await evaluate(call, injectThanks);
+    try {
+      await waitFor(call, keywordReplyOk, "keyword reply", 12000);
+      break;
+    } catch (e) {
+      if (attempt === 1) {
+        const kwDiag = await evaluate(call, `JSON.stringify({ kw: localStorage.getItem('whale-moe:keywords'), chat: document.querySelectorAll('[data-slot="conversation.chat.node"]').length, bubble: document.querySelector('[data-dsh-whale-bubble-text]')?.textContent, scans: window.__dshWhaleMoeKeywordScans, runs: window.__dshWhaleMoeKeywordRuns, matched: window.__dshWhaleMoeKeywordMatched, kwLine: window.__dshWhaleMoeKeywordLine, debug: window.__dshWhaleMoeDebug })`);
+        throw new Error("keyword diag: " + kwDiag);
+      }
+      await evaluate(call, `document.querySelectorAll('[data-dsh-qa-fake]').forEach(n=>n.remove())`);
+      await waitFor(call, `(() => { const d = window.__dshWhaleMoeDebug || {}; const b = document.querySelector('[data-dsh-whale-bubble]'); return !d.moodPose && (!b || b.hidden || !(b.textContent || '').trim()); })()`, "quiet for keyword retry", 20000).catch(() => {});
+    }
   }
   check("keywords: thanks triggers dedicated reply", true);
   await evaluate(call, `document.querySelectorAll('[data-dsh-qa-fake]').forEach(n=>n.remove())`);
@@ -214,6 +230,15 @@ async function main() {
   check("settings: theme entry removed", themeGone === false, themeGone);
   await evaluate(call, `(() => { const nav=[...document.querySelectorAll('[role="dialog"] button')].find((n)=>(n.textContent||'').trim()==='看板娘'); nav?.click(); return !!nav; })()`);
   await delay(500);
+  // expand all accordion groups so collapsed content is mounted for assertions
+  await evaluate(call, `(() => {
+    const dialog = document.querySelector('[role="dialog"]');
+    if (!dialog) return false;
+    const headers = [...dialog.querySelectorAll('button')].filter((b) => (b.textContent || '').includes('▸'));
+    headers.forEach((b) => b.click());
+    return headers.length;
+  })()`);
+  await delay(400);
   const settings = await evaluate(call, `(() => {
     const root = document.querySelector('[data-dsh-whale-root]');
     const switches = [...document.querySelectorAll('[role="dialog"] button[role="switch"]')].map((b) => ({ pressed: b.getAttribute('aria-checked'), capsule: getComputedStyle(b).borderRadius }));
@@ -253,8 +278,17 @@ async function main() {
   });
 
   // Phase 3: state machine walk on synthetic nodes
-  await evaluate(call, fakeTree);
-  await waitFor(call, `document.body.getAttribute('data-dsh-whale-view') === 'workbench'`, "workbench view");
+  await waitFor(call, `window.__dshWhaleMoeDebug`, "mascot script boot", 10000).catch(() => {});
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await evaluate(call, fakeTree);
+    try {
+      await waitFor(call, `document.body.getAttribute('data-dsh-whale-view') === 'workbench'`, "workbench view", 4000);
+      break;
+    } catch (e) {
+      if (attempt === 2) throw e;
+      await delay(600);
+    }
+  }
   await waitFor(call, `!!document.querySelector('[data-dsh-whale-mascot]')`, "mascot mounted after settings phase");
   await waitFor(call, `window.__dshWhaleMoeDebug && !['waiting','tool','thinking','failure'].includes(window.__dshWhaleMoeDebug.state) && (document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || '').includes('workbench-peek')`, "workbench idle peek", 6000);
   const idleDiag = await evaluate(call, `({ state: window.__dshWhaleMoeDebug.state, src: document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src'), moodOverlays: document.querySelectorAll('[data-dsh-whale-mood]').length })`);
@@ -294,7 +328,7 @@ async function main() {
   await waitFor(call, `(() => { const s = document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || ''; return s.includes('dsh-whale-state-work-pat.webp') || s.includes('dsh-whale-state-work-ram.webp'); })()`, "work-pat/work-ram pose on click while busy");
   check("interact: click while busy keeps laptop work pose", true);
   await delay(2600);
-  await waitFor(call, `(document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || '').includes('dsh-whale-state-running.webp')`, "work-pat returns to running");
+  await waitFor(call, `(document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || '').includes('dsh-whale-state-running.webp')`, "work-pat returns to tool");
   await evaluate(call, dropFakes);
   await evaluate(call, addFake(`node.setAttribute('data-state','error'); node.setAttribute('aria-invalid','true');`));
   try {
@@ -428,6 +462,7 @@ async function main() {
   // Phase 7.5: v1.2 mini game + quest data + weather fx layer
   await call("Emulation.setEmulatedMedia", { features: [] });
   await call("Emulation.setDeviceMetricsOverride", { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
+  await evaluate(call, dropFakes);
   await delay(400);
   const v12 = await evaluate(call, `(() => {
     const quests = localStorage.getItem('whale-moe:quests');
@@ -451,26 +486,126 @@ async function main() {
     return true;
   })()`);
   check("v1.2: mini-game opens from context menu", gameOpened === true, gameOpened);
-  await delay(600);
+  await delay(900);
+  const gameThinkPose = await evaluate(call, `(document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || '')`);
+  check("v1.2: game opens with game-think pose", gameThinkPose.includes("dsh-whale-state-game-think.webp"), gameThinkPose);
+  await delay(2600);
   const gameUi = await evaluate(call, `(() => {
     const panel = document.querySelector('[data-dsh-whale-game]');
-    return { open: !!panel, cells: panel ? panel.querySelectorAll('[data-dsh-whale-cell]').length : 0, paused: !!(panel && panel.querySelector('[data-dsh-whale-game-paused]') && !panel.querySelector('[data-dsh-whale-game-paused]').hidden) };
+    if (!panel) return { open: false };
+    const cells = [...panel.querySelectorAll('[data-dsh-whale-cell]')];
+    const bubbled = cells.filter((c) => c.hasAttribute('data-dsh-whale-bubble-kind'));
+    const badge = panel.querySelector('[data-dsh-whale-game-paused]');
+    return { open: true, cells: cells.length, bubbled: bubbled.length, badgeHidden: badge ? badge.hidden : null, state: window.__dshWhaleMoeDebug.state };
   })()`);
   check("v1.2: game panel renders 16 cells", gameUi.open === true && gameUi.cells === 16, gameUi);
-  await delay(1600);
-  const gamePlay = await evaluate(call, `(() => {
+  check("v1.2: game is playable (not stuck paused, bubbles spawn)", gameUi.badgeHidden === true && gameUi.bubbled >= 1, gameUi);
+  let gamePlay = { ok: false, before: "", after: "" };
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    gamePlay = await evaluate(call, `(() => {
+      const panel = document.querySelector('[data-dsh-whale-game]');
+      const scoreEl = panel.querySelector('[data-dsh-whale-game-score]');
+      const before = scoreEl.textContent;
+      const cell = [...panel.querySelectorAll('[data-dsh-whale-cell]')].find((c) => c.hasAttribute('data-dsh-whale-bubble-kind'));
+      if (!cell) return { ok: false, before };
+      cell.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+      return { ok: true, before, after: scoreEl.textContent };
+    })()`);
+    if (gamePlay.ok && gamePlay.after !== gamePlay.before) break;
+    await delay(400);
+  }
+  check("v1.2: popping a bubble raises the score", gamePlay.ok === true && gamePlay.after !== gamePlay.before, gamePlay);
+  const gameKeys = await evaluate(call, `(() => {
     const panel = document.querySelector('[data-dsh-whale-game]');
-    if (!panel) return { ok: false };
-    const cell = [...panel.querySelectorAll('[data-dsh-whale-cell]')].find((c) => c.hasAttribute('data-dsh-whale-bubble-kind'));
-    if (cell) cell.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-    const score = panel.querySelector('[data-dsh-whale-game-score]');
-    return { ok: true, score: score ? score.textContent : '', kind: cell ? cell.getAttribute('data-dsh-whale-bubble-kind') : null };
+    panel.focus();
+    const focused = document.activeElement === panel;
+    panel.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    panel.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    return { focused, ok: true };
   })()`);
-  check("v1.2: game board receives input without errors", gamePlay.ok === true, gamePlay);
+  check("v1.2: game keyboard cursor focus + Enter works", gameKeys.ok === true && gameKeys.focused === true, gameKeys);
+  // game stays playable during live work (user request: work must never block play)
+  await evaluate(call, addFake('node.setAttribute("data-state","running");'));
+  await delay(1500);
+  const busyPlay = await evaluate(call, `(() => {
+    const panel = document.querySelector('[data-dsh-whale-game]');
+    const badge = panel.querySelector('[data-dsh-whale-game-paused]');
+    const bubbled = [...panel.querySelectorAll('[data-dsh-whale-cell]')].filter((c) => c.hasAttribute('data-dsh-whale-bubble-kind')).length;
+    return { badgeHidden: badge.hidden, bubbled, state: window.__dshWhaleMoeDebug.state };
+  })()`);
+  check("v1.2: game stays playable during live work", busyPlay.badgeHidden === true && busyPlay.state === "tool" && busyPlay.bubbled >= 1, busyPlay);
+  await evaluate(call, dropFakes);
+  await delay(800);
   await evaluate(call, `document.querySelector('[data-dsh-whale-game]') && document.querySelector('[data-dsh-whale-game]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
   await delay(300);
   const gameClosed = await evaluate(call, `document.querySelectorAll('[data-dsh-whale-game]').length === 0`);
   check("v1.2: game closes via Escape", gameClosed === true, gameClosed);
+
+  // catch-the-snacks game
+  const catchOpened = await evaluate(call, `(() => {
+    const m = document.querySelector('[data-dsh-whale-mascot]');
+    m.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 600, clientY: 300 }));
+    const menu = document.querySelector('[data-dsh-whale-context]');
+    const entry = menu && [...menu.querySelectorAll('button')].find((b) => (b.textContent || '').includes('接点心'));
+    if (!entry) return false;
+    entry.click();
+    return true;
+  })()`);
+  check("v1.2: catch game opens from context menu", catchOpened === true, catchOpened);
+  await delay(2500);
+  const catchUi = await evaluate(call, `(() => {
+    const panel = document.querySelector('[data-dsh-whale-catch]');
+    if (!panel) return { open: false };
+    const items = panel.querySelectorAll('[data-dsh-whale-catch-item]').length;
+    const basket = panel.querySelector('[data-dsh-whale-catch-basket]');
+    const paused = panel.querySelector('[data-dsh-whale-catch-paused]');
+    return { open: true, items, hasBasket: !!basket, pausedHidden: paused ? paused.hidden : null };
+  })()`);
+  check("v1.2: catch game renders falling items + basket", catchUi.open === true && catchUi.hasBasket === true && catchUi.pausedHidden === true && catchUi.items >= 1, catchUi);
+  const catchMove = await evaluate(call, `(() => {
+    const panel = document.querySelector('[data-dsh-whale-catch]');
+    panel.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    panel.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+    const basket = panel.querySelector('[data-dsh-whale-catch-basket]');
+    return { left: basket.style.left };
+  })()`);
+  check("v1.2: catch basket responds to arrow keys", typeof catchMove.left === "string" && catchMove.left.length > 0, catchMove);
+  await evaluate(call, `document.querySelector('[data-dsh-whale-catch]') && document.querySelector('[data-dsh-whale-catch]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+  await delay(300);
+  const catchClosed = await evaluate(call, `document.querySelectorAll('[data-dsh-whale-catch]').length === 0`);
+  check("v1.2: catch game closes via Escape", catchClosed === true, catchClosed);
+
+  // Phase 7.6: pat zones + dedicated thinking pose
+  await evaluate(call, `(() => { localStorage.setItem('whale-moe:mode', 'float'); localStorage.setItem('whale-moe:pet', '1'); window.dispatchEvent(new Event('storage')); return true; })()`);
+  await waitFor(call, `(document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || '').includes('dsh-whale-state-idle-cute.webp')`, "float full-body idle", 8000).catch(() => {});
+  const zoneClick = (ratio) => evaluate(call, `(() => {
+    const root = document.querySelector('[data-dsh-whale-root]');
+    if (!root) return { err: 'no root' };
+    const rect = root.getBoundingClientRect();
+    const frame = root.querySelector('[data-dsh-whale-mascot]');
+    frame.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: rect.left + rect.width * 0.5, clientY: rect.top + rect.height * ${ratio} }));
+    return { zone: root.getAttribute('data-dsh-whale-zone') };
+  })()`);
+  const zoneHead = await zoneClick(0.25);
+  await waitFor(call, `(document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || '').includes('react-head.webp')`, "react-head pose", 4000).catch(() => {});
+  check("zones: head click shows react-head", zoneHead.zone === "head" && (await evaluate(call, `document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || ''`)).includes("react-head.webp"), zoneHead);
+  await delay(2800);
+  const zoneBelly = await zoneClick(0.6);
+  await waitFor(call, `(document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || '').includes('react-belly.webp')`, "react-belly pose", 4000).catch(() => {});
+  check("zones: belly click shows react-belly", zoneBelly.zone === "belly" && (await evaluate(call, `document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || ''`)).includes("react-belly.webp"), zoneBelly);
+  await delay(2800);
+  const zoneTail = await zoneClick(0.9);
+  await waitFor(call, `(document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || '').includes('react-tail.webp')`, "react-tail pose", 4000).catch(() => {});
+  check("zones: tail click shows react-tail", zoneTail.zone === "tail" && (await evaluate(call, `document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || ''`)).includes("react-tail.webp"), zoneTail);
+  await delay(3000);
+  // dedicated thinking pose (tool keeps running.webp)
+  await evaluate(call, addFake('node.setAttribute("aria-busy","true");'));
+  await waitFor(call, `window.__dshWhaleMoeDebug && window.__dshWhaleMoeDebug.state === 'thinking'`, "thinking state", 6000).catch(() => {});
+  await waitFor(call, `(document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || '').includes('dsh-whale-state-thinking.webp')`, "thinking pose", 6000).catch(() => {});
+  const thinkingSrc = await evaluate(call, `document.querySelector('[data-dsh-whale-layer].dsh-whale-active')?.getAttribute('src') || ''`);
+  check("state: thinking shows dedicated thinking pose", thinkingSrc.includes("dsh-whale-state-thinking.webp"), thinkingSrc);
+  await evaluate(call, dropFakes);
+  await delay(800);
 
   // Phase 8: off = zero residue
   await evaluate(call, `localStorage.setItem('whale-moe:pet','0'); window.dispatchEvent(new Event('storage'));`);

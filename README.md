@@ -10,7 +10,7 @@
 [![GitHub Discussions](https://img.shields.io/badge/Discussions-交流-blue)](https://github.com/Sutera-Diffusus/dsh-whale-musume/discussions)
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Version](https://img.shields.io/badge/version-1.3.0-blue)
+![Version](https://img.shields.io/badge/version-1.4.0-blue)
 ![DSH](https://img.shields.io/badge/DSH-0.1.0--rc.6-blue)
 
 ---
@@ -46,6 +46,14 @@
 - 工作中带淡蓝光晕和「工作中」标签；
 - 工作状态下点击她，会随机出现「害羞抱电脑」或「偷吃内存条」的反应，不会打断工作状态；工作期间保持 running 姿势稳定，不再随机切小剧场。
 
+### 🎨 立绘与表情（90+ 张）
+
+- 全场景立绘：待机、工作中、思考、离开，以及摸头 / 戳肚子 / 戳尾巴分区互动立绘；
+- 成长立绘：升级、成就达成、每日任务完成、甩尾；
+- 游戏四态（思考 / 小得意 / 获胜 / 惜败）、天气三态（打伞 / 冷 / 雪天）；
+- 节日自动换装：圣诞 / 万圣 / 中秋 / 春节 / 情人节当天自动切换；
+- 13 种梗表情关键词感知：kyun、OMG、doge、sike、膜拜、peace、怀疑人生、waku waku 等，命中即变身表情包。
+
 ### 💬 梗聊天与天气陪伴
 
 - 530+ 条台词：全场景覆盖，可爱为主，叠加打工人、摸鱼、DDL、画饼、发疯文学等安全梗；
@@ -58,6 +66,8 @@
 ### 🎀 互动与特效
 
 - 单击摸头：脸红立绘 + 爱心/星星 emoji 飞出；
+- 分区互动：点她不同部位（头 / 肚子 / 尾巴）有专属立绘、特效与台词；
+- 关键词表情：聊天命中 13 个梗关键词时，鲸鱼娘现场变身表情包；
 - 三连击：星星眼庆祝 + 粒子特效 + 旋转动画；
 - 右键菜单：投喂 / 戳一下 / 夸夸 / 小游戏：戳泡泡 / 回到原位 / 打开设置；
 - 点击反应即时切换，不做拖沓过渡。
@@ -67,6 +77,7 @@
 - 4×4 泡泡网格，普通/星星/炸弹三种泡泡，连击加分，30 秒一局三档结算；
 - 鼠标点击 + 键盘方向键游标 + Enter 引爆 + Esc 退出，双通道可达；
 - 每日 3 局养成奖励上限，多玩只计分不刷好感；
+- 工作状态、设置页打开时均可正常游玩，仅页面隐藏时暂停；
 - 刷新纪录、连击、首胜均有专属成就。
 
 ### 📈 养成与成就
@@ -81,9 +92,10 @@
 ### ⚙️ 设置面板
 
 - 看板娘设置集成在 DSH 设置页中；
+- 折叠分组：陪伴表现 / 天气 / 日常与养成 / 成就墙 / 数据与重置，总览卡与分组卡等宽对齐；
 - 胶囊开关：看板娘 / 台词气泡 / 粒子效果 / 小游戏 / 关键词感知 / 摸鱼提醒 / 深夜模式 / 天气特效；
-- 养成数据使用横排小卡片展示，信息密度合理；
-- 今日任务 / 本周签到 / 称号三张养成卡与成就墙同区管理。
+- 日常与养成用标签页收纳：今日任务 / 本周签到 / 称号，与成就墙同区管理；
+- 养成数据使用横排小卡片展示，信息密度合理。
 
 ### 🧩 工程特性
 
@@ -103,6 +115,7 @@
 | 24 姿势总览 | `docs/images/showcase-board.png` |
 | 新立绘总览（19 张） | `docs/images/new-poses-board.png` |
 | 关键交互动作 | `docs/images/actions-board.png` |
+| 官方海报 v1–v4 | `docs/images/promo-poster-v1.png` ~ `promo-poster-v4.png` |
 
 ---
 
@@ -210,11 +223,11 @@ node scripts/apply-theme.mjs --mascot-settings
 
 | 分组 | 内容 |
 | --- | --- |
-| 基础 | 称呼、看板娘开关、台词气泡、粒子效果 |
-| 智能 | 关键词感知、摸鱼提醒、深夜模式 |
-| 养成 | 心情 / 好感度 / 饱食度 / 等级 / 签到 / 陪伴时长 |
-| 成就 | 30 个成就的成就墙 |
-| 位置与数据 | 重置悬浮位置、重置养成数据 |
+| 陪伴表现 | 称呼、看板娘开关、台词气泡、粒子效果、关键词感知、摸鱼提醒、深夜模式 |
+| 天气 | 天气城市、选填 API Key、天气特效开关 |
+| 日常与养成 | 今日任务 / 本周签到 / 称号三个标签页 |
+| 成就墙 | 39 个成就，已解锁高亮、未解锁灰显 |
+| 数据与重置 | 重置悬浮位置、重置养成数据 |
 
 ---
 
@@ -263,15 +276,24 @@ dsh-whale-musume/
 │  ├─ dsh-whale-moe.js           # DOM 表现层、状态调度、交互
 │  ├─ whale-moe-core.js          # 纯函数状态机（可单元测试）
 │  ├─ peek-calibration.json      # 探头立绘校准数据
-│  └─ generated/                 # 47 张立绘
+│  └─ generated/                 # 90+ 张立绘（状态/互动/成长/游戏/天气/节日/表情）
 ├─ scripts/
-│  └─ apply-theme.mjs            # 安装 / 回滚 / 设置注入
+│  ├─ apply-theme.mjs            # 安装 / 回滚 / 设置注入
+│  ├─ gen-assets.py              # 立绘生成管线（调用第三方图像接口，密钥走环境变量）
+│  ├─ build-assets.py            # 立绘资产构建
+│  ├─ build-review.py            # 生成立绘审阅页
+│  └─ slice-batch.py             # 海报切图
 ├─ test/
 │  ├─ whale-moe-core.test.mjs
 │  ├─ whale-moe-growth.test.mjs
+│  ├─ whale-moe-game.test.mjs
+│  ├─ whale-moe-fx.test.mjs
+│  ├─ whale-moe-quest.test.mjs
+│  ├─ whale-moe-zones.test.mjs
 │  ├─ apply-theme.test.mjs
 │  ├─ cdp-whale-moe.mjs
 │  ├─ motion-qa.mjs
+│  ├─ soak-work.mjs
 │  ├─ showcase-poses.mjs
 │  └─ showcase-actions.mjs
 ├─ docs/
@@ -288,8 +310,10 @@ dsh-whale-musume/
 ## 开发与测试
 
 ```powershell
-# 单元测试（73 个）
-node --test test/whale-moe-core.test.mjs test/whale-moe-growth.test.mjs test/apply-theme.test.mjs test/whale-moe-game.test.mjs test/whale-moe-fx.test.mjs test/whale-moe-quest.test.mjs
+# 单元测试（97 个）
+npm test
+# 或等价命令：
+node --test test/whale-moe-core.test.mjs test/whale-moe-growth.test.mjs test/apply-theme.test.mjs test/whale-moe-game.test.mjs test/whale-moe-fx.test.mjs test/whale-moe-quest.test.mjs test/whale-moe-zones.test.mjs
 
 # 动效质量检查（需要测试用 DSH 副本运行在 3181 端口）
 node test/motion-qa.mjs

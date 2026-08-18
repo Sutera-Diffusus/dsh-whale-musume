@@ -130,3 +130,75 @@ test("gameRewardAllowed: 3 per day, resets across days", () => {
   assert.equal(core.gameRewardAllowed({ today: "2026-8-18", playsToday: 3 }, T0), false);
   assert.equal(core.gameRewardAllowed({ today: "2026-8-17", playsToday: 9 }, T0), true);
 });
+
+/* ---- catch-the-snacks (game 2) ---- */
+
+test("catchNewState: initial shape", () => {
+  const s = core.catchNewState(T0, () => 0.5);
+  assert.equal(s.items.length, 0);
+  assert.equal(s.status, "playing");
+  assert.equal(s.remainingMs, core.CATCH.DURATION_MS);
+  assert.equal(s.basketX, 0.5);
+});
+
+test("catchTick: spawns one item per interval and items fall", () => {
+  const s0 = core.catchNewState(T0, () => 0.5);
+  const t1 = core.catchTick(s0, T0 + 1000, () => 0.5);
+  assert.equal(t1.state.items.length, 1);
+  assert.ok(t1.state.items[0].y > -0.06);
+  const t2 = core.catchTick(t1.state, T0 + 1100, () => 0.5);
+  assert.ok(t2.state.items[0].y > t1.state.items[0].y);
+  assert.equal(t2.state.items.length, 1); // next spawn at 1800
+});
+
+test("catchTick: aligned basket catches cake and scores with combo", () => {
+  const s0 = core.catchNewState(T0, () => 0.5);
+  const placed = Object.assign({}, s0, { basketX: 0.5, items: [{ x: 0.5, y: 0.89, kind: "cake", resolved: false }], nextSpawnAt: T0 + 60000 });
+  const out = core.catchTick(placed, T0 + 200, () => 0.5);
+  assert.equal(out.state.score, 10 + 2); // base + combo bonus min(1,10)*2
+  assert.equal(out.state.caught, 1);
+  assert.equal(out.state.items.length, 0);
+});
+
+test("catchTick: misaligned basket misses and resets combo", () => {
+  const s0 = core.catchNewState(T0, () => 0.5);
+  const placed = Object.assign({}, s0, { basketX: 0.9, combo: 5, comboAt: T0, items: [{ x: 0.2, y: 0.89, kind: "cake", resolved: false }], nextSpawnAt: T0 + 60000 });
+  const out = core.catchTick(placed, T0 + 200, () => 0.5);
+  assert.equal(out.state.missed, 1);
+  assert.equal(out.state.combo, 0);
+  assert.equal(out.state.score, 0);
+});
+
+test("catchTick: caught bomb subtracts and resets combo, missed bomb is harmless", () => {
+  const s0 = core.catchNewState(T0, () => 0.5);
+  const caught = Object.assign({}, s0, { basketX: 0.5, score: 40, combo: 3, comboAt: T0, items: [{ x: 0.5, y: 0.89, kind: "bomb", resolved: false }], nextSpawnAt: T0 + 60000 });
+  const out1 = core.catchTick(caught, T0 + 200, () => 0.5);
+  assert.equal(out1.state.score, 20);
+  assert.equal(out1.state.combo, 0);
+  const missed = Object.assign({}, s0, { basketX: 0.9, combo: 3, comboAt: T0, items: [{ x: 0.2, y: 0.89, kind: "bomb", resolved: false }], nextSpawnAt: T0 + 60000 });
+  const out2 = core.catchTick(missed, T0 + 200, () => 0.5);
+  assert.equal(out2.state.combo, 3); // bomb miss does not reset combo
+  assert.equal(out2.state.score, 0);
+});
+
+test("catchMove clamps basket into [0.02, 0.98]", () => {
+  const s = core.catchNewState(T0, () => 0.5);
+  assert.equal(core.catchMove(s, -5).basketX, 0.02);
+  assert.equal(core.catchMove(s, 9).basketX, 0.98);
+  assert.equal(core.catchMove(s, 0.4).basketX, 0.4);
+});
+
+test("catchTick: ends at zero remaining time", () => {
+  const s0 = core.catchNewState(T0, () => 0.5);
+  const out = core.catchTick(s0, T0 + core.CATCH.DURATION_MS + 10, () => 0.5);
+  assert.equal(out.state.status, "ended");
+});
+
+test("catchResult aggregates score/grade/caught/missed", () => {
+  const s = Object.assign({}, core.catchNewState(T0, () => 0.5), { score: 320, comboMax: 6, caught: 20, missed: 3, status: "ended" });
+  const r = core.catchResult(s);
+  assert.equal(r.grade, "win");
+  assert.equal(r.score, 320);
+  assert.equal(r.caught, 20);
+  assert.equal(r.missed, 3);
+});

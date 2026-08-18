@@ -36,7 +36,7 @@ test("afk after 3 minutes of no interaction", () => {
   assert.equal(idle.state, "idle");
   const nap = core.computeState(idle, freshSignals({ lastInteraction: T0 - 181_000 }), T0, () => 0);
   assert.equal(nap.state, "afk");
-  assert.equal(nap.pose, "sleep");
+  assert.equal(nap.pose, "afk");
 });
 
 test("speech gap: same state re-speaks only after 6s", () => {

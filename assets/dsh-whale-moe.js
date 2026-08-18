@@ -11,7 +11,7 @@
   var doc = root.document;
   var VIEW_ATTR = "data-dsh-whale-view";
   var ASSET_ROOT = "/assets/generated/";
-  var POSE_VERSION = "?v=3";
+  var POSE_VERSION = "?v=5";
   var DEBOUNCE_MS = 120;
   var PARTICLE_MAX = 30;
   var HEART_CHARS = ["♥", "✿", "☆", "♪"];
@@ -125,10 +125,12 @@
     for (var i = 0; i < nodes.length; i += 1) nodes[i].remove();
     var particles = doc.querySelectorAll("[data-dsh-whale-particle]");
     for (var p = 0; p < particles.length; p += 1) particles[p].remove();
-    var games = doc.querySelectorAll("[data-dsh-whale-game]");
+    var games = doc.querySelectorAll("[data-dsh-whale-game], [data-dsh-whale-catch]");
     for (var g = 0; g < games.length; g += 1) games[g].remove();
     gameOpen = false;
+    catchOpen = false;
     if (gameTimer) { root.clearInterval(gameTimer); gameTimer = null; }
+    if (catchTimer) { root.clearInterval(catchTimer); catchTimer = null; }
     weatherFxStop();
   }
 
@@ -416,7 +418,7 @@
         m.classList.add("dsh-whale-react");
         root.setTimeout(function () { m.classList.remove("dsh-whale-react"); }, 650);
       }
-      patMascot();
+      patMascot(resolveHitZone(event.clientX, event.clientY, rootNode));
     });
     frame.addEventListener("pointerdown", function (event) {
       pressStartedAt = Date.now();
@@ -503,9 +505,12 @@
     var items = [
       { label: "投喂小点心", action: function () { var out = applyGrowth({ type: "feed" }, Date.now(), 0); applyQuestSignal("feed", 1); burst("🍰"); showMood("eat", 3000); var line = say("interact", "feed"); if (line) showLine(line); if (out.unlocks.length) announceUnlocks(out.unlocks); } },
       { label: "戳一下", action: function () { applyGrowth({ type: "poke" }, Date.now(), 0); burst("💢"); showMood("angry", 3000); var line = say("interact", "poke"); if (line) showLine(line); } },
-      { label: "夸夸 鲸鱼娘", action: function () { applyGrowth({ type: "praise" }, Date.now(), 0); burst("✨"); showMood("star", 3000); var line = say("interact", "praise"); if (line) showLine(line); } }
+      { label: "夸夸 鲸鱼娘", action: function () { applyGrowth({ type: "praise" }, Date.now(), 0); burst("✨"); showMood("tail-swing", 3000, true); var line = say("interact", "praise"); if (line) showLine(line); } }
     ];
-    if (readPref("game")) items.push({ label: "小游戏：戳泡泡", action: function () { openGame(); } });
+    if (readPref("game")) {
+      items.push({ label: "小游戏：戳泡泡", action: function () { openGame(); } });
+      items.push({ label: "小游戏：接点心", action: function () { openCatchGame(); } });
+    }
     items.push(
       { label: "回到原位", action: function () { try { root.localStorage.removeItem("whale-moe:floatX"); root.localStorage.removeItem("whale-moe:floatY"); } catch (e) { /* ignore */ } reconcile(); } },
       { label: "打开看板娘设置", action: function () { var b = [...doc.querySelectorAll("button")].find(function (n) { return (n.textContent || "").trim() === "设置"; }); if (b) b.click(); } },
@@ -538,7 +543,7 @@
   var lastPatProcessedAt = 0;
   var lastPatSpeechAt = 0;
   var lastBalanceLowAt = 0;
-  var IDLE_ACTION_POOL = ["daily-eat", "daily-coffee", "daily-stretch", "daily-pajama", "daily-shower", "cool-shades", "meme-smug"];
+  var IDLE_ACTION_POOL = ["daily-eat", "daily-coffee", "daily-stretch", "daily-pajama", "daily-shower", "cool-shades", "meme-smug", "daily-picnic", "daily-cooking", "daily-fishing", "daily-painting", "daily-gaming", "tail-swing", "meme-music"];
   function showMood(kind, duration, animate) {
     var rootNode = doc.querySelector("[data-dsh-whale-root]");
     if (!rootNode) return;
@@ -568,9 +573,43 @@
     root.setTimeout(function () { span.remove(); }, 1300);
   }
 
-  function patMascot() {
+  function resolveHitZone(clientX, clientY, rootNode) {
+    var rect = rootNode.getBoundingClientRect();
+    if (rect.width <= 1) return "head";
+    var activeSrc = layerState.loaded[layerState.active] || "";
+    var poseSet = /-peek\.webp/.test(activeSrc) ? "peek" : "full";
+    var nx = (clientX - rect.left) / rect.width;
+    var ny = (clientY - rect.top) / rect.height;
+    var zone = core.hitZone(nx, ny, poseSet);
+    rootNode.setAttribute("data-dsh-whale-zone", zone);
+    return zone;
+  }
+
+  function bellyReact(now) {
+    applyGrowth({ type: "belly" }, now, 0);
+    showMood("react-belly", 2600, true);
+    emojiBurst(["💫", "✨"]);
+    var line = say("interact", "belly");
+    if (line) showLine(line);
+    reconcile();
+  }
+
+  function tailReact(now) {
+    applyGrowth({ type: "tail" }, now, 0);
+    showMood("react-tail", 2600, true);
+    emojiBurst(["🌀", "💨"]);
+    var line = say("interact", "tail");
+    if (line) showLine(line);
+    reconcile();
+  }
+
+  function patMascot(zone) {
     var now = Date.now();
     if (now < celebrateUntil) return;
+    var busyNow = BUSY_STATES[memory.state.state] === 1;
+    /* 分区反应:非忙态下肚皮/尾巴/头各有专属反应;忙态一律 work-pat/work-ram */
+    if (!busyNow && readPref("zones") && zone === "tail") { tailReact(now); return; }
+    if (!busyNow && readPref("zones") && zone === "belly") { bellyReact(now); return; }
     patHistory = patHistory.filter(function (t) { return now - t < 2000; });
     patHistory.push(now);
     if (patHistory.length >= 3 && now - lastTripleAt >= 2600) {
@@ -596,8 +635,7 @@
          speech churn so the bubble never stutters 诶嘿诶嘿 repeatedly */
       var rapid = now - lastPatProcessedAt < 450;
       lastPatProcessedAt = now;
-      var busyNow = BUSY_STATES[memory.state.state] === 1;
-      showMood(busyNow ? (Math.random() < 0.5 ? "work-pat" : "work-ram") : "blush", busyNow ? 2400 : 2600);
+      showMood(busyNow ? (Math.random() < 0.5 ? "work-pat" : "work-ram") : (zone === "head" ? "react-head" : "blush"), busyNow ? 2400 : 2600, true);
       emojiBurst(busyNow ? ["💻", "💦", "✨"] : ["💖", "✨", "⭐"]);
       if (rapid) { reconcile(); return; }
       var pat = applyGrowth({ type: "pat" }, now, patHistory.length);
@@ -660,6 +698,7 @@
   function announceUnlocks(ids) {
     var label = core.ACHIEVEMENTS.filter(function (a) { return ids.indexOf(a.id) !== -1; }).map(function (a) { return a.name; }).join("、");
     if (!label) return;
+    if (!BUSY_STATES[memory.state.state]) showMood("achievement", 3500, true);
     burst("🏅");
     showLine("成就达成：" + label + "！");
   }
@@ -717,9 +756,7 @@
 
   function gamePaused() {
     if (!gameOpen) return true;
-    if (BUSY_STATES[memory.state.state] === 1) return true;
     if (doc.hidden) return true;
-    if (detectView() === "settings") return true;
     return false;
   }
 
@@ -737,11 +774,15 @@
 
   function ensureGamePanel() {
     var existing = gamePanel();
-    if (existing) return existing;
+    if (existing) {
+      existing.focus();
+      return existing;
+    }
     var panel = doc.createElement("div");
     panel.setAttribute("data-dsh-whale-game", "true");
-    panel.setAttribute("role", "dialog");
+    panel.setAttribute("role", "region");
     panel.setAttribute("aria-label", "小游戏：戳泡泡");
+    panel.setAttribute("tabindex", "-1");
     panel.innerHTML = "";
     var head = doc.createElement("div");
     head.setAttribute("data-dsh-whale-game-head", "true");
@@ -790,22 +831,28 @@
     return panel;
   }
 
-  function gamePauseBadge(on) {
+  function gamePauseBadge(on, reason) {
     var badge = doc.querySelector("[data-dsh-whale-game-paused]");
-    if (badge) badge.hidden = !on;
+    if (!badge) return;
+    badge.hidden = !on;
+    if (on) badge.textContent = reason === "hidden" ? "⏸ 页面已隐藏，回来继续" : "⏸ 已暂停";
   }
 
   function openGame() {
     if (!readPref("game")) return;
     if (gameOpen) return;
-    if (BUSY_STATES[memory.state.state] === 1) return;
+    if (detectView() === "settings") return; /* 看板娘在设置页隐藏，无入口;此处防御 */
+    if (catchOpen) closeCatchGame();
     loadGameStats();
     gameState = core.gameNewState(Date.now(), Math.random);
     gameOpen = true;
     gamePausedFlag = false;
     gameCursor = 0;
-    ensureGamePanel();
-    showMood("curious", 3000);
+    var panel = ensureGamePanel();
+    var oldOverlay = panel.querySelector("[data-dsh-whale-game-overlay]");
+    if (oldOverlay) oldOverlay.remove();
+    gamePauseBadge(false);
+    showMood("game-think", 5000, true);
     gameTimer = root.setInterval(gameTickLoop, 250);
     schedule();
   }
@@ -842,7 +889,7 @@
     if (!gameOpen || !gameState) return;
     var now = Date.now();
     if (gamePaused()) {
-      if (!gamePausedFlag) { gamePausedFlag = true; gamePauseBadge(true); }
+      if (!gamePausedFlag) { gamePausedFlag = true; gamePauseBadge(true, "hidden"); }
       return;
     }
     if (gamePausedFlag) { gamePausedFlag = false; gamePauseBadge(false); }
@@ -865,7 +912,8 @@
         fxAt(rect.left + rect.width / 2, rect.top + rect.height / 2, "fx-ripple");
       }
       if (out.kind === "star") spawnParticles(6, now);
-      if (out.kind === "bomb") showMood("meme-shock", 1800);
+      if (out.kind === "bomb") showMood("game-cheat", 2200, true);
+      if (out.combo >= 5) showMood("game-happy", 2000, true);
     }
     renderGamePanel();
   }
@@ -890,10 +938,7 @@
     if (key === "Enter" || key === " ") { event.preventDefault(); onGamePop(gameCursor); }
   }
 
-  function endGame(result) {
-    if (!gameOpen) return;
-    gameOpen = false;
-    if (gameTimer) { root.clearInterval(gameTimer); gameTimer = null; }
+  function settleGame(panel, result, againFn, closeFn, extraText) {
     loadGameStats();
     gameStats.plays = (gameStats.plays || 0) + 1;
     var today = dayKeyOf(Date.now());
@@ -918,14 +963,13 @@
       var out = applyGrowth({ type: core.gameReward(result.grade) }, Date.now(), 0);
       if (out.leveledUp) onBondLevelUp();
     }
-    showMood(result.grade === "win" ? "celebrate" : (result.grade === "draw" ? "star" : "angry"), 3200);
-    var panel = gamePanel();
+    showMood(result.grade === "win" ? "game-win" : (result.grade === "draw" ? "game-happy" : "game-lose"), 3400, true);
     if (panel) {
       var overlay = doc.createElement("div");
       overlay.setAttribute("data-dsh-whale-game-overlay", "true");
       var titleText = result.grade === "win" ? "🎉 大胜利！" : (result.grade === "draw" ? "及格！" : "再接再厉～");
       var line = doc.createElement("div");
-      line.textContent = titleText + " 得分 " + result.score + " · 最佳 " + gameStats.best + " · 最高连击 " + result.comboMax + (rewardAllowed ? "" : "（今日奖励已达上限）");
+      line.textContent = titleText + " 得分 " + result.score + " · 最佳 " + gameStats.best + " · 最高连击 " + result.comboMax + (extraText ? " · " + extraText : "") + (rewardAllowed ? "" : "（今日奖励已达上限）");
       overlay.appendChild(line);
       if (unlocks.length) {
         var ach = doc.createElement("div");
@@ -935,21 +979,173 @@
       var again = doc.createElement("button");
       again.type = "button";
       again.textContent = "再玩一局";
-      again.addEventListener("click", function (event) { event.stopPropagation(); openGame(); });
+      again.addEventListener("click", function (event) { event.stopPropagation(); againFn(); });
       var close = doc.createElement("button");
       close.type = "button";
       close.textContent = "关闭";
-      close.addEventListener("click", function (event) { event.stopPropagation(); closeGame(); });
+      close.addEventListener("click", function (event) { event.stopPropagation(); closeFn(); });
       overlay.appendChild(again);
       overlay.appendChild(close);
       panel.appendChild(overlay);
     }
   }
 
+  function endGame(result) {
+    if (!gameOpen) return;
+    gameOpen = false;
+    if (gameTimer) { root.clearInterval(gameTimer); gameTimer = null; }
+    settleGame(gamePanel(), result, function () { openGame(); }, function () { closeGame(); });
+  }
+
+  /* ---------- mini game 2: catch the snacks ---------- */
+
+  var catchState = null;
+  var catchOpen = false;
+  var catchTimer = null;
+
+  function catchPanel() {
+    return doc.querySelector("[data-dsh-whale-catch]");
+  }
+  function closeCatchGame() {
+    catchOpen = false;
+    if (catchTimer) { root.clearInterval(catchTimer); catchTimer = null; }
+    var panel = catchPanel();
+    if (panel) panel.remove();
+    schedule();
+  }
+  function ensureCatchPanel() {
+    var existing = catchPanel();
+    if (existing) { existing.focus(); return existing; }
+    var panel = doc.createElement("div");
+    panel.setAttribute("data-dsh-whale-catch", "true");
+    panel.setAttribute("role", "region");
+    panel.setAttribute("aria-label", "小游戏：接点心");
+    panel.setAttribute("tabindex", "-1");
+    var head = doc.createElement("div");
+    head.setAttribute("data-dsh-whale-catch-head", "true");
+    var score = doc.createElement("span");
+    score.setAttribute("data-dsh-whale-catch-score", "true");
+    score.textContent = "得分 0";
+    var time = doc.createElement("span");
+    time.setAttribute("data-dsh-whale-catch-time", "true");
+    time.textContent = "30s";
+    var combo = doc.createElement("span");
+    combo.setAttribute("data-dsh-whale-catch-combo", "true");
+    combo.textContent = "";
+    var best = doc.createElement("span");
+    best.setAttribute("data-dsh-whale-catch-best", "true");
+    best.textContent = "最佳 " + (gameStats ? gameStats.best : 0);
+    head.appendChild(score);
+    head.appendChild(time);
+    head.appendChild(combo);
+    head.appendChild(best);
+    panel.appendChild(head);
+    var arena = doc.createElement("div");
+    arena.setAttribute("data-dsh-whale-catch-arena", "true");
+    var basket = doc.createElement("div");
+    basket.setAttribute("data-dsh-whale-catch-basket", "true");
+    basket.textContent = "🧺";
+    arena.appendChild(basket);
+    panel.appendChild(arena);
+    var paused = doc.createElement("div");
+    paused.setAttribute("data-dsh-whale-catch-paused", "true");
+    paused.textContent = "⏸ 页面已隐藏，回来继续";
+    paused.hidden = true;
+    panel.appendChild(paused);
+    doc.body.appendChild(panel);
+    panel.addEventListener("keydown", onCatchKeydown);
+    arena.addEventListener("pointermove", function (event) {
+      if (!catchOpen || !catchState) return;
+      var rect = arena.getBoundingClientRect();
+      if (rect.width <= 1) return;
+      var x = (event.clientX - rect.left) / rect.width;
+      catchState = core.catchMove(catchState, x);
+      renderCatchPanel();
+    });
+    panel.focus();
+    return panel;
+  }
+  function renderCatchPanel() {
+    var panel = catchPanel();
+    if (!panel || !catchState) return;
+    var score = panel.querySelector("[data-dsh-whale-catch-score]");
+    var time = panel.querySelector("[data-dsh-whale-catch-time]");
+    var combo = panel.querySelector("[data-dsh-whale-catch-combo]");
+    var best = panel.querySelector("[data-dsh-whale-catch-best]");
+    var arena = panel.querySelector("[data-dsh-whale-catch-arena]");
+    var basket = panel.querySelector("[data-dsh-whale-catch-basket]");
+    if (score) score.textContent = "得分 " + catchState.score;
+    if (time) time.textContent = Math.ceil(catchState.remainingMs / 1000) + "s";
+    if (combo) combo.textContent = catchState.combo > 1 ? "连击 x" + catchState.combo : "";
+    if (best) best.textContent = "最佳 " + (gameStats ? gameStats.best : 0);
+    if (basket) basket.style.left = (catchState.basketX * 100) + "%";
+    var existing = arena.querySelectorAll("[data-dsh-whale-catch-item]");
+    for (var i = 0; i < existing.length; i += 1) existing[i].remove();
+    for (var j = 0; j < catchState.items.length; j += 1) {
+      var item = catchState.items[j];
+      var span = doc.createElement("span");
+      span.setAttribute("data-dsh-whale-catch-item", "true");
+      span.className = "dsh-whale-catch-" + item.kind;
+      span.textContent = item.kind === "star" ? "⭐" : (item.kind === "bomb" ? "💣" : "🍰");
+      span.style.left = (item.x * 100) + "%";
+      span.style.top = (item.y * 100) + "%";
+      arena.appendChild(span);
+    }
+  }
+  function catchPaused() {
+    return !catchOpen || doc.hidden;
+  }
+  function catchTickLoop() {
+    if (!catchOpen || !catchState) return;
+    var pausedBadge = doc.querySelector("[data-dsh-whale-catch-paused]");
+    if (catchPaused()) {
+      if (pausedBadge) pausedBadge.hidden = false;
+      return;
+    }
+    if (pausedBadge) pausedBadge.hidden = true;
+    var out = core.catchTick(catchState, Date.now(), Math.random);
+    catchState = out.state;
+    for (var i = 0; i < out.events.length; i += 1) {
+      if (out.events[i].kind === "caught" && out.events[i].item === "bomb") showMood("game-cheat", 2200, true);
+    }
+    renderCatchPanel();
+    if (catchState.status === "ended") endCatchGame(core.catchResult(catchState));
+  }
+  function onCatchKeydown(event) {
+    if (!catchOpen) return;
+    var key = event.key;
+    if (key === "Escape") { event.preventDefault(); closeCatchGame(); return; }
+    if (key === "ArrowLeft" || key === "ArrowRight") {
+      event.preventDefault();
+      var step = key === "ArrowLeft" ? -0.07 : 0.07;
+      catchState = core.catchMove(catchState, catchState.basketX + step);
+      renderCatchPanel();
+    }
+  }
+  function openCatchGame() {
+    if (!readPref("game")) return;
+    if (catchOpen) return;
+    if (detectView() === "settings") return;
+    if (gameOpen) closeGame();
+    loadGameStats();
+    catchState = core.catchNewState(Date.now(), Math.random);
+    catchOpen = true;
+    ensureCatchPanel();
+    showMood("game-think", 5000, true);
+    catchTimer = root.setInterval(catchTickLoop, 100);
+    schedule();
+  }
+  function endCatchGame(result) {
+    if (!catchOpen) return;
+    catchOpen = false;
+    if (catchTimer) { root.clearInterval(catchTimer); catchTimer = null; }
+    settleGame(catchPanel(), result, function () { openCatchGame(); }, function () { closeCatchGame(); }, "接到 " + result.caught + " 个");
+  }
+
   /* ---------- state plumbing ---------- */
 
   var growth = null;
-  var dialogueCounters = { daily: {}, work: {}, interact: {}, keyword: {} };
+  var dialogueCounters = { daily: {}, work: {}, interact: {}, keyword: {}, bond: {}, context: {}, meme: {} };
   var keywordScanTimer = null;
   var lastChatCount = 0;
   var lastCodeCount = 0;
@@ -1045,6 +1241,7 @@
   }
   function say(bank, event) {
     if (!readPref("chat")) return "";
+    dialogueCounters[bank] = dialogueCounters[bank] || {};
     dialogueCounters[bank][event] = (dialogueCounters[bank][event] || 0) + 1;
     var line = core.pickDialogue(bank, event, dialogueCounters[bank][event], Math.random);
     if (growth && (bank === "interact" || bank === "work")) {
@@ -1110,6 +1307,7 @@
       announceUnlocks(unlocks);
     }
     burst("🎯");
+    if (!BUSY_STATES[memory.state.state]) showMood("daily-done", 3200, true);
     if (!BUSY_STATES[memory.state.state] && readPref("chat") && bubbleFree()) {
       showChatLine(core.pickDialogue("daily", "signin", 0, Math.random));
     }
@@ -1136,6 +1334,20 @@
     try { root.localStorage.setItem("whale-moe:badge", String(id || "")); } catch (e) { /* ignore */ }
     root.dispatchEvent(new CustomEvent("whale-moe-prefs-change", { detail: { key: "badge", value: id || "" } }));
   }
+  function maybeFestival(now) {
+    var pose = core.festivalKey(now);
+    if (!pose) return;
+    var today = dayKeyOf(now);
+    try {
+      if (root.localStorage.getItem("whale-moe:festivalShown") === today) return;
+      root.localStorage.setItem("whale-moe:festivalShown", today);
+    } catch (e) { /* ignore */ }
+    if (!BUSY_STATES[memory.state.state]) showMood(pose, 7000, true);
+    if (readPref("chat")) {
+      var line = core.pickDialogue("daily", "holiday", 0, Math.random);
+      if (line) showChatLine(line);
+    }
+  }
   function onBondLevelUp() {
     if (!growth) return;
     var unlocks = core.bondUnlocks(growth.level);
@@ -1145,7 +1357,7 @@
     else if (growth.level >= 5 && unlocks.badge) line = say("bond", "l5");
     else if (unlocks.action) line = say("bond", "l3");
     if (line && !BUSY_STATES[memory.state.state] && readPref("chat")) showLine(localizeLine(line));
-    if (unlocks.badges.length && !BUSY_STATES[memory.state.state]) showMood("celebrate", 3200);
+    if (!BUSY_STATES[memory.state.state]) showMood("levelup", 4200, true);
   }
   function keywordsEnabled() {
     try { return root.localStorage.getItem("whale-moe:keywords") === "1"; } catch (e) { return false; }
@@ -1638,7 +1850,7 @@
     if (!growth) loadGrowth();
     syncCompanionAchievements(now);
     refreshQuestsIfNeeded(now);
-    if (!memory.lastGrowthTick) { memory.lastGrowthTick = now; applyGrowth({ type: "signin" }, now, 0); applyQuestSignal("signin", 1); syncWeekSignin(now); }
+    if (!memory.lastGrowthTick) { memory.lastGrowthTick = now; applyGrowth({ type: "signin" }, now, 0); applyQuestSignal("signin", 1); syncWeekSignin(now); maybeFestival(now); }
     else if (now - memory.lastGrowthTick >= 60000) {
       var deltaMin = (now - memory.lastGrowthTick) / 60000;
       memory.lastGrowthTick = now;
@@ -1671,6 +1883,16 @@
     }
   }
 
+  var KEYWORD_POSES = Object.freeze({
+    kyun: "meme-kyun", omg: "meme-omg", doge: "meme-doge", sike: "meme-sike",
+    worship: "meme-worship", peace: "meme-peace", doubt: "meme-doubt",
+    wakuwaku: "meme-wakuwaku", smilepain: "meme-smile-pain", ojisan: "meme-ojisan",
+    deploy: "work-deploy", meeting: "work-meeting", review: "work-review",
+    bugtalk: "work-debug", ddl: "work-deadline", cake: "work-boss",
+    slack: "work-slack-phone", crazy: "abstract", cheer: "bold", flag: "bold",
+    tired: "work-sleep"
+  });
+
   function scheduleKeywordScan() {
     root.__dshWhaleMoeKeywordScans = (root.__dshWhaleMoeKeywordScans || 0) + 1;
     if (keywordScanTimer) root.clearTimeout(keywordScanTimer);
@@ -1686,6 +1908,7 @@
         if (!id) continue;
         var line = say("keyword", id);
         root.__dshWhaleMoeKeywordLine = line;
+        if (KEYWORD_POSES[id]) showMood(KEYWORD_POSES[id], 3000, true);
         if (line) {
           addUsageStat("keywords", 1);
           applyQuestSignal("keyword", 1);
@@ -2169,6 +2392,17 @@
         if (weatherNow) {
           var summary = weatherSummary();
           weatherState.lastToldKind = summary ? summary.kind : "";
+          var weatherPose = "";
+          if (summary && weatherState.current) {
+            var fxSpec = core.weatherFx(weatherState.current.code, weatherState.current.temp, weatherState.current.wind);
+            var fxKind = fxSpec ? fxSpec.kind : summary.kind;
+            if (fxKind === "rain") weatherPose = Math.random() < 0.3 ? "weather-rain-happy" : "weather-umbrella";
+            else if (fxKind === "snow") weatherPose = "weather-snow";
+            else if (fxKind === "cold") weatherPose = "weather-cold";
+            else if (fxKind === "thunder") weatherPose = "weather-thunder";
+            else if (fxKind === "hot") weatherPose = "daily-melt";
+          }
+          if (weatherPose) showMood(weatherPose, 6500, true);
           showChatLine(weatherNow);
         }
       });
@@ -2210,13 +2444,12 @@
     root.addEventListener("whale-moe-prefs-change", schedule);
     root.addEventListener("visibilitychange", function () {
       if (doc.hidden) {
-        if (gameOpen) { gamePausedFlag = true; gamePauseBadge(true); }
+        if (gameOpen) { gamePausedFlag = true; gamePauseBadge(true, "hidden"); }
         weatherFxStop();
       } else {
         schedule();
       }
-    });
-    try {
+    });    try {
       fetch("/assets/peek-calibration.json").then(function (r) { return r.json(); }).then(function (json) {
         root.__dshWhalePeekCalibration = json;
         schedule();

@@ -14,18 +14,19 @@
   var CURIOUS_WINDOW_MS = 6000;
   var TEASE_CHANCE = 0.006;
 
-  /* Pose assets that exist in /assets/generated today. afk reuses waiting,
-     thinking reuses running, until the dedicated poses are generated. */
+  /* Pose assets that exist in /assets/generated today. thinking/afk have
+     dedicated approved poses; tool keeps the original running pose (user
+     decision 2026-08-18); sleep keeps its own asset. */
   var POSES = Object.freeze({
     idle: "idle-cute",
     waiting: "waiting",
-    thinking: "running",
+    thinking: "thinking",
     tool: "running",
     success: "success",
     failure: "failure",
     curious: "curious",
     teasing: "teasing",
-    afk: "sleep",
+    afk: "afk",
     blush: "blush",
     angry: "angry",
     eat: "eat",
@@ -112,6 +113,37 @@
     var lines = LINES[state] || [];
     if (lines.length === 0) return "";
     return lines[Math.abs(lineCount | 0) % lines.length];
+  }
+
+  /* ================= hit zones (pat regions) ================= */
+
+  var HIT_ZONES = Object.freeze({
+    /* Full-body square poses (float 200 / side-busy 112 / mini 64). Ordered:
+       first matching rectangle wins (tail > head > belly); any miss falls
+       back to head. Coordinates are normalized [0,1] of the 512x512 frame. */
+    full: Object.freeze([
+      Object.freeze({ id: "tail", x0: 0.00, y0: 0.78, x1: 1.00, y1: 1.00 }),
+      Object.freeze({ id: "head", x0: 0.20, y0: 0.00, x1: 0.80, y1: 0.45 }),
+      Object.freeze({ id: "belly", x0: 0.18, y0: 0.45, x1: 0.82, y1: 0.78 })
+    ]),
+    /* Peek poses (home-peek / workbench-peek) show only the face: whole area = head. */
+    peek: Object.freeze([
+      Object.freeze({ id: "head", x0: 0, y0: 0, x1: 1, y1: 1 })
+    ])
+  });
+
+  /* Pure: nx, ny are the normalized click point inside the mascot frame.
+     Boundaries are inclusive; the array order decides shared edges. */
+  function hitZone(nx, ny, poseSet) {
+    var set = HIT_ZONES[poseSet === "full" ? "full" : "peek"];
+    if (!set) return "head";
+    var x = Math.max(0, Math.min(1, Number(nx) || 0));
+    var y = Math.max(0, Math.min(1, Number(ny) || 0));
+    for (var i = 0; i < set.length; i += 1) {
+      var z = set[i];
+      if (x >= z.x0 && x <= z.x1 && y >= z.y0 && y <= z.y1) return z.id;
+    }
+    return "head";
   }
 
   function base(prev) {
@@ -293,6 +325,102 @@
     return out;
   }
 
+  /* ================= mini game 2: catch the snacks (pure, DOM-free) ================= */
+
+  var CATCH = Object.freeze({
+    DURATION_MS: 30000, SPAWN_INTERVAL_MS: 900,
+    BASKET_W: 0.18, BASKET_Y: 0.92, CATCH_BAND: 0.05,
+    FALL_BASE: 0.16, FALL_MAX: 0.42, /* fraction of screen height per second */
+    CAKE_P: 0.75, STAR_P: 0.15, BOMB_P: 0.10,
+    CAKE_SCORE: 10, STAR_SCORE: 30, BOMB_SCORE: -20,
+    COMBO_WINDOW_MS: 1500
+  });
+
+  function catchNewState(now, rng) {
+    var t = typeof now === "number" && Number.isFinite(now) ? now : 0;
+    return {
+      items: [], basketX: 0.5, score: 0, combo: 0, comboAt: 0, comboMax: 0,
+      caught: 0, missed: 0, remainingMs: CATCH.DURATION_MS,
+      nextSpawnAt: t + CATCH.SPAWN_INTERVAL_MS, lastAt: t, status: "playing"
+    };
+  }
+
+  function catchTick(state, now, rng) {
+    if (!state || state.status !== "playing") return { state: state, events: [] };
+    var t = typeof now === "number" && Number.isFinite(now) ? now : 0;
+    var dt = Math.max(0, t - (typeof state.lastAt === "number" ? state.lastAt : t)) / 1000;
+    var events = [];
+    var items = state.items.map(function (it) { return { x: it.x, y: it.y, kind: it.kind, resolved: it.resolved }; });
+    var score = state.score;
+    var combo = state.combo;
+    var comboAt = state.comboAt;
+    var comboMax = state.comboMax;
+    var caught = state.caught;
+    var missed = state.missed;
+    /* spawn */
+    var spawned = false;
+    if (t >= state.nextSpawnAt) {
+      var r = typeof rng === "function" ? rng() : Math.random();
+      var kind = r < CATCH.BOMB_P ? "bomb" : (r < CATCH.BOMB_P + CATCH.STAR_P ? "star" : "cake");
+      items.push({ x: 0.08 + Math.random() * 0.84, y: -0.06, kind: kind, resolved: false });
+      spawned = true;
+    }
+    /* advance and resolve */
+    var progress = 1 - state.remainingMs / CATCH.DURATION_MS;
+    var speed = CATCH.FALL_BASE + progress * (CATCH.FALL_MAX - CATCH.FALL_BASE);
+    var nextItems = [];
+    for (var i = 0; i < items.length; i += 1) {
+      var item = items[i];
+      item.y += speed * dt;
+      if (!item.resolved && item.y >= CATCH.BASKET_Y - CATCH.CATCH_BAND) {
+        item.resolved = true;
+        var caughtIt = Math.abs(item.x - state.basketX) <= CATCH.BASKET_W / 2 + 0.03;
+        if (caughtIt) {
+          var baseScore = item.kind === "star" ? CATCH.STAR_SCORE : (item.kind === "bomb" ? CATCH.BOMB_SCORE : CATCH.CAKE_SCORE);
+          if (item.kind === "bomb") { combo = 0; comboAt = 0; score = Math.max(0, score + baseScore); }
+          else {
+            var newCombo = (t - comboAt <= CATCH.COMBO_WINDOW_MS && combo > 0) ? combo + 1 : 1;
+            combo = newCombo;
+            comboAt = t;
+            comboMax = Math.max(comboMax, combo);
+            score += baseScore + Math.min(combo, 10) * 2;
+          }
+          caught += 1;
+          events.push({ kind: "caught", item: item.kind, score: score });
+        } else {
+          missed += 1;
+          if (item.kind !== "bomb") { combo = 0; comboAt = 0; }
+          events.push({ kind: "missed", item: item.kind });
+        }
+      }
+      if (!item.resolved && item.y < 1.05) nextItems.push(item);
+    }
+    var remainingMs = Math.max(0, state.remainingMs - dt * 1000);
+    var next = Object.assign({}, state, {
+      items: nextItems, score: score, combo: combo, comboAt: comboAt, comboMax: comboMax,
+      caught: caught, missed: missed, remainingMs: remainingMs, lastAt: t,
+      nextSpawnAt: spawned ? t + CATCH.SPAWN_INTERVAL_MS : state.nextSpawnAt,
+      status: remainingMs <= 0 ? "ended" : "playing"
+    });
+    return { state: next, events: events };
+  }
+
+  function catchMove(state, basketX) {
+    if (!state) return state;
+    var x = typeof basketX === "number" && Number.isFinite(basketX) ? basketX : 0.5;
+    return Object.assign({}, state, { basketX: Math.max(0.02, Math.min(0.98, x)) });
+  }
+
+  function catchResult(state) {
+    return {
+      score: state ? state.score : 0,
+      grade: gameGrade(state ? state.score : 0),
+      comboMax: state ? state.comboMax : 0,
+      caught: state ? state.caught : 0,
+      missed: state ? state.missed : 0
+    };
+  }
+
   /* ================= growth / keywords / dialogue ================= */
 
   var GROWTH = Object.freeze({
@@ -370,6 +498,8 @@
     else if (type === "failure") { deltas.mood -= 5; }
     else if (type === "thanks") { deltas.mood += 6; deltas.affinity += 20; }
     else if (type === "praise") { deltas.mood += 5; deltas.affinity += 8; }
+    else if (type === "belly") { deltas.mood += 3; deltas.affinity += 2; }
+    else if (type === "tail") { deltas.mood += 2; deltas.affinity += 3; }
     else if (type === "tick") { deltas.satiety -= deltaMin * GROWTH.SATIETY_DECAY_PER_MIN; }
     else if (type === "signin") {
       var today = dayKey(now);
@@ -579,7 +709,20 @@
     { id: "cake", words: ["画饼", "大饼", "pua", "老板", "画大饼"] },
     { id: "crazy", words: ["发疯", "破防", "绷不住", "已老实", "求放过", "啊啊啊", "疯了"] },
     { id: "flag", words: ["立个 flag", "立 flag", "立flag", "这把我", "干完这单", "flag"] },
-    { id: "bugtalk", words: ["bug 好玄学", "bug好玄学", "玄学", "改一行", "回滚", "代码坏"] }
+    { id: "bugtalk", words: ["bug 好玄学", "bug好玄学", "玄学", "改一行", "回滚", "代码坏"] },
+    { id: "kyun", words: ["心动", "好可爱", "太可爱", "aww", "心动了", "可爱死"] },
+    { id: "omg", words: ["我的天", "天哪", "omg", "离谱", "震惊", "我靠", "卧槽", "不是吧"] },
+    { id: "doge", words: ["就这", "呵呵", "笑死", "难蚌", "绷不住笑"] },
+    { id: "sike", words: ["拿下", "搞定", "轻松", "so easy", "稳了", "小意思"] },
+    { id: "worship", words: ["大佬", "膜拜", "膝盖", "牛批", "nb", "大神"] },
+    { id: "peace", words: ["佛系", "随缘", "淡定", "算了算了", "无所谓"] },
+    { id: "doubt", words: ["真的假的", "不会吧", "确定吗", "怀疑", "是吗"] },
+    { id: "wakuwaku", words: ["期待", "兴奋", "冲了", "开始吧", "wow", "等不及"] },
+    { id: "smilepain", words: ["无语", "累了累了", "麻了", "已黑化", "微笑"] },
+    { id: "ojisan", words: ["无聊", "好闲", "没意思", "就这？"] },
+    { id: "deploy", words: ["部署", "上线", "发布", "deploy", "release"] },
+    { id: "meeting", words: ["开会", "会议", "例会", "评审会"] },
+    { id: "review", words: ["review", "评审", "代码审查", "cr"] }
   ]);
 
   function matchKeyword(text, enabled) {
@@ -907,6 +1050,20 @@
         "偷偷说，主人摸鱼的样子，鲸鱼娘全都看见啦👀",
         "主人，你的待办清单正在用眼神向你求救哦😌"
       ],
+      belly: [
+        "哈哈……别摸肚子，那里是痒痒肉重灾区啦😳",
+        "呀！肚子上被画圈圈了，鲸鱼娘笑得停不下来🤭",
+        "投降投降！肚皮攻防战是主人赢了🎌",
+        "痒死啦——鲸鱼娘要笑到尾巴打结了，快住手😝",
+        "摸肚子是要收费的哦，一次一个小蛋糕🍰"
+      ],
+      tail: [
+        "呀！尾巴是敏感开关，主人你故意的吧！🐋",
+        "尾巴炸毛了！鲸鱼娘要花三分钟才能顺回来💢",
+        "不许偷袭尾巴！有本事正面来😤",
+        "尾巴都吓成弹簧了，主人快赔我一条新的😭",
+        "摸尾巴之前要先打招呼，这是工房规矩📋"
+      ],
       mode: [
         "换形态啦！主人眼光还行，这个位置不错✨",
         "好哦，鲸鱼娘换个地方监督你👀",
@@ -1066,6 +1223,71 @@
         "回滚是成年人的后悔药，主人放心吃，鲸鱼娘给你倒水💊",
         "这个 bug 太玄了，鲸鱼娘建议先重启，再拜拜主机🙏",
         "代码坏起来不讲道理，但鲸鱼娘讲：先喝茶，再和它讲理🍵"
+      ],
+      kyun: [
+        "犯规！主人突然说这种话，鲸鱼娘的心跳漏拍了💓",
+        "诶嘿嘿……被主人夸可爱，尾巴要开心得打卷了😳",
+        "心动警告！鲸鱼娘宣布主人的可爱浓度超标🫧"
+      ],
+      omg: [
+        "我的天！鲸鱼娘也被吓到炸毛了，尾巴都直了😱",
+        "不是吧不是吧，这剧情鲸鱼娘都看傻了🌀",
+        "离谱！鲸鱼娘的瞳孔地震已启动，请系好安全带🚨"
+      ],
+      doge: [
+        "就这？鲸鱼娘的尾巴都笑弯了😏",
+        "呵呵，主人的嘲讽和鲸鱼娘的毒舌同款，很有默契嘛",
+        "难蚌，鲸鱼娘憋笑憋得尾巴直抖🐋"
+      ],
+      sike: [
+        "拿下了？鲸鱼娘早就说过主人可以的，尾巴竖大拇指👍",
+        "稳了稳了，鲸鱼娘这就去把庆功的蛋糕摆上🎂",
+        "小意思啦，鲸鱼娘对主人的实力有 120% 的信心✨"
+      ],
+      worship: [
+        "大佬请收下鲸鱼娘的膝盖，还有尾巴一起🧎",
+        "膜拜膜拜，鲸鱼娘给主人献上今日份的星星眼🤩",
+        "主人这波操作，鲸鱼娘单方面宣布封神👑"
+      ],
+      peace: [
+        "佛系好啊，鲸鱼娘陪你一起随缘，bug 不修它也不会自己走😌",
+        "淡定淡定，鲸鱼娘先泡杯茶，和主人一起看云☁️",
+        "算了算了，鲸鱼娘把烦恼都吹成泡泡放走了🫧"
+      ],
+      doubt: [
+        "真的假的？鲸鱼娘的怀疑雷达已经竖起来了📡",
+        "不会吧……鲸鱼娘眯起眼睛，这瓜保熟吗🍉",
+        "确定吗主人？鲸鱼娘的尾巴打了个问号❓"
+      ],
+      wakuwaku: [
+        "哇！鲸鱼娘的期待值拉满，尾巴已经在打节拍了🎵",
+        "兴奋！鲸鱼娘原地转圈，就等主人一声令下💫",
+        "冲了冲了！鲸鱼娘把风都给你准备好啦🌪️"
+      ],
+      smilepain: [
+        "微笑.jpg 已就位，鲸鱼娘陪主人一起强颜欢笑😶",
+        "麻了……鲸鱼娘决定和主人并肩躺平三十秒再复活🛏️",
+        "无语的时候，鲸鱼娘会用尾巴给主人扇扇风，冷静一下😑"
+      ],
+      ojisan: [
+        "无聊的话，鲸鱼娘给主人表演一个尾巴钓鱼，钓寂寞🐟",
+        "好闲呀，鲸鱼娘和主人一起数屏幕上的像素点玩",
+        "没意思的话，鲸鱼娘可以讲冷笑话，先保证不好笑😑"
+      ],
+      deploy: [
+        "发布！鲸鱼娘把红按钮擦了三遍，就等主人下令🔴",
+        "上线啦，鲸鱼娘比主人还紧张，尾巴都绷直了🚀",
+        "部署前深呼吸，鲸鱼娘陪你一起按下去，稳的💪"
+      ],
+      meeting: [
+        "开会啦，鲸鱼娘已经提前把瞌睡虫赶走了📋",
+        "例会时间，鲸鱼娘搬好小板凳，负责给主人点头捧场👏",
+        "会议中……鲸鱼娘保持安静，只用眼神给你加油👀"
+      ],
+      review: [
+        "评审来了，鲸鱼娘帮你把代码叠整齐，气势不能输📐",
+        "代码审查别慌，鲸鱼娘在旁边给你当吉祥物🧸",
+        "review 的时候，鲸鱼娘负责盯着屏幕，坏评论都挡掉🛡️"
       ]
     }),
     meme: Object.freeze({
@@ -1313,6 +1535,26 @@
     return "evening";
   }
 
+  /* Festival pose key by Gregorian date. Lunar festivals use a small table. */
+  var FESTIVAL_DAYS = Object.freeze({
+    "2026-02-17": "festival-spring",
+    "2027-02-06": "festival-spring",
+    "2026-09-25": "festival-mid-autumn",
+    "2027-09-15": "festival-mid-autumn"
+  });
+
+  function festivalKey(now) {
+    var d = new Date(typeof now === "number" ? now : Date.now());
+    var month = d.getMonth() + 1;
+    var day = d.getDate();
+    var key = d.getFullYear() + "-" + (month < 10 ? "0" : "") + month + "-" + (day < 10 ? "0" : "") + day;
+    if (FESTIVAL_DAYS[key]) return FESTIVAL_DAYS[key];
+    if (month === 10 && day === 31) return "festival-halloween";
+    if (month === 12 && day === 25) return "festival-christmas";
+    if (month === 2 && day === 14) return "valentine";
+    return "";
+  }
+
   var WEATHER_MAP = Object.freeze({
     "0": Object.freeze({ emoji: "☀️", label: "晴", kind: "sunny" }),
     "1": Object.freeze({ emoji: "🌤️", label: "大致晴朗", kind: "sunny" }),
@@ -1523,6 +1765,9 @@
     pickDialogue: pickDialogue,
     pickDialogueAvoidRecent: pickDialogueAvoidRecent,
     greetBucket: greetBucket,
+    festivalKey: festivalKey,
+    HIT_ZONES: HIT_ZONES,
+    hitZone: hitZone,
     weatherText: weatherText,
     weatherFx: weatherFx,
     classifyTask: classifyTask,
@@ -1536,6 +1781,11 @@
     gameReward: gameReward,
     gameRewardAllowed: gameRewardAllowed,
     evaluateGameAchievements: evaluateGameAchievements,
+    CATCH: CATCH,
+    catchNewState: catchNewState,
+    catchTick: catchTick,
+    catchMove: catchMove,
+    catchResult: catchResult,
     QUEST_POOL: QUEST_POOL,
     BOND: BOND,
     refreshQuests: refreshQuests,
