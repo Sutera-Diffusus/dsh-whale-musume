@@ -10,7 +10,7 @@
 [![GitHub Discussions](https://img.shields.io/badge/Discussions-交流-blue)](https://github.com/Sutera-Diffusus/dsh-whale-musume/discussions)
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Version](https://img.shields.io/badge/version-1.4.0-blue)
+![Version](https://img.shields.io/badge/version-1.4.1-blue)
 ![DSH](https://img.shields.io/badge/DSH-0.1.0--rc.6-blue)
 
 ---

@@ -187,7 +187,7 @@ test("patchMascotClient adds the mascot settings section and is idempotent", () 
   const fixture = 'const store = 1;\nconst injected = (a) => a;\nctx.slots.inject("settings.theme.item", () => ctx.slots.register({}, ThemePackRow));';
   const out = patchMascotClient(fixture);
   assert.equal(out.changed, true);
-  assert.ok(out.source.includes("/* DSH-WHALE-MOE:MASCOT-SETTINGS v24 */"));
+  assert.ok(out.source.includes("/* DSH-WHALE-MOE:MASCOT-SETTINGS v27 */"));
   assert.ok(out.source.includes('id: "mascot"'));
   assert.ok(out.source.includes('label: "看板娘"'));
   assert.ok(out.source.includes('label: "鲸鱼娘"'));
@@ -212,7 +212,7 @@ test("patchMascotClient adds the mascot settings section and is idempotent", () 
   assert.ok(out.source.includes('MascotDailyQuests') && out.source.includes('MascotWeekSignin') && out.source.includes('MascotBadgeRow'));
   assert.ok(out.source.includes('title: "陪伴表现"') && out.source.includes('title: "天气"') && out.source.includes('title: "日常与养成"') && out.source.includes('title: "成就墙"') && out.source.includes('title: "数据与重置"'));
   assert.ok(out.source.includes('function MascotOverviewCard') && out.source.includes('function MascotSwitchGrid'));
-  assert.ok(out.source.includes('marginTop: "10px", padding: "8px 14px", width: "100%"'));
+  assert.ok(out.source.includes('margin: "10px auto 0", padding: "8px 14px", width: "95%"'));
   assert.ok(out.source.includes('label: "今日任务"') && out.source.includes('label: "本周签到"') && out.source.includes('label: "称号"'));
   assert.ok(out.source.includes('function MascotAccordion') && out.source.includes('function MascotTabs') && out.source.includes('function MascotDailyCard'));
   assert.ok(out.source.includes('borderRadius: "999px"') && out.source.includes('mascotReact.useState'));
@@ -221,12 +221,12 @@ test("patchMascotClient adds the mascot settings section and is idempotent", () 
   assert.equal(second.changed, false);
 });
 
-test("patchMascotClient upgrades legacy v1-v23 blocks to v24", () => {
+test("patchMascotClient upgrades legacy v1-v26 blocks to v27", () => {
   const fixture = 'const store = 1;\nconst injected = (a) => a;\nctx.slots.inject("settings.theme.item", () => ctx.slots.register({}, ThemePackRow));';
-  const legacy = patchMascotClient(fixture).source.replace("DSH-WHALE-MOE:MASCOT-SETTINGS v24", "DSH-WHALE-MOE:MASCOT-SETTINGS v4");
+  const legacy = patchMascotClient(fixture).source.replace("DSH-WHALE-MOE:MASCOT-SETTINGS v27", "DSH-WHALE-MOE:MASCOT-SETTINGS v4");
   const upgraded = patchMascotClient(legacy);
   assert.equal(upgraded.changed, true);
-  assert.ok(upgraded.source.includes("DSH-WHALE-MOE:MASCOT-SETTINGS v24"));
+  assert.ok(upgraded.source.includes("DSH-WHALE-MOE:MASCOT-SETTINGS v27"));
   assert.ok(!upgraded.source.includes("DSH-WHALE-MOE:MASCOT-SETTINGS v4"));
   assert.equal((upgraded.source.match(/id: "mascot"/g) || []).length, 1);
 });
