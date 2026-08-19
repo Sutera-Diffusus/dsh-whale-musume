@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.4.2 (2026-08-19)
+
+- 修复「打开看板娘设置」无反应：右键菜单原按文本「设置」查找按钮，新版 DSH 设置入口为纯图标按钮（`[data-slot="sidebar.settings"] button`），现按 结构 slot → `settings.trigger` 宿主按钮 → 文本兜底 三级查找，点击后直接打开 DSH 设置面板
+- bundle 安装方式补齐「看板娘」设置面板：`lib/client.js` 注册 `settings.section`（id=mascot，label=看板娘），内容与 `--mascot-settings` v27 同源（总览卡 / 陪伴表现开关 / 天气 / 日常与养成 / 成就墙 / 数据与重置），读 `whale-moe:*` localStorage 并与桌宠本体实时联动；bundle 模式从此自带完整设置面板
+
 ## v1.4.1 (2026-08-18)
 
 - 设置面板 v27：顶部概览外卡宽度调整为 95% 居中，与下方折叠分组外卡视觉对齐（定稿）
