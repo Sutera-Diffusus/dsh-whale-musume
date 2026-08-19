@@ -513,7 +513,17 @@
     }
     items.push(
       { label: "回到原位", action: function () { try { root.localStorage.removeItem("whale-moe:floatX"); root.localStorage.removeItem("whale-moe:floatY"); } catch (e) { /* ignore */ } reconcile(); } },
-      { label: "打开看板娘设置", action: function () { var b = [...doc.querySelectorAll("button")].find(function (n) { return (n.textContent || "").trim() === "设置"; }); if (b) b.click(); } },
+      { label: "打开看板娘设置", action: function () {
+        /* DSH 新版设置入口是纯图标按钮(无文本),旧版是文本“设置”按钮:
+           按 结构 slot → settings.trigger 宿主按钮 → 文本兜底 的顺序查找。 */
+        var btn = doc.querySelector('[data-slot="sidebar.settings"] button');
+        if (!btn) {
+          var trigger = doc.querySelector('[data-slot="settings.trigger"]');
+          btn = trigger && trigger.closest ? trigger.closest("button") : null;
+        }
+        if (!btn) btn = [...doc.querySelectorAll("button")].find(function (n) { return (n.textContent || "").trim() === "设置"; });
+        if (btn) btn.click();
+      } },
       { label: "关闭菜单", action: function () { menu.remove(); } }
     );
     for (var i = 0; i < items.length; i += 1) {
