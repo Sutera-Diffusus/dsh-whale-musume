@@ -1380,6 +1380,11 @@
      even if the conversation resumes immediately; after that it keeps or drops
      the error pose based on whether the conversation moved on. */
   var ERROR_MIN_MS = 3000;
+  /* After a fresh page load, DSH mounts conversation history asynchronously,
+     so error nodes can surface AFTER the whale's first baseline pass. Treat
+     every error node seen within this window as historical, so a reload never
+     starts in the error pose. */
+  var SETTLE_MS = 10000;
   var STATE_CHIP = Object.freeze({ thinking: "思考中", tool: "工作中", success: "完成", failure: "出错", curious: "好奇" });
   var BUSY_STATES = Object.freeze({ thinking: 1, tool: 1, success: 1, failure: 1 });
 
@@ -1452,6 +1457,7 @@
     bubbleHideAt: 0,
     errorBaseline: null,
     errorSeenAt: 0,
+    bootedAt: 0,
     failed: false
   };
 
@@ -1461,6 +1467,8 @@
     var firstPass = baseline === null;
     if (firstPass) baseline = memory.errorBaseline = [];
     var now = Date.now();
+    if (!memory.bootedAt) memory.bootedAt = now;
+    var settling = (now - memory.bootedAt) < SETTLE_MS;
     var live = [];
     for (var i = 0; i < SIGNAL_BANKS.error.length; i += 1) {
       var nodes = doc.querySelectorAll(SIGNAL_BANKS.error[i]);
@@ -1469,8 +1477,10 @@
         /* Historical DSH log clusters carry data-state="error" for a failed
            step that already finished; they are records, not live failures. */
         if (typeof n.closest === "function" && n.closest('[class*="dshLogCluster"]')) continue;
-        /* First pass: seed every pre-existing error node as history. */
-        if (firstPass) { baseline.push(n); continue; }
+        /* First pass + loading settle window: seed every error node seen during
+           the initial load as history, so a reload never opens in the error
+           pose (DSH mounts conversation history after the first reconcile). */
+        if (firstPass || settling) { if (baseline.indexOf(n) === -1) baseline.push(n); continue; }
         if (baseline.indexOf(n) !== -1) continue;
         if (!isVisible(n)) continue;
         var meaningful = n.getAttribute("role") === "alert"
