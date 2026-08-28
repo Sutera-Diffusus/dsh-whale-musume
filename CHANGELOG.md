@@ -1,9 +1,14 @@
 # Changelog
 
-## v1.4.2 (2026-08-19)
+## v1.4.2 (2026-08-28)
 
-- 修复「打开看板娘设置」无反应：右键菜单原按文本「设置」查找按钮，新版 DSH 设置入口为纯图标按钮（`[data-slot="sidebar.settings"] button`），现按 结构 slot → `settings.trigger` 宿主按钮 → 文本兜底 三级查找，点击后直接打开 DSH 设置面板
-- bundle 安装方式补齐「看板娘」设置面板：`lib/client.js` 注册 `settings.section`（id=mascot，label=看板娘），内容与 `--mascot-settings` v27 同源（总览卡 / 陪伴表现开关 / 天气 / 日常与养成 / 成就墙 / 数据与重置），读 `whale-moe:*` localStorage 并与桌宠本体实时联动；bundle 模式从此自带完整设置面板
+- **修复出错后永久停留「翻车」立绘**（PR #7，wrzrmzx）：`errorVisible()` 原把启动后出现的任何错误节点当作永久「活错误」，而 DSH 会保留失败步骤的错误卡片，导致鲸鱼娘被永久钉在 failure 立绘。现按「出错后对话是否继续推进」判定翻篇（新增 `ERROR_MIN_MS = 3000` 最小反应时长）；并新增 `SETTLE_MS = 10000` 加载期结算窗口，避免刷新后异步挂载的历史错误卡片被误判为活错误
+- 修复「打开看板娘设置」无反应（PR #2，haitang1）：右键菜单原按文本「设置」查找按钮，新版 DSH 设置入口为纯图标按钮（`[data-slot="sidebar.settings"] button`），现按 结构 slot → `settings.trigger` 宿主按钮 → 文本兜底 三级查找
+- bundle 安装方式补齐「看板娘」设置面板（PR #2，haitang1）：`lib/client.js` 注册 `settings.section`（id=mascot，label=看板娘），内容与 `--mascot-settings` v27 同源（总览卡 / 陪伴表现开关 / 天气 / 日常与养成 / 成就墙 / 数据与重置），读 `whale-moe:*` localStorage 并与桌宠本体实时联动
+- **适配 DSH 0.1.1-rc.2**：设置面板改经 `settings.section` slot 注册，不再依赖改写 `@deepseek-ai/dsh-client-ui-theme` 的 dist 文件（该目录在 0.1.1-rc.2 已移除，旧补丁路径彻底失效）
+- 设置面板健壮性加固：`renderSlot` 缺失或抛错时回落到内置 `MascotPrefRows`，面板不会空白；`slots` 服务不可用或注册失败时跳过面板并保留桌宠本体
+- 兼容性声明更新：README 标注已实测 DSH 0.1.1-rc.2
+- 测试：单元 97 项全绿
 
 ## v1.4.1 (2026-08-18)
 
