@@ -1376,6 +1376,15 @@
   }
 
   var STATE_HOLD_MS = Object.freeze({ success: 3000, failure: 3500, curious: 2500, tool: 1200, thinking: 1200 });
+  /* Minimum "flinch" duration for a fresh error so the mascot reacts visibly
+     even if the conversation resumes immediately; after that it keeps or drops
+     the error pose based on whether the conversation moved on. */
+  var ERROR_MIN_MS = 3000;
+  /* After a fresh page load, DSH mounts conversation history asynchronously,
+     so error nodes can surface AFTER the whale's first baseline pass. Treat
+     every error node seen within this window as historical, so a reload never
+     starts in the error pose. */
+  var SETTLE_MS = 10000;
   var STATE_CHIP = Object.freeze({ thinking: "思考中", tool: "工作中", success: "完成", failure: "出错", curious: "好奇" });
   var BUSY_STATES = Object.freeze({ thinking: 1, tool: 1, success: 1, failure: 1 });
 
@@ -1447,6 +1456,8 @@
     lastLine: "",
     bubbleHideAt: 0,
     errorBaseline: null,
+    errorSeenAt: 0,
+    bootedAt: 0,
     failed: false
   };
 
@@ -1455,6 +1466,10 @@
     var baseline = memory.errorBaseline;
     var firstPass = baseline === null;
     if (firstPass) baseline = memory.errorBaseline = [];
+    var now = Date.now();
+    if (!memory.bootedAt) memory.bootedAt = now;
+    var settling = (now - memory.bootedAt) < SETTLE_MS;
+    var live = [];
     for (var i = 0; i < SIGNAL_BANKS.error.length; i += 1) {
       var nodes = doc.querySelectorAll(SIGNAL_BANKS.error[i]);
       for (var j = 0; j < nodes.length; j += 1) {
@@ -1462,10 +1477,10 @@
         /* Historical DSH log clusters carry data-state="error" for a failed
            step that already finished; they are records, not live failures. */
         if (typeof n.closest === "function" && n.closest('[class*="dshLogCluster"]')) continue;
-        /* First pass: seed every pre-existing error node as history.
-           Any node created after this pass is live and keeps the failure
-           state for as long as it remains visible. */
-        if (firstPass) { baseline.push(n); continue; }
+        /* First pass + loading settle window: seed every error node seen during
+           the initial load as history, so a reload never opens in the error
+           pose (DSH mounts conversation history after the first reconcile). */
+        if (firstPass || settling) { if (baseline.indexOf(n) === -1) baseline.push(n); continue; }
         if (baseline.indexOf(n) !== -1) continue;
         if (!isVisible(n)) continue;
         var meaningful = n.getAttribute("role") === "alert"
@@ -1480,10 +1495,31 @@
           role: n.getAttribute("role"),
           ariaInvalid: n.getAttribute("aria-invalid")
         });
-        return true;
+        live.push(n);
       }
     }
-    return false;
+
+    if (live.length === 0) { memory.errorSeenAt = 0; return false; }
+    if (!memory.errorSeenAt) memory.errorSeenAt = now;
+
+    /* Moved on = the conversation advanced past the error: a new thinking or
+       tool burst started after the error, or a success completed after it.
+       Only genuine NEW starts count, never the lingering busy debounce of the
+       erroring tool itself, so a stall after the error keeps the error pose. */
+    var movedOn = (memory.thinkingSeenAt > memory.errorSeenAt)
+      || (memory.toolSeenAt > memory.errorSeenAt)
+      || (memory.lastSuccessAt > memory.errorSeenAt);
+
+    /* Inside the minimum window, flinch even if work resumed instantly. */
+    if (now - memory.errorSeenAt < ERROR_MIN_MS) return true;
+
+    /* Past the minimum window: on moved-on, re-baseline the error as history. */
+    if (movedOn) {
+      for (var m = 0; m < live.length; m += 1) baseline.push(live[m]);
+      memory.errorSeenAt = 0;
+      return false;
+    }
+    return true;
   }
 
   function toolVisible() {
