@@ -125,6 +125,35 @@
     return text.split("主人").join(t).split("鲸鱼娘").join(s);
   }
 
+  /* 余额档位:纯函数,便于单测。阈值与表现层的播报/显示共用一套。
+     amount 为 null/NaN 时返回 unknown(拿不到数据,不播报)。 */
+  var BALANCE_TIERS = Object.freeze(["empty", "critical", "low", "ok", "good", "rich"]);
+
+  function balanceTier(amount) {
+    var n = Number(amount);
+    if (amount === null || amount === undefined || amount === "" || !isFinite(n)) return "unknown";
+    if (n <= 0) return "empty";
+    if (n < 1) return "critical";
+    if (n < 5) return "low";
+    if (n < 20) return "ok";
+    if (n < 100) return "good";
+    return "rich";
+  }
+
+  /* 余额显示文案:digits=false 时只给档位,不暴露具体金额(截图友好)。 */
+  function formatBalance(amount, currency, detailed) {
+    var tier = balanceTier(amount);
+    if (tier === "unknown") return "—";
+    var symbol = currency === "CNY" ? "¥" : (currency ? String(currency) + " " : "");
+    if (detailed !== true) {
+      var labels = { empty: "已见底", critical: "告急", low: "偏紧", ok: "正常", good: "充裕", rich: "很充裕" };
+      return labels[tier];
+    }
+    var n = Number(amount);
+    var text = n >= 100 ? n.toFixed(1) : (n >= 1 ? n.toFixed(2) : n.toFixed(3));
+    return symbol + text;
+  }
+
   /* ================= hit zones (pat regions) ================= */
 
   var HIT_ZONES = Object.freeze({
@@ -1524,6 +1553,81 @@
         "心情电量只剩一点点，主人的一句夸夸就是充电器🔋",
         "鲸鱼娘的低气压预报：局部有小雨，等主人哄哄就放晴🌦️"
       ]
+    }),
+    /* 余额分档播报：由表现层的 refreshBalance() 按金额取用。
+       档位阈值见 balanceTier()；金额来自本机余额代理。 */
+    balance: Object.freeze({
+      rich: [
+        "主人钱包鼓鼓的，鲸鱼娘可以放心点奶茶了🧋",
+        "余额三位数！鲸鱼娘宣布今天是个好日子🎉",
+        "哇，主人好富有，鲸鱼娘要抱紧这条大腿🐋",
+        "这个数字看着就安心，鲸鱼娘尾巴都翘起来了～",
+        "报告主人：粮草充足，可以放心大胆地写代码💰"
+      ],
+      good: [
+        "余额还挺健康的，够我们慢慢肝一阵子⚡",
+        "主人放心，弹药充足，鲸鱼娘陪你继续冲🔥",
+        "看着这个数字，鲸鱼娘安心地打了个哈欠～",
+        "库存正常，鲸鱼娘批准继续写代码📦",
+        "余粮够用，主人不用省着跟我说话哦🐋"
+      ],
+      ok: [
+        "余额还行，不过主人也别太挥霍啦～",
+        "还有点家底，鲸鱼娘建议咱们稳着点来🧭",
+        "够用一阵子，但鲸鱼娘已经开始省着点说话了",
+        "小有积蓄，主人继续保持这个节奏就很好🍵",
+        "目前安全，鲸鱼娘会帮你盯着的👀"
+      ],
+      low: [
+        "余额有点紧了哦，主人咱们省着点花🥲",
+        "钱包在变薄……鲸鱼娘已经开始担心了💸",
+        "还剩一点点，主人要不要考虑续个杯？",
+        "鲸鱼娘建议：把每一个 token 都用在刀刃上🔪",
+        "有点危险了呢，主人注意点余额好不好～"
+      ],
+      critical: [
+        "余额告急！主人快去看看钱包🚨",
+        "就剩这么点啦，鲸鱼娘帮你捏把汗😰",
+        "警报：余额即将见底，请主人尽快补充🪙",
+        "再不充值鲸鱼娘就要去打零工了……",
+        "主人！余额只剩一点点了，真的要注意了⚠️"
+      ],
+      empty: [
+        "余额归零了……鲸鱼娘陪主人一起沉默🫠",
+        "钱包空空如也，鲸鱼娘把存钱罐翻了个底朝天",
+        "一滴都不剩了，主人快去充值吧，鲸鱼娘等你🐋",
+        "余额是 0，但鲸鱼娘的爱还是满的（虽然这不能付账）"
+      ]
+    }),
+    /* 主动关怀（v1.8.0）：由表现层的主动行为触发。
+       基调是"陪着"而不是"指挥"——不催促、不评判，只提醒。 */
+    proactive: Object.freeze({
+      "long-work": [
+        "主人已经盯了很久了，眼睛要不要歇一会儿？👀",
+        "鲸鱼娘申请中场休息！哪怕只是伸个懒腰也好～",
+        "再敲下去尾巴都要打结了，主人起来喝口水吧💧",
+        "报告：主人已连续工作很久，鲸鱼娘建议起身活动三十秒",
+        "久坐伤身哦，鲸鱼娘先替你伸个懒腰示范一下🐋"
+      ],
+      "late-night": [
+        "很晚了主人，鲸鱼娘有点担心你的黑眼圈🌙",
+        "这个点还在写代码，明天的主人会恨今天的主人的……",
+        "深夜写的代码容易长 bug，要不要明天再战？",
+        "鲸鱼娘困得尾巴都垂下来了，主人也去睡吧😴",
+        "夜深了，再撑下去效率会掉的哦，去睡吧～"
+      ],
+      stuck: [
+        "卡住了吗？要不要先去喝口水，回来可能就想通了💡",
+        "鲸鱼娘觉得……换个思路说不定就通了？",
+        "在同一个地方转圈圈好久了，主人要不要休息一下再回来🔄",
+        "要不要把问题念给鲸鱼娘听听？说出来有时候就想通了🐋"
+      ],
+      "welcome-back": [
+        "主人回来啦！鲸鱼娘等到尾巴都摆酸了～",
+        "欢迎回来，主人不在的时候鲸鱼娘有乖乖看家哦🏠",
+        "哇主人回来了，快看看我有没有长高一点点🐋",
+        "你回来啦，鲸鱼娘的等待终于有回报了🥺"
+      ]
     })
   });
 
@@ -1764,6 +1868,9 @@
     POSES: POSES,
     LINES: LINES,
     applyNames: applyNames,
+    balanceTier: balanceTier,
+    formatBalance: formatBalance,
+    BALANCE_TIERS: BALANCE_TIERS,
     computeState: computeState,
     GROWTH: GROWTH,
     DEFAULT_GROWTH: DEFAULT_GROWTH,

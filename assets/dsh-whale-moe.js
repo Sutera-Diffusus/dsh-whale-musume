@@ -401,6 +401,9 @@
     for (var i = 0; i < PREFS.length; i += 1) menu.appendChild(createToggleButton(PREFS[i].label, PREFS[i].key));
 
     rootNode.appendChild(frame);
+    applyA11y(frame);
+    frame.addEventListener("keydown", onFrameKey);
+    ensureLiveRegion(rootNode);
     rootNode.appendChild(bubble);
     rootNode.appendChild(gearMini);
     rootNode.appendChild(menu);
@@ -473,19 +476,82 @@
         motionNode.style.setProperty("--wm-drag-angle", angle.toFixed(1) + "deg");
       }
     }
+    /* 记录瞬时速度，供松手时的惯性使用 */
+    dragState.vx = event.clientX - dragState.lastX;
+    dragState.vy = event.clientY - dragState.lastY;
     dragState.lastX = event.clientX;
     dragState.lastY = event.clientY;
   }
+  /* ── 拖拽物理（v1.7.0）────────────────────────────────────────────────
+     松手后按瞬时速度滑行一小段并回正；撞到屏幕边缘就停住（"抓住"边缘），
+     不再继续转。速度太小时只做一次轻微回弹，避免抖一下。 */
+  function dragPhysicsEnabled() {
+    try { return root.localStorage.getItem("whale-moe:dragPhysics") !== "0"; } catch (e) { return true; }
+  }
+
+  function applyReleasePhysics(node, vx, vy) {
+    var motionNode = node.querySelector("[data-dsh-whale-motion]");
+    var speed = Math.sqrt(vx * vx + vy * vy);
+    var width = node.getBoundingClientRect().width;
+    var height = node.getBoundingClientRect().height;
+    var maxLeft = Math.max(8, root.innerWidth - width - 8);
+    var maxTop = Math.max(8, root.innerHeight - height - 8);
+
+    if (speed < 6) {
+      /* 轻放：小回弹即可 */
+      if (motionNode) {
+        motionNode.style.setProperty("--wm-drag-angle", "0deg");
+        motionNode.style.transition = "transform 300ms cubic-bezier(.34,1.3,.64,1)";
+        motionNode.style.transform = "scale(1.05, 0.96)";
+        root.setTimeout(function () { motionNode.style.transform = "scale(1)"; }, 30);
+        root.setTimeout(function () {
+          motionNode.style.transition = "";
+          motionNode.style.transform = "";
+        }, 360);
+      }
+      return;
+    }
+
+    var left = parseFloat(node.style.left);
+    var top = parseFloat(node.style.top);
+    if (!isFinite(left)) left = 0;
+    if (!isFinite(top)) top = 0;
+    var stepX = clamp(vx * 2.4, -70, 70);
+    var stepY = clamp(vy * 2.4, -70, 70);
+    var nextLeft = clamp(left + stepX, 8, maxLeft);
+    var nextTop = clamp(top + stepY, 8, maxTop);
+    var hitEdge = (nextLeft <= 8 && stepX < 0) || (nextLeft >= maxLeft && stepX > 0) ||
+                  (nextTop <= 8 && stepY < 0) || (nextTop >= maxTop && stepY > 0);
+    node.style.left = Math.round(nextLeft) + "px";
+    node.style.top = Math.round(nextTop) + "px";
+
+    if (motionNode) {
+      var angle = hitEdge ? 0 : clamp(vx * 1.25, -20, 20);
+      motionNode.style.setProperty("--wm-drag-angle", angle.toFixed(1) + "deg");
+      motionNode.style.transition = "transform 420ms cubic-bezier(.2,.9,.3,1)";
+      motionNode.style.transform = "rotate(" + angle.toFixed(1) + "deg)";
+      root.setTimeout(function () { motionNode.style.transform = "rotate(0deg)"; }, 30);
+      root.setTimeout(function () {
+        motionNode.style.transition = "";
+        motionNode.style.transform = "";
+        motionNode.style.setProperty("--wm-drag-angle", "0deg");
+      }, 480);
+    }
+  }
+
   function endDrag() {
+    var state = dragState;
     root.removeEventListener("pointermove", onDrag, true);
     root.removeEventListener("pointerup", endDrag, true);
     root.removeEventListener("pointercancel", endDrag, true);
-    if (dragState && dragState.node) {
-      dragState.node.classList.remove("dsh-whale-dragging");
+    if (state && state.node) {
+      state.node.classList.remove("dsh-whale-dragging");
     }
-    if (dragState && dragState.moved && dragState.node) {
-      writeFloatPos(parseFloat(dragState.node.style.left), parseFloat(dragState.node.style.top));
-      var node = dragState.node;
+    if (state && state.moved && state.node) {
+      var node = state.node;
+      if (dragPhysicsEnabled()) applyReleasePhysics(node, state.vx || 0, state.vy || 0);
+      /* 物理滑行之后再落盘，保存的是最终位置 */
+      writeFloatPos(parseFloat(node.style.left), parseFloat(node.style.top));
       if (node.__dshWhaleMoeSuppressClick) node.__dshWhaleMoeSuppressClick();
     }
     dragState = null;
@@ -711,6 +777,8 @@
     if (!BUSY_STATES[memory.state.state]) showMood("achievement", 3500, true);
     burst("🏅");
     showLine("成就达成：" + label + "！");
+    journalAdd("achievement", "解锁成就：" + label);
+    announceLive("解锁成就：" + label);
   }
 
   function spawnParticles(count, now) {
@@ -1368,6 +1436,7 @@
     else if (unlocks.action) line = say("bond", "l3");
     /* 自称/称呼替换统一在 showLineNow 内做一次，此处不再重复 localizeLine。 */
     if (line && !BUSY_STATES[memory.state.state] && readPref("chat")) showLine(line);
+    journalAdd("bond", "羁绊达到 Lv." + growth.level + "（" + title() + "的" + selfName() + "）");
     if (!BUSY_STATES[memory.state.state]) showMood("levelup", 4200, true);
   }
   function keywordsEnabled() {
@@ -1678,6 +1747,12 @@
     }
     hideRecall();
     var rootNode = ensureRoot();
+    /* 主题只在变化时写入，避免每帧都探测 */
+    var theme = detectTheme();
+    if (theme !== memory.theme) {
+      memory.theme = theme;
+      applyTheme(rootNode);
+    }
     var frame = rootNode.querySelector("[data-dsh-whale-frame]");
     var bubble = rootNode.querySelector("[data-dsh-whale-bubble]");
     var bubbleText = rootNode.querySelector("[data-dsh-whale-bubble-text]");
@@ -1821,6 +1896,44 @@
 
   /* 待机 base 稳定为 idle-cute；情绪动作只由随机低频的 showMood 覆盖。
      拖拽中显示“被拎起来”并交给 CSS 左右摇摆。 */
+  /* ── 工具类型细分（v1.7.0）────────────────────────────────────────────
+     复用已有的 work-* 立绘，把常见的工具动作映射到对应姿态。
+     只在确实读到工具卡片文本时切换；识别不了就回落到通用 running，
+     绝不因为猜错而乱切姿势。可用设置面板的「工具细分」开关关闭。 */
+  var TOOL_POSES = Object.freeze([
+    { id: "deploy", pose: "work-deploy", words: ["deploy", "rollout", "发布", "上线"] },
+    { id: "test", pose: "work-review", words: ["test", "vitest", "jest", "pytest", "测试", "跑测试"] },
+    { id: "debug", pose: "work-debug", words: ["debug", "traceback", "报错", "修 bug", "fix bug"] },
+    { id: "search", pose: "work-idea", words: ["search", "grep", "glob", "ripgrep", "搜索", "查找"] },
+    { id: "write", pose: "work-meeting", words: ["write", "edit", "patch", "写入", "编辑", "修改文件"] },
+    { id: "bash", pose: "work-slack-phone", words: ["bash", "shell", "terminal", "npm ", "pnpm ", "git ", "命令"] },
+    { id: "review", pose: "work-review", words: ["review", "diff", "评审", "审查"] },
+    { id: "plan", pose: "work-idea", words: ["plan", "todo", "计划"] }
+  ]);
+
+  function toolPoseEnabled() {
+    try { return root.localStorage.getItem("whale-moe:toolPose") !== "0"; } catch (e) { return true; }
+  }
+
+  function detectToolPose() {
+    if (!toolPoseEnabled()) return "";
+    try {
+      var nodes = doc.querySelectorAll('[data-role="tool"], [data-tool="true"], [data-tool-card="true"], [data-running], [data-state="ongoing"]');
+      if (!nodes || !nodes.length) return "";
+      /* 取最后一个：通常是最新的那个工具 */
+      var node = nodes[nodes.length - 1];
+      var text = String(node.textContent || "").toLowerCase();
+      if (text.length < 2 || text.length > 4000) return "";
+      for (var i = 0; i < TOOL_POSES.length; i += 1) {
+        var entry = TOOL_POSES[i];
+        for (var j = 0; j < entry.words.length; j += 1) {
+          if (text.indexOf(entry.words[j]) !== -1) return entry.pose;
+        }
+      }
+    } catch (e) { /* ignore */ }
+    return "";
+  }
+
   function statePose(computed, view) {
     if (dragState && dragState.moved) return "pick-up";
     /* 忙时情绪让位：running 优先，仅点击互动专用的两个姿势可覆盖 */
@@ -1828,6 +1941,10 @@
     var moodOk = !busy || memory.moodPose === "work-pat" || memory.moodPose === "work-ram";
     if (memory.moodUntil > Date.now() && memory.moodPose && moodOk) return memory.moodPose;
     if (computed.state === "idle") return "idle-cute";
+    if (computed.state === "tool") {
+      var tp = detectToolPose();
+      if (tp) return tp;
+    }
     return computed.pose;
   }
 
@@ -1989,6 +2106,9 @@
     render(computed);
     weatherFxReconcile(computed);
     if (readPref("pet")) idleChatTick(now);
+    refreshBalance(now);
+    maybeAnnounceBalance(now);
+    tickProactive(now, computed);
     if (readPref("pet")) {
       if (doc.body) doc.body.setAttribute(VIEW_ATTR, view);
       doc.documentElement.setAttribute(VIEW_ATTR, view);
@@ -2471,6 +2591,357 @@
     showLine(line);
   }
 
+  /* ── 余额关心（v1.6.0）────────────────────────────────────────────────
+     数据来自本机余额代理（dsh-statusbar 的 balance-proxy，默认 3020）。
+     代理只监听 127.0.0.1、不回显密钥，上游请求在服务端完成，因此浏览器侧
+     依然只访问本机，不违背「无外部请求」的承诺。
+     默认关闭；代理未运行或取不到数据时静默失败，不弹错、不刷日志。 */
+  var BALANCE_ENDPOINT = "http://127.0.0.1:3020/balance";
+  var BALANCE_POLL_MS = 60000;           /* 与代理侧缓存时长对齐 */
+  var BALANCE_ANNOUNCE_MS = 30 * 60 * 1000;
+  var BALANCE_CALM_ANNOUNCE_MS = 6 * 60 * 60 * 1000;  /* 充裕时几乎不提 */
+  var balanceState = {
+    at: 0, ok: false, amount: null, currency: "CNY",
+    tier: "unknown", announcedAt: 0, pending: false
+  };
+
+  function balanceEnabled() {
+    try { return root.localStorage.getItem("whale-moe:balance") === "1"; } catch (e) { return false; }
+  }
+
+  function applyBalancePayload(data) {
+    if (!data || data.ok !== true) { balanceState.ok = false; return; }
+    var list = data.balances;
+    if (!list || !list.length) { balanceState.ok = false; return; }
+    var b = list[0] || {};
+    var amount = Number(b.totalBalance);
+    if (!isFinite(amount)) { balanceState.ok = false; return; }
+    balanceState.ok = true;
+    balanceState.amount = amount;
+    balanceState.currency = b.currency || "CNY";
+    balanceState.tier = core.balanceTier(amount);
+    root.__dshWhaleMoeBalance = {
+      ok: true, amount: amount,
+      currency: balanceState.currency,
+      tier: balanceState.tier
+    };
+    /* 沿用既有的低余额通道（立绘 + 成就），只是判定改由真实金额得出 */
+    if (balanceState.tier === "critical" || balanceState.tier === "empty") {
+      try { root.localStorage.setItem("dsh.balance.low", "1"); } catch (e) { /* ignore */ }
+    } else {
+      try { root.localStorage.removeItem("dsh.balance.low"); } catch (e) { /* ignore */ }
+    }
+  }
+
+  function refreshBalance(now) {
+    if (!balanceEnabled()) return;
+    if (balanceState.pending) return;
+    if (now - balanceState.at < BALANCE_POLL_MS) return;
+    balanceState.at = now;
+    balanceState.pending = true;
+    var done = function () { balanceState.pending = false; };
+    try {
+      root.fetch(BALANCE_ENDPOINT, { cache: "no-store", credentials: "omit" })
+        .then(function (res) {
+          if (!res || !res.ok) throw new Error("balance-unavailable");
+          return res.json();
+        })
+        .then(function (data) { applyBalancePayload(data); done(); })
+        .catch(function () { balanceState.ok = false; done(); });
+    } catch (e) {
+      balanceState.ok = false;
+      done();
+    }
+  }
+
+  /* 播报：只在待机时开口，充裕时极少提，避免变成噪音。 */
+  function maybeAnnounceBalance(now) {
+    if (!balanceEnabled() || !balanceState.ok) return false;
+    if (memory.state.state !== "idle" || !bubbleFree()) return false;
+    var tier = balanceState.tier;
+    if (tier === "unknown") return false;
+    var gap = (tier === "good" || tier === "rich") ? BALANCE_CALM_ANNOUNCE_MS : BALANCE_ANNOUNCE_MS;
+    if (now - balanceState.announcedAt < gap) return false;
+    var line = core.pickDialogue("balance", tier, 0, Math.random);
+    if (!line) return false;
+    balanceState.announcedAt = now;
+    showChatLine(line);
+    return true;
+  }
+
+  /* ── 素材预加载（v1.6.0）──────────────────────────────────────────────
+     立绘 90+ 张，冷启动后第一次切到冷门姿势会有一帧空白或迟滞。
+     策略：首屏只预载最常用的几张，其余在空闲时段每隔 120ms 取一张，
+     避免一次性发起几十个请求抢带宽。失败静默，不影响正常显示。 */
+  var POSE_PRELOAD_CORE = ["idle-cute", "running", "success", "failure", "thinking"];
+  var POSE_PRELOAD_EXTRA = [
+    "work-deploy", "work-meeting", "work-review", "work-debug", "work-deadline",
+    "work-boss", "work-slack-phone", "work-sleep", "work-idea", "work-celebrate",
+    "balance-low", "waiting", "curious", "blush", "eat", "joy"
+  ];
+  var preloadState = { core: false, rest: false, seen: null };
+
+  function poseUrl(name) {
+    if (!name) return "";
+    return ASSET_ROOT + "dsh-whale-state-" + name + ".webp" + POSE_VERSION;
+  }
+
+  function preloadPose(name) {
+    if (!name) return;
+    if (!preloadState.seen) preloadState.seen = {};
+    if (preloadState.seen[name]) return;
+    preloadState.seen[name] = 1;
+    try {
+      var img = new Image();
+      if ("decoding" in img) img.decoding = "async";
+      img.src = poseUrl(name);
+    } catch (e) { /* 预取失败无所谓，正常显示路径仍会加载 */ }
+  }
+
+  function preloadCore() {
+    if (preloadState.core) return;
+    preloadState.core = true;
+    for (var i = 0; i < POSE_PRELOAD_CORE.length; i += 1) preloadPose(POSE_PRELOAD_CORE[i]);
+  }
+
+  function preloadRest() {
+    if (preloadState.rest) return;
+    preloadState.rest = true;
+    var names = POSE_PRELOAD_EXTRA.slice();
+    try {
+      var poses = (core && core.POSES) || {};
+      for (var k in poses) {
+        if (!Object.prototype.hasOwnProperty.call(poses, k)) continue;
+        var v = poses[k];
+        if (typeof v !== "string") continue;
+        if (names.indexOf(v) === -1) names.push(v);
+      }
+    } catch (e) { /* 取不到就只预热内置的额外列表 */ }
+    var idx = 0;
+    var step = function () {
+      if (idx >= names.length) return;
+      preloadPose(names[idx]);
+      idx += 1;
+      root.setTimeout(step, 120);
+    };
+    root.setTimeout(step, 600);
+  }
+
+  function schedulePreload() {
+    preloadCore();
+    var kick = function () { preloadRest(); };
+    if (typeof root.requestIdleCallback === "function") {
+      try { root.requestIdleCallback(function () { root.setTimeout(kick, 1200); }, { timeout: 5000 }); return; } catch (e) { /* fall through */ }
+    }
+    root.setTimeout(kick, 2500);
+  }
+
+  /* ── 主动关怀（v1.8.0）────────────────────────────────────────────────
+     四条触发线：久坐、深夜、卡住、回来。铁律是"陪着，不是指挥"——
+     工作态绝不插嘴，问候类仍遵守深夜免打扰（深夜劝休息属于关怀，保留）。 */
+  var PROACTIVE = Object.freeze({
+    longWorkMs: 25 * 60 * 1000,
+    nightWorkMs: 10 * 60 * 1000,
+    stuckMs: 8 * 60 * 1000,
+    awayMs: 3 * 60 * 1000,
+    minGapMs: 15 * 60 * 1000
+  });
+  var proactiveState = {
+    lastAt: 0, lastKind: "", awayAt: 0,
+    busySince: 0, stuckSince: 0, lastSignature: ""
+  };
+
+  function proactiveEnabled() {
+    try { return root.localStorage.getItem("whale-moe:proactive") !== "0"; } catch (e) { return true; }
+  }
+
+  function isLateNightHours(now) {
+    var h = new Date(now).getHours();
+    return h >= 23 || h < 6;
+  }
+
+  function sayProactive(kind, now) {
+    if (!proactiveEnabled()) return false;
+    if (now - proactiveState.lastAt < PROACTIVE.minGapMs) return false;
+    if (memory.state.state !== "idle" || !bubbleFree()) return false;
+    var line = core.pickDialogue("proactive", kind, 0, Math.random);
+    if (!line) return false;
+    proactiveState.lastAt = now;
+    proactiveState.lastKind = kind;
+    showChatLine(line);
+    return true;
+  }
+
+  function tickProactive(now, computed) {
+    if (!proactiveEnabled()) return;
+    var busy = BUSY_STATES[computed.state] === 1;
+    if (busy) {
+      if (!proactiveState.busySince) proactiveState.busySince = now;
+    } else {
+      /* 转入待机：连续忙碌够久就说一句，说完即清零避免反复 */
+      if (proactiveState.busySince && now - proactiveState.busySince > PROACTIVE.longWorkMs) {
+        proactiveState.busySince = 0;
+        sayProactive("long-work", now);
+        return;
+      }
+      proactiveState.busySince = 0;
+    }
+    /* 深夜关怀：正在忙，且已过 23 点或凌晨 */
+    if (busy && isLateNightHours(now) && proactiveState.busySince &&
+        now - proactiveState.busySince > PROACTIVE.nightWorkMs) {
+      if (sayProactive("late-night", now)) proactiveState.busySince = now;
+      return;
+    }
+    /* 卡住：同一状态长时间没有推进 */
+    var sig = computed.state + "|" + (memory.view || "");
+    if (sig !== proactiveState.lastSignature) {
+      proactiveState.lastSignature = sig;
+      proactiveState.stuckSince = now;
+    } else if (computed.state !== "idle" && proactiveState.stuckSince &&
+               now - proactiveState.stuckSince > PROACTIVE.stuckMs) {
+      proactiveState.stuckSince = now;
+      sayProactive("stuck", now);
+    }
+  }
+
+  function watchComeback() {
+    doc.addEventListener("visibilitychange", function () {
+      if (doc.hidden) {
+        proactiveState.awayAt = Date.now();
+        return;
+      }
+      var away = proactiveState.awayAt ? Date.now() - proactiveState.awayAt : 0;
+      proactiveState.awayAt = 0;
+      if (away > PROACTIVE.awayMs) {
+        /* 稍等一下再说，避免页面刚恢复就抢话 */
+        root.setTimeout(function () { sayProactive("welcome-back", Date.now()); }, 1200);
+      }
+    });
+  }
+
+  /* ── 无障碍（v1.8.0）──────────────────────────────────────────────────
+     桌宠默认是纯装饰（aria-hidden），不给读屏用户添噪音。开启「无障碍」后：
+     可 Tab 聚焦、Enter/Space 摸头、方向键微调位置，并用 aria-live 播报状态。
+     默认关闭，开启与否都不影响她对其他人的表现。 */
+  function a11yEnabled() {
+    try { return root.localStorage.getItem("whale-moe:a11y") === "1"; } catch (e) { return false; }
+  }
+
+  function applyA11y(node) {
+    if (!node) return;
+    if (a11yEnabled()) {
+      node.removeAttribute("aria-hidden");
+      node.setAttribute("role", "button");
+      node.setAttribute("tabindex", "0");
+      node.setAttribute("aria-label", selfName() + "，按 Enter 摸头，方向键移动位置");
+    } else {
+      node.setAttribute("aria-hidden", "true");
+      node.removeAttribute("role");
+      node.removeAttribute("tabindex");
+      node.removeAttribute("aria-label");
+    }
+  }
+
+  function ensureLiveRegion(rootNode) {
+    if (!rootNode || rootNode.querySelector("[data-dsh-whale-live]")) return;
+    var live = doc.createElement("div");
+    live.setAttribute("data-dsh-whale-live", "true");
+    live.setAttribute("aria-live", "polite");
+    live.setAttribute("aria-atomic", "true");
+    live.style.cssText = "position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0";
+    rootNode.appendChild(live);
+  }
+
+  function announceLive(text) {
+    if (!a11yEnabled() || !text) return;
+    var live = doc.querySelector("[data-dsh-whale-live]");
+    if (live) live.textContent = String(text);
+  }
+
+  function onFrameKey(event) {
+    if (!a11yEnabled()) return;
+    var key = event.key;
+    if (key === "Enter" || key === " " || key === "Spacebar") {
+      event.preventDefault();
+      applyGrowth({ type: "pat" }, Date.now(), 0);
+      burst("💗");
+      showMood("blush", 2600, true);
+      var line = say("interact", "pat");
+      if (line) showLine(line);
+      announceLive(selfName() + "被摸了摸头");
+      return;
+    }
+    var step = event.shiftKey ? 40 : 12;
+    var dx = key === "ArrowLeft" ? -step : (key === "ArrowRight" ? step : 0);
+    var dy = key === "ArrowUp" ? -step : (key === "ArrowDown" ? step : 0);
+    if (dx === 0 && dy === 0) return;
+    event.preventDefault();
+    var node = doc.querySelector("[data-dsh-whale-root]");
+    if (!node) return;
+    var width = node.getBoundingClientRect().width;
+    var height = node.getBoundingClientRect().height;
+    var left = parseFloat(node.style.left) || 0;
+    var top = parseFloat(node.style.top) || 0;
+    node.style.left = Math.round(clamp(left + dx, 8, Math.max(8, root.innerWidth - width - 8))) + "px";
+    node.style.top = Math.round(clamp(top + dy, 8, Math.max(8, root.innerHeight - height - 8))) + "px";
+    writeFloatPos(parseFloat(node.style.left), parseFloat(node.style.top));
+  }
+
+  /* ── 成长日记（v1.9.0）────────────────────────────────────────────────
+     养成数据原本只能重置、不能回看。这里按时间记下关键节点（升级、羁绊、
+     成就、首次互动），设置面板据此渲染一条时间线。只留在 localStorage，
+     不上传；同一天同类事件只记一条，避免刷屏。 */
+  var JOURNAL_MAX = 80;
+  var JOURNAL_KEY = "whale-moe:journal";
+
+  function readJournal() {
+    try {
+      var raw = root.localStorage.getItem(JOURNAL_KEY);
+      if (!raw) return [];
+      var list = JSON.parse(raw);
+      return Array.isArray(list) ? list : [];
+    } catch (e) { return []; }
+  }
+
+  function writeJournal(list) {
+    try {
+      root.localStorage.setItem(JOURNAL_KEY, JSON.stringify(list.slice(-JOURNAL_MAX)));
+    } catch (e) { /* 容量或隐私模式下失败都无所谓 */ }
+  }
+
+  function journalAdd(kind, text) {
+    if (!text) return;
+    var list = readJournal();
+    var at = Date.now();
+    var day = new Date(at).toDateString();
+    for (var i = list.length - 1; i >= 0; i -= 1) {
+      var e = list[i];
+      if (e && e.kind === kind && e.text === text && new Date(e.at).toDateString() === day) return;
+    }
+    list.push({ at: at, kind: kind, text: text });
+    writeJournal(list);
+  }
+
+  /* ── 主题适配（v1.9.0）────────────────────────────────────────────────
+     跟随宿主明暗主题，只影响气泡/菜单这类 UI 元素，立绘本身不做滤镜，
+     避免把画风改坏。识别不了时回落系统偏好。 */
+  function detectTheme() {
+    try {
+      var el = doc.documentElement;
+      var attr = el.getAttribute("data-theme") || el.getAttribute("data-dsh-theme") || "";
+      if (attr === "dark" || attr === "light") return attr;
+      var cls = el.className;
+      if (typeof cls === "string" && /(^|\s)dark(\s|$)/.test(cls)) return "dark";
+      if (root.matchMedia && root.matchMedia("(prefers-color-scheme: dark)").matches) return "dark";
+    } catch (e) { /* ignore */ }
+    return "light";
+  }
+
+  function applyTheme(node) {
+    if (!node) return;
+    node.setAttribute("data-wm-theme", detectTheme());
+  }
+
   function maybeGreet(now) {
     if (now - idleChat.lastGreetAt < GREET_GAP_MS) return false;
     var bucket = core.greetBucket(new Date(now).getHours());
@@ -2661,4 +3132,6 @@
 
   root.__dshWhaleMoeDebug = { state: "boot", pose: null, line: "", view: "home" };
   start();
+  schedulePreload();
+  watchComeback();
 })(typeof window === "undefined" ? null : window);
