@@ -1366,7 +1366,8 @@
     if (growth.level >= 7 && unlocks.egg) line = say("bond", "l7");
     else if (growth.level >= 5 && unlocks.badge) line = say("bond", "l5");
     else if (unlocks.action) line = say("bond", "l3");
-    if (line && !BUSY_STATES[memory.state.state] && readPref("chat")) showLine(localizeLine(line));
+    /* 自称/称呼替换统一在 showLineNow 内做一次，此处不再重复 localizeLine。 */
+    if (line && !BUSY_STATES[memory.state.state] && readPref("chat")) showLine(line);
     if (!BUSY_STATES[memory.state.state]) showMood("levelup", 4200, true);
   }
   function keywordsEnabled() {
@@ -1375,8 +1376,19 @@
   function title() {
     try { var t = root.localStorage.getItem("whale-moe:title"); return t && t.trim() ? t.trim() : "主人"; } catch (e) { return "主人"; }
   }
+  /* 看板娘的自称（对应「如何称呼我」的另一半）：留空或异常时回落「鲸鱼娘」。
+     台词库里 363 处自称都在这里统一替换，不逐条改写。 */
+  function selfName() {
+    try {
+      var n = root.localStorage.getItem("whale-moe:selfName");
+      if (!n || !n.trim()) return "鲸鱼娘";
+      var v = n.trim();
+      return v.length > 12 ? v.slice(0, 12) : v;
+    } catch (e) { return "鲸鱼娘"; }
+  }
   function localizeLine(line) {
-    return String(line).split("主人").join(title());
+    if (core && typeof core.applyNames === "function") return core.applyNames(line, title(), selfName());
+    return String(line).split("主人").join(title()).split("鲸鱼娘").join(selfName());
   }
   function isNight(now) {
     var h = new Date(now || Date.now()).getHours();
@@ -1604,13 +1616,67 @@
     };
   }
 
+  /* ── 找回入口 ────────────────────────────────────────────────────────────
+     关掉看板娘后她会彻底离开 DOM，此前没有任何把她叫回来的途径（issue #5）。
+     这里在左下角留一枚唤回按钮，仅在「用户主动关闭」时出现；因所在页面而
+     自动隐藏的场景（设置页等）不打扰，重新打开开关后按钮自动消失。 */
+  var recallNode = null;
+
+  function ensureRecall() {
+    if (recallNode && recallNode.parentNode) return recallNode;
+    if (!doc.body) return null;
+    var btn = doc.createElement("button");
+    btn.setAttribute("data-dsh-whale-recall", "true");
+    btn.type = "button";
+    btn.title = "把" + selfName() + "唤回来";
+    btn.setAttribute("aria-label", "把" + selfName() + "唤回来");
+    btn.textContent = "🐋";
+    var st = btn.style;
+    st.position = "fixed";
+    st.left = "18px";
+    st.bottom = "18px";
+    st.zIndex = "2147483000";
+    st.width = "38px";
+    st.height = "38px";
+    st.borderRadius = "50%";
+    st.border = "1px solid rgba(128,128,128,.35)";
+    st.background = "rgba(255,255,255,.14)";
+    st.cursor = "pointer";
+    st.fontSize = "17px";
+    st.lineHeight = "1";
+    st.opacity = "0.5";
+    st.transition = "opacity .18s ease, transform .18s ease";
+    btn.addEventListener("mouseenter", function () { st.opacity = "1"; st.transform = "scale(1.08)"; });
+    btn.addEventListener("mouseleave", function () { st.opacity = "0.5"; st.transform = "scale(1)"; });
+    btn.addEventListener("click", function () {
+      try { root.localStorage.setItem("whale-moe:pet", "1"); } catch (e) { /* storage blocked */ }
+      try { root.dispatchEvent(new CustomEvent("whale-moe-prefs-change", { detail: { key: "pet", value: true } })); } catch (e) { /* ignore */ }
+      hideRecall();
+    });
+    doc.body.appendChild(btn);
+    recallNode = btn;
+    return btn;
+  }
+
+  function showRecall() {
+    ensureRecall();
+  }
+
+  function hideRecall() {
+    if (recallNode && recallNode.parentNode) recallNode.parentNode.removeChild(recallNode);
+    recallNode = null;
+  }
+
   function render(computed) {
-    if (!readPref("pet") || !computed || computed.state === "hidden") {
+    var petOff = !readPref("pet");
+    if (petOff || !computed || computed.state === "hidden") {
       removeRoot();
       if (doc.body) doc.body.removeAttribute(VIEW_ATTR);
       root.__dshWhaleMoeDebug = { state: "hidden", pose: null, line: "", view: memory.view };
+      if (petOff) showRecall(); else hideRecall();
       return;
     }
+    hideRecall();
     var rootNode = ensureRoot();
     var frame = rootNode.querySelector("[data-dsh-whale-frame]");
     var bubble = rootNode.querySelector("[data-dsh-whale-bubble]");
