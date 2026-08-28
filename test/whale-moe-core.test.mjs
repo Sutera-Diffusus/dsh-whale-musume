@@ -191,3 +191,49 @@ test("applyNames covers the default self-name carried by the line banks", () => 
   assert.ok(allStates.indexOf("鲸鱼娘") !== -1, "台词库应保留默认自称「鲸鱼娘」");
   assert.equal(core.applyNames("鲸鱼娘", "主人", "小鲸"), "小鲸");
 });
+
+test("balanceTier maps amounts to the six tiers", () => {
+  assert.equal(core.balanceTier(null), "unknown");
+  assert.equal(core.balanceTier(undefined), "unknown");
+  assert.equal(core.balanceTier(""), "unknown");
+  assert.equal(core.balanceTier("abc"), "unknown");
+  assert.equal(core.balanceTier(0), "empty");
+  assert.equal(core.balanceTier(-1), "empty");
+  assert.equal(core.balanceTier(0.5), "critical");
+  assert.equal(core.balanceTier(3), "low");
+  assert.equal(core.balanceTier(7.83), "ok");
+  assert.equal(core.balanceTier(20), "good");
+  assert.equal(core.balanceTier(150), "rich");
+  /* 边界值归属：阈值是「小于」，等于时进更高一档 */
+  assert.equal(core.balanceTier(1), "low");
+  assert.equal(core.balanceTier(5), "ok");
+  assert.equal(core.balanceTier(100), "rich");
+});
+
+test("formatBalance shows digits or only a tier label", () => {
+  assert.equal(core.formatBalance(null, "CNY", true), "—");
+  assert.equal(core.formatBalance(7.83, "CNY", true), "¥7.83");
+  assert.equal(core.formatBalance(7.83, "CNY", false), "正常");
+  assert.equal(core.formatBalance(150, "CNY", false), "很充裕");
+  assert.equal(core.formatBalance(0.5, "CNY", false), "告急");
+  /* 档位模式不应泄露具体金额 */
+  assert.equal(core.formatBalance(7.83, "CNY", false).indexOf("7.83"), -1);
+});
+
+test("balance and proactive line banks are populated for every tier", () => {
+  const tiers = ["rich", "good", "ok", "low", "critical", "empty"];
+  tiers.forEach((tier) => {
+    const lines = core.DIALOGUE.balance[tier];
+    assert.ok(Array.isArray(lines) && lines.length >= 4, "balance." + tier);
+    lines.forEach((line) => assert.equal(typeof line, "string"));
+  });
+  const kinds = ["long-work", "late-night", "stuck", "welcome-back"];
+  kinds.forEach((kind) => {
+    const lines = core.DIALOGUE.proactive[kind];
+    assert.ok(Array.isArray(lines) && lines.length >= 4, "proactive." + kind);
+    lines.forEach((line) => assert.equal(typeof line, "string"));
+  });
+  /* 新增台词同样走 applyNames，自称可替换 */
+  const joined = Object.values(core.DIALOGUE.proactive).flat().join("|");
+  assert.ok(joined.indexOf("鲸鱼娘") !== -1, "主动关怀台词应带默认自称");
+});
