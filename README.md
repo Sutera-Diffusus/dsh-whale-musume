@@ -11,7 +11,7 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Version](https://img.shields.io/badge/version-1.4.1-blue)
-![DSH](https://img.shields.io/badge/DSH-0.1.0--rc.6-blue)
+![DSH](https://img.shields.io/badge/DSH-0.1.1--rc.2-blue)
 
 ---
 
@@ -125,7 +125,7 @@
 | --- | --- |
 | 操作系统 | Windows 10 / 11（开发与测试环境） |
 | Node.js | 18+（执行安装脚本需要） |
-| DeepSeek Harness | `0.1.0-rc.6` 或同系列版本 |
+| DeepSeek Harness | `0.1.0-rc.6` 及以上；设置面板已适配并在 `0.1.1-rc.2` 实测 |
 | 浏览器 | Edge / Chrome 最新版 |
 
 > 安装脚本会修改 DSH 安装目录中的前端资源文件。虽然脚本自带备份，仍建议安装前关闭 DSH 页面，并记录当前 DSH 版本号。
@@ -360,5 +360,7 @@ dsh plugin --profile web add github:Sutera-Diffusus/dsh-whale-musume
 
 - 宿主插件只注册只读静态资源路由 /api/dsh-whale-musume/assets,向浏览器提供样式/脚本/立绘;
 - 浏览器插件注入鲸鱼娘本体,资源全部来自本机,无外部请求、无遥测;
-- 开关与模式偏好走鲸鱼娘自带齿轮菜单(localStorage,键名 whale-moe:*);看板娘自带设置面板(胶囊开关/养成数据/成就墙/天气)在 bundle 模式下同样可用——已通过 38 项 CDP 全量验收;
+- 开关与模式偏好走鲸鱼娘自带齿轮菜单(localStorage,键名 whale-moe:*);
+- 「看板娘」设置面板(胶囊开关/养成数据/成就墙/天气)由浏览器插件经 `settings.section` slot 注册进 DSH 设置页,**不改写任何内置包文件**,因此在 0.1.1-rc.2 及更高版本上同样可用;
+- 兼容性兜底:`slots` 服务缺失或子 slot 渲染异常时,设置面板回落到内置渲染,桌宠本体不受影响;
 - --mascot-settings 脚本方式仍保留,供主题集成场景使用。两种安装方式二选一,不要混用。
