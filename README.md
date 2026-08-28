@@ -9,6 +9,7 @@
   <p>
     <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.0.0-4da3ff" alt="版本 2.0.0"></a>
     <a href="https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/latest"><img src="https://img.shields.io/badge/下载-最新版-31df76" alt="下载最新版"></a>
+    <a href="https://github.com/Sutera-Diffusus/dsh-whale-musume/releases"><img src="https://img.shields.io/github/downloads/Sutera-Diffusus/dsh-whale-musume/total?label=downloads&color=31df76" alt="总下载量"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-6f42c1" alt="MIT license"></a>
     <a href="https://github.com/Sutera-Diffusus/dsh-whale-musume/discussions"><img src="https://img.shields.io/badge/Discussions-交流-blue" alt="GitHub Discussions"></a>
   </p>
