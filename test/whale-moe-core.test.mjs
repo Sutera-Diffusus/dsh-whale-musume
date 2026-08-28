@@ -173,3 +173,21 @@ test("meme keyword groups match and have lines", () => {
     assert.ok(core.DIALOGUE.greet[id] && core.DIALOGUE.greet[id].length >= 5, id);
   });
 });
+
+test("applyNames swaps the user title and the mascot self-name", () => {
+  assert.equal(core.applyNames("主人好，鲸鱼娘来啦", "老板", "小鲸"), "老板好，小鲸来啦");
+  assert.equal(core.applyNames("鲸鱼娘在忙", "主人", ""), "鲸鱼娘在忙");
+  assert.equal(core.applyNames("鲸鱼娘在忙", null, null), "鲸鱼娘在忙");
+  assert.equal(core.applyNames("主人好", "", "小鲸"), "主人好");
+  assert.equal(core.applyNames("没有称呼的一句话", "老板", "小鲸"), "没有称呼的一句话");
+  assert.equal(core.applyNames("", "老板", "小鲸"), "");
+  assert.equal(core.applyNames(undefined, "老板", "小鲸"), "");
+  /* 同一句里多处自称都要替换（台词里常出现「鲸鱼娘」两次以上）。 */
+  assert.equal(core.applyNames("鲸鱼娘说鲸鱼娘来", "主人", "阿鲸"), "阿鲸说阿鲸来");
+});
+
+test("applyNames covers the default self-name carried by the line banks", () => {
+  const allStates = Object.values(core.LINES).flat().join("|");
+  assert.ok(allStates.indexOf("鲸鱼娘") !== -1, "台词库应保留默认自称「鲸鱼娘」");
+  assert.equal(core.applyNames("鲸鱼娘", "主人", "小鲸"), "小鲸");
+});

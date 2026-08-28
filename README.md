@@ -10,7 +10,7 @@
 [![GitHub Discussions](https://img.shields.io/badge/Discussions-交流-blue)](https://github.com/Sutera-Diffusus/dsh-whale-musume/discussions)
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Version](https://img.shields.io/badge/version-1.4.1-blue)
+![Version](https://img.shields.io/badge/version-1.5.0-blue)
 ![DSH](https://img.shields.io/badge/DSH-0.1.1--rc.2-blue)
 
 ---
@@ -38,7 +38,8 @@
 - 默认悬浮形态（200px），支持鼠标拖拽；
 - 拖拽时切换「被拎起来」立绘，身体随光标移动方向自然摇摆；
 - 待机时保持稳定表情，随机出现喝咖啡、伸懒腰、吃东西等日常小动作；
-- 待机与工作状态之间使用「下压 → 换图 → 弹起」的动势遮断过渡，不会叠影，不会闪黑。
+- 待机与工作状态之间使用「下压 → 换图 → 弹起」的动势遮断过渡，不会叠影，不会闪黑；
+- 在设置里关掉她之后，左下角会留一枚唤回按钮（🐋），点一下就把她叫回来，不会再「消失得找不着」。
 
 ### 💼 工作状态联动
 
@@ -95,6 +96,7 @@
 - 折叠分组：陪伴表现 / 天气 / 日常与养成 / 成就墙 / 数据与重置，总览卡与分组卡等宽对齐；
 - 胶囊开关：看板娘 / 台词气泡 / 粒子效果 / 小游戏 / 关键词感知 / 摸鱼提醒 / 深夜模式 / 天气特效；
 - 日常与养成用标签页收纳：今日任务 / 本周签到 / 称号，与成就墙同区管理；
+- 总览卡内可直接改「如何称呼我」与**「她的自称」**——后者留空即默认的「鲸鱼娘」，她提到自己时的说法会整体跟着变（台词库 363 处自称统一替换）；
 - 养成数据使用横排小卡片展示，信息密度合理。
 
 ### 🧩 工程特性

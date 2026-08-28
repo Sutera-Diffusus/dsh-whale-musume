@@ -115,6 +115,16 @@
     return lines[Math.abs(lineCount | 0) % lines.length];
   }
 
+  /* 台词称呼替换:主人 → 用户对她的称呼;鲸鱼娘 → 她的自称。
+     台词库里有 363 处自称,集中在这里替换而不是逐条改写。
+     纯函数(不碰存储),便于单测;存储读取由表现层负责。 */
+  function applyNames(line, title, selfName) {
+    var text = String(line === null || line === undefined ? "" : line);
+    var t = title === null || title === undefined || title === "" ? "主人" : String(title);
+    var s = selfName === null || selfName === undefined || selfName === "" ? "鲸鱼娘" : String(selfName);
+    return text.split("主人").join(t).split("鲸鱼娘").join(s);
+  }
+
   /* ================= hit zones (pat regions) ================= */
 
   var HIT_ZONES = Object.freeze({
@@ -1753,6 +1763,7 @@
     TEASE_CHANCE: TEASE_CHANCE,
     POSES: POSES,
     LINES: LINES,
+    applyNames: applyNames,
     computeState: computeState,
     GROWTH: GROWTH,
     DEFAULT_GROWTH: DEFAULT_GROWTH,
