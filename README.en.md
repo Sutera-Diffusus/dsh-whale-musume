@@ -147,8 +147,9 @@
 
 - Mascot settings are integrated into the DSH settings page;
 - Collapsible groups: Companion / Weather / Balance / Daily & Growth / Achievement Wall / Growth Diary / Data & Reset, with the overview card and group cards aligned to equal width;
-- Pill toggles: mascot / speech bubble / particles / mini-games / keyword awareness / slack-off reminder / late-night mode / weather effects / tool-type poses / drag inertia / proactive care / accessibility / balance care / show balance number;
-- Off by default: keyword awareness (involves reading chat content), accessibility, balance care, show balance number (involves your account balance);
+- Pill toggles: mascot / speech bubble / line narration (shown when MiMo TTS is detected) / particles / mini-games / keyword awareness / slack-off reminder / late-night mode / weather effects / tool-type poses / drag inertia / proactive care / accessibility / balance care / show balance number;
+- Off by default: line narration, keyword awareness (involves reading chat content), accessibility, balance care, show balance number (involves your account balance);
+- With `dsh-xiaomi-tts` installed and enabled, you can optionally narrate lines triggered by head, belly, and tail clicks or a triple click; a missing, unconfigured, or failed TTS service never affects existing interactions;
 - Daily & Growth uses tabs: Today's Quests / Weekly Check-in / Titles, managed alongside the achievement wall;
 - The overview card lets you edit "How to address me" and **"her self-name"** — leave the latter empty and she defaults to "Whale Musume"; every self-reference in her 363-line dialogue library is replaced consistently;
 - Growth data is displayed as compact horizontal cards with sensible information density.
@@ -318,7 +319,7 @@ Path: DSH Settings → **Mascot**.
 
 | Group | Contents |
 | --- | --- |
-| Companion | How to address me, mascot toggle, speech bubble, particles, keyword awareness, slack-off reminder, late-night mode, tool-type poses, drag inertia, proactive care, accessibility |
+| Companion | How to address me, mascot toggle, speech bubble, optional MiMo TTS line narration, particles, keyword awareness, slack-off reminder, late-night mode, tool-type poses, drag inertia, proactive care, accessibility |
 | Weather | Weather city, optional API key, weather effects toggle |
 | Balance | Balance care toggle, show-balance-number toggle, current balance and tier (off by default) |
 | Daily & Growth | Three tabs: Today's Quests / Weekly Check-in / Titles |
