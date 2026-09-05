@@ -7,7 +7,7 @@
   <p>一只会陪你写代码的鲸鱼娘：待机安静陪伴，工作开始就抱起笔记本陪你干活；<br>可以摸头养成、解锁成就，也可以拖着她到处走。所有资源本地运行，无遥测、无外部请求。</p>
 
   <p>
-    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.0.0-4da3ff" alt="版本 2.0.0"></a>
+    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.0.1-4da3ff" alt="版本 2.0.1"></a>
     <a href="https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/latest"><img src="https://img.shields.io/badge/下载-最新版-31df76" alt="下载最新版"></a>
     <a href="https://github.com/Sutera-Diffusus/dsh-whale-musume/releases"><img src="https://img.shields.io/github/downloads/Sutera-Diffusus/dsh-whale-musume/total?label=downloads&color=31df76" alt="总下载量"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-6f42c1" alt="MIT license"></a>
@@ -27,6 +27,10 @@
     <a href="#效果预览">查看效果预览</a>
     ·
     <a href="#安装教程">安装教程</a>
+  </p>
+
+  <p>
+    <a href="README.en.md">English</a> · <a href="README.md">中文</a>
   </p>
 </div>
 
