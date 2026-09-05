@@ -1,6 +1,6 @@
 {
   "name": "dsh-whale-musume",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "private": true,
   "description": "A whale-girl Kanban Musume mascot for DeepSeek Harness",
   "publishConfig": {
@@ -33,6 +33,14 @@
     },
     "client": {
       "platform": "web"
+    },
+    "compatibility": {
+      "dshReleases": {
+        "0.1.1-rc.2": "compatible",
+        "0.1.2-alpha.4": "unknown",
+        "0.1.2-alpha.5": "unknown",
+        "0.1.2-rc.1": "compatible"
+      }
     }
   },
   "keywords": [

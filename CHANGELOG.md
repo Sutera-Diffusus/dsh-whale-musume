@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.0.1 (2026-09-05)
+
+- **DSH STORE 兼容性声明**:在 `package.json` 的 `dsh.compatibility.dshReleases` 中逐版本声明兼容矩阵——`0.1.1-rc.2`(实际运行环境)与 `0.1.2-rc.1`(官方最新)标记为 `compatible`,`0.1.2-alpha.4` / `0.1.2-alpha.5` 标记为 `unknown`
+- 恢复与商城目录固定 Commit(`a61b09d`,v1.5.0)的历史血缘(此前 main 被整体 rebase,候选不再是目录 Commit 的有界直接后继),使新版本满足 DSH STORE 固定源更新审查
+- 说明:`0.1.2-rc.1` 的 compatible 为作者级来源声明(核心状态机 DOM-free,表现层信号检测对 0.1.2-rc.1 会话流改造有抗性,且已过滤历史卡片的陈旧状态标记),尚未在 0.1.2-rc.1 上跑完整运行时验收;升级到该版本后建议执行 `npm test` 与 `npm run qa`
+
 ## v2.0.0 (2026-08-28)
 
 路线图里 v1.6.0–v1.9.0 四个版本的内容合并发布，按主题组织如下。
