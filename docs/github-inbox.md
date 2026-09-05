@@ -22,7 +22,7 @@
 |------|------|------|
 | **AI-Scarlett/DSH-Store #393 作者修复请求** | open | ✅ **已整改并回复**:① v2.0.0 → v2.0.1;② 新增 `dsh.compatibility.dshReleases`(0.1.2-rc.1/0.1.1-rc.2 compatible,alpha 两版 unknown);③ 血缘修复(graft merge 恢复 `a61b09d` 直系祖先,compare 现为 `ahead / 14 ≤ 200`);④ 回复请求复检([评论](https://github.com/AI-Scarlett/DSH-Store/issues/393#issuecomment-5548554320)) |
 | deepseek-ai #215 插件精选列表 | 讨论中 | ✅ 已读:新评论是他人求收录,与己无关 |
-| hashgraph #175 awesome-ai-plugins | 已合并 | ✅ 已读:用户选择不认领 HOL Registry(不影响任何收录,只是没有 Owner-verified 徽章) |
+| hashgraph #175 awesome-ai-plugins | 已合并 | ✅ 已读:用户已决定认领 HOL Registry(自行网页登录验证中,清单页 https://hol.org/registry/plugins/sutera-diffusus%2Fdsh-whale-musume) |
 | deepseek-ai #688 DSH精选插件聚合仓库 | 已收录 | ✅ 已读:like-study1 已收录并定期自动同步 topic,无需动作 |
 | deepseek-ai #999 环境隔离 Ideas | 讨论中 | ✅ 已读:weijiafu14 补充 profile 方案(提及但无定向问题),无需回复 |
 | fendouai #47 | 已直合 main | ✅ 已读:内容已直合(1f27770) |
