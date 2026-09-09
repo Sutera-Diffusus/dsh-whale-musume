@@ -80,6 +80,13 @@
     if (typeof node.getBoundingClientRect !== "function") return true;
     var rect = node.getBoundingClientRect();
     if (rect.width <= 1 && rect.height <= 1) return false;
+    /* Elements scrolled/moved fully outside the viewport are not “visible”.
+       Closed side drawers often stay mounted off-canvas with a non-zero rect
+       but no on-screen pixels; treating them as visible made detectView()
+       report the settings view and hid the mascot indefinitely. */
+    var iw = root.innerWidth || 0;
+    var ih = root.innerHeight || 0;
+    if (rect.left >= iw || rect.top >= ih || rect.right <= 0 || rect.bottom <= 0) return false;
     if (node.ownerDocument && node.ownerDocument.defaultView && typeof node.ownerDocument.defaultView.getComputedStyle === "function") {
       var style = node.ownerDocument.defaultView.getComputedStyle(node);
       if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return false;
@@ -1960,7 +1967,22 @@
   function resolveLayout(view, computed) {
     var vw = root.innerWidth;
     var vh = root.innerHeight;
-    if (view === "settings") return { hidden: true, src: "", kind: "peek", w: 0, h: 0 };
+    if (view === "settings") {
+      /* Only the real settings panel (visible settings.header seat) hides the
+         mascot completely. detectView() maps *any* visible [role="dialog"]
+         (wallpaper drawer, generic modals) to the settings view; hiding the
+         pet behind every such dialog made it seem permanently missing.
+         Fall back to a compact corner mode instead for ordinary dialogs. */
+      if (firstVisible('[data-slot="settings.header"]')) return { hidden: true, src: "", kind: "peek", w: 0, h: 0 };
+      var miniW = 120;
+      var miniH = 120;
+      return {
+        hidden: false, kind: "mini", w: miniW, h: miniH,
+        src: ASSET_ROOT + "dsh-whale-state-" + statePose(computed, "home") + ".webp",
+        x: vw - miniW - 16,
+        y: vh - miniH - 16
+      };
+    }
     var mode = readMode();
     var effective = mode === "auto" ? (view === "home" ? "bar" : "side") : mode;
     var dense = computed.mode === "mini";
