@@ -1968,12 +1968,10 @@
     var vw = root.innerWidth;
     var vh = root.innerHeight;
     if (view === "settings") {
-      /* Only the real settings panel (visible settings.header seat) hides the
-         mascot completely. detectView() maps *any* visible [role="dialog"]
-         (wallpaper drawer, generic modals) to the settings view; hiding the
-         pet behind every such dialog made it seem permanently missing.
-         Fall back to a compact corner mode instead for ordinary dialogs. */
-      if (firstVisible('[data-slot="settings.header"]')) return { hidden: true, src: "", kind: "peek", w: 0, h: 0 };
+      /* detectView() maps *any* visible [role="dialog"] or the settings panel
+         to the settings view. Hiding the mascot there made it seem
+         permanently missing, so every settings/dialog context now demotes it
+         to a compact corner mode instead of hiding it completely. */
       var miniW = 120;
       var miniH = 120;
       return {
