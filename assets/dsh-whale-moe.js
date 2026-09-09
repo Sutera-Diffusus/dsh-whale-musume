@@ -2633,7 +2633,11 @@
     if (!data || data.ok !== true) { balanceState.ok = false; return; }
     var list = data.balances;
     if (!list || !list.length) { balanceState.ok = false; return; }
-    var b = list[0] || {};
+    /* DeepSeek 通常返回 USD 与 CNY 两条，list[0] 常是 USD(0.00)；取 CNY
+       账户才有真实可用余额。找不到 CNY 时回落到第一条。 */
+    var picked = null;
+    for (var i = 0; i < list.length; i += 1) if (list[i] && list[i].currency === "CNY") { picked = list[i]; break; }
+    var b = picked || list[0] || {};
     var amount = Number(b.totalBalance);
     if (!isFinite(amount)) { balanceState.ok = false; return; }
     balanceState.ok = true;
