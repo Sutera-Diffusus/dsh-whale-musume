@@ -140,6 +140,16 @@
     return "rich";
   }
 
+  function pickBalanceAccount(balances, preferredCurrency) {
+    if (!Array.isArray(balances) || balances.length === 0) return null;
+    var preferred = String(preferredCurrency || "CNY").toUpperCase();
+    for (var i = 0; i < balances.length; i += 1) {
+      var entry = balances[i];
+      if (entry && String(entry.currency || "").toUpperCase() === preferred) return entry;
+    }
+    return balances[0] || null;
+  }
+
   /* 余额显示文案:digits=false 时只给档位,不暴露具体金额(截图友好)。 */
   function formatBalance(amount, currency, detailed) {
     var tier = balanceTier(amount);
@@ -1868,6 +1878,7 @@
     POSES: POSES,
     LINES: LINES,
     applyNames: applyNames,
+    pickBalanceAccount: pickBalanceAccount,
     balanceTier: balanceTier,
     formatBalance: formatBalance,
     BALANCE_TIERS: BALANCE_TIERS,
