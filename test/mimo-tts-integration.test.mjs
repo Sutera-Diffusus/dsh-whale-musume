@@ -16,6 +16,8 @@ test("MiMo TTS bridge is optional and cleans up its event listener", () => {
   assert.match(client, /window\.removeEventListener\(MIMO_TTS_EVENT, playInteractionLine\)/);
   assert.match(client, /MascotValue\("mimoTts", "0"\) !== "0"/);
   assert.match(client, /tts\.play\(text\)/);
+  assert.match(client, /playback && typeof playback\.catch === "function"/);
+  assert.match(client, /playback\.catch\(\(\) => \{\}\)/);
   assert.doesNotMatch(client, /inject:\s*\[[^\]]*xiaomiMimoTts/);
   assert.doesNotMatch(client, /from\s+["']dsh-xiaomi-tts/);
 });
