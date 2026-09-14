@@ -80,6 +80,11 @@
     if (typeof node.getBoundingClientRect !== "function") return true;
     var rect = node.getBoundingClientRect();
     if (rect.width <= 1 && rect.height <= 1) return false;
+    /* Closed drawers often remain mounted outside the viewport with a
+       non-zero rectangle. They must not make detectView() report settings. */
+    var iw = root.innerWidth || 0;
+    var ih = root.innerHeight || 0;
+    if (iw > 0 && ih > 0 && (rect.left >= iw || rect.top >= ih || rect.right <= 0 || rect.bottom <= 0)) return false;
     if (node.ownerDocument && node.ownerDocument.defaultView && typeof node.ownerDocument.defaultView.getComputedStyle === "function") {
       var style = node.ownerDocument.defaultView.getComputedStyle(node);
       if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return false;
@@ -1977,7 +1982,18 @@
   function resolveLayout(view, computed) {
     var vw = root.innerWidth;
     var vh = root.innerHeight;
-    if (view === "settings") return { hidden: true, src: "", kind: "peek", w: 0, h: 0 };
+    if (view === "settings") {
+      /* A genuine settings panel or on-screen dialog should only compact the
+         mascot. Hiding it made a valid installation look broken. */
+      var miniW = 120;
+      var miniH = 120;
+      return {
+        hidden: false, kind: "mini", w: miniW, h: miniH,
+        src: ASSET_ROOT + "dsh-whale-state-" + statePose(computed, "home") + ".webp",
+        x: vw - miniW - 16,
+        y: vh - miniH - 16
+      };
+    }
     var mode = readMode();
     var effective = mode === "auto" ? (view === "home" ? "bar" : "side") : mode;
     var dense = computed.mode === "mini";
