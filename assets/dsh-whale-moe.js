@@ -619,6 +619,7 @@
   var lastPatProcessedAt = 0;
   var lastPatSpeechAt = 0;
   var lastBalanceLowAt = 0;
+  var MIMO_TTS_EVENT = "dsh-whale-musume:interaction-line";
   var IDLE_ACTION_POOL = ["daily-eat", "daily-coffee", "daily-stretch", "daily-pajama", "daily-shower", "cool-shades", "meme-smug", "daily-picnic", "daily-cooking", "daily-fishing", "daily-painting", "daily-gaming", "tail-swing", "meme-music"];
   function showMood(kind, duration, animate) {
     var rootNode = doc.querySelector("[data-dsh-whale-root]");
@@ -661,12 +662,27 @@
     return zone;
   }
 
+  function emitInteractionLine(text) {
+    if (!text) return;
+    try {
+      root.dispatchEvent(new root.CustomEvent(MIMO_TTS_EVENT, { detail: { text: text } }));
+    } catch (e) {
+      /* 可选 bundle 桥接不可用时静默跳过。 */
+    }
+  }
+
+  function showInteractionLine(line) {
+    if (!line) return;
+    showLine(line);
+    emitInteractionLine(localizeLine(line));
+  }
+
   function bellyReact(now) {
     applyGrowth({ type: "belly" }, now, 0);
     showMood("react-belly", 2600, true);
     emojiBurst(["💫", "✨"]);
     var line = say("interact", "belly");
-    if (line) showLine(line);
+    if (line) showInteractionLine(line);
     reconcile();
   }
 
@@ -675,7 +691,7 @@
     showMood("react-tail", 2600, true);
     emojiBurst(["🌀", "💨"]);
     var line = say("interact", "tail");
-    if (line) showLine(line);
+    if (line) showInteractionLine(line);
     reconcile();
   }
 
@@ -697,6 +713,7 @@
       spawnParticles(12, now);
       showMood("star", 2200);
       var trip = applyGrowth({ type: "triple" }, now, 0);
+      if (readPref("chat")) emitInteractionLine(localizeLine("诶嘿～最喜欢主人啦！"));
       if (trip.unlocks.length) announceUnlocks(trip.unlocks);
       var node = doc.querySelector("[data-dsh-whale-root]");
       if (node && !motionReduced()) {
@@ -719,7 +736,7 @@
       if (now - lastPatSpeechAt >= 2500) {
         lastPatSpeechAt = now;
         var patLine = say("interact", "pat");
-        if (patLine) showLine(patLine);
+        if (patLine) showInteractionLine(patLine);
       }
       if (pat.unlocks.length) announceUnlocks(pat.unlocks);
     }
