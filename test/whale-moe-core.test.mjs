@@ -210,6 +210,15 @@ test("balanceTier maps amounts to the six tiers", () => {
   assert.equal(core.balanceTier(100), "rich");
 });
 
+test("pickBalanceAccount prefers CNY and falls back to the first account", () => {
+  const usd = { currency: "USD", totalBalance: "0.00" };
+  const cny = { currency: "CNY", totalBalance: "183.30" };
+  assert.equal(core.pickBalanceAccount([usd, cny]), cny);
+  assert.equal(core.pickBalanceAccount([usd]), usd);
+  assert.equal(core.pickBalanceAccount([], "CNY"), null);
+  assert.equal(core.pickBalanceAccount(null, "CNY"), null);
+});
+
 test("formatBalance shows digits or only a tier label", () => {
   assert.equal(core.formatBalance(null, "CNY", true), "—");
   assert.equal(core.formatBalance(7.83, "CNY", true), "¥7.83");

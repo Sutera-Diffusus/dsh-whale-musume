@@ -2646,7 +2646,7 @@
     if (!data || data.ok !== true) { balanceState.ok = false; return; }
     var list = data.balances;
     if (!list || !list.length) { balanceState.ok = false; return; }
-    var b = list[0] || {};
+    var b = core.pickBalanceAccount(list, "CNY") || {};
     var amount = Number(b.totalBalance);
     if (!isFinite(amount)) { balanceState.ok = false; return; }
     balanceState.ok = true;
