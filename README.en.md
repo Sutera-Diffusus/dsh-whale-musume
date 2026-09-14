@@ -7,7 +7,7 @@
   <p>A whale girl who codes alongside you: she idles quietly by your side, and the moment work starts she picks up her laptop and gets busy with you.<br>Headpat her, raise her, unlock achievements, or drag her around the screen. Everything runs locally — no telemetry, no external requests.</p>
 
   <p>
-    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.0.1-4da3ff" alt="version 2.0.1"></a>
+    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.1.0-4da3ff" alt="version 2.1.0"></a>
     <a href="https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/latest"><img src="https://img.shields.io/badge/Download-Latest-31df76" alt="Download latest"></a>
     <a href="https://github.com/Sutera-Diffusus/dsh-whale-musume/releases"><img src="https://img.shields.io/github/downloads/Sutera-Diffusus/dsh-whale-musume/total?label=downloads&color=31df76" alt="Total downloads"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-6f42c1" alt="MIT license"></a>

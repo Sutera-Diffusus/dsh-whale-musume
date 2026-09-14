@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.1.0 (2026-09-14)
+
+- **可选 MiMo TTS 台词播报**（Issue #9 / PR #10，感谢 @ppy-web）：检测到 `dsh-xiaomi-tts` 服务时显示默认关闭的「台词播报」开关；开启后播报头部、肚皮、尾巴与三连击台词。未安装、未配置或播放失败均不影响原交互，并补充异步播放拒绝保护
+- **修复弹窗导致鲸鱼娘永久消失**（Issue #12 / PR #13，感谢 @icemaple77）：完全位于视口外的 off-canvas drawer 不再被视为可见弹窗；设置页与可见弹窗场景改为 120px 右下角 mini，不再整体隐藏
+- **修复设置面板注册时序**：按 DSH 客户端约定声明 `slots` inject，避免启动时拿不到服务而永久跳过「看板娘」设置栏目
+- **修复多币种余额误判**（Issue #14 / PR #15，感谢 @icemaple77）：DeepSeek 同时返回 USD/CNY 账户时优先选择 CNY；没有 CNY 时回落第一条记录
+- **持续集成**：新增 GitHub Actions，在 Node.js 18 与 22 上运行完整测试；单元测试 **102 → 108 全绿**
+
 ## v2.0.1 (2026-09-05)
 
 - **DSH STORE 兼容性声明**:在 `package.json` 的 `dsh.compatibility.dshReleases` 中逐版本声明兼容矩阵——`0.1.1-rc.2`(实际运行环境)与 `0.1.2-rc.1`(官方最新)标记为 `compatible`,`0.1.2-alpha.4` / `0.1.2-alpha.5` 标记为 `unknown`
