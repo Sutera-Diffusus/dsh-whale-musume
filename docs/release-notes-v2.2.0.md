@@ -49,4 +49,16 @@ $env:ELECTRON_RUN_AS_NODE = "1"
 dsh plugin --profile web add github:Sutera-Diffusus/dsh-whale-musume
 ```
 
-**完整变更**：[CHANGELOG.md](CHANGELOG.md) · **契约与迁移细节**：[docs/desktop-0.2.0-rc.2-contract.md](docs/desktop-0.2.0-rc.2-contract.md)
+**完整变更**：[CHANGELOG.md](CHANGELOG.md) · **契约与迁移细节**：[docs/desktop-0.2.0-rc.2-contract.md](docs/desktop-0.2.0-rc.2-contract.md) · **版本更新栏**：[README › 版本更新](README.md#版本更新)
+
+---
+
+## What's Changed
+
+* 适配 DeepSeek Harness 桌面端（DSH 0.2.0-rc.2）：惰性 CJS 引导时机、DOM 契约、主题属性、设置面板判据 by @Sutera-Diffusus in `6b2d752`
+* 修复首屏误判工作态（`toolGoneAt` 初值）与历史工具卡钉住忙态 by @Sutera-Diffusus in `6b2d752`
+* 单元测试 108 → 142 全绿；新增桌面端契约文档与零浏览器/一次性 CDP 验收工具 by @Sutera-Diffusus in `6b2d752`
+* README 增加「版本更新 / Version History」栏与桌面端章节 by @Sutera-Diffusus in `6076947`
+* 新增 `.github/release.yml`：Release 更新日志分类规则 by @Sutera-Diffusus in `6076947`
+
+**Full Changelog**: https://github.com/Sutera-Diffusus/dsh-whale-musume/compare/v2.1.0...v2.2.0
