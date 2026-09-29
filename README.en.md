@@ -47,6 +47,7 @@
 - [First Run](#first-run)
 - [Usage](#usage)
 - [Update / Rollback / Uninstall](#update--rollback--uninstall)
+- [Version History](#version-history)
 - [Data & Privacy](#data--privacy)
 - [Project Structure](#project-structure)
 - [Development & Testing](#development--testing)
@@ -363,6 +364,23 @@ node scripts/apply-theme.mjs --assets-only --target "<DSH_INSTALL_DIR>" --rollba
 ```
 
 Or simply turn off the "Mascot" toggle in the settings panel (assets stay in place and can be re-enabled anytime; a summon button 🐋 appears in the bottom-left corner while she is off).
+
+---
+
+## Version History
+
+| Version | Date | Theme | Highlights | Links |
+|---|---|---|---|---|
+| **v2.2.0** | 2026-09-29 | DeepSeek Harness Desktop support | Desktop (Electron shell, bundled DSH `0.2.0-rc.2`): lazy-CJS boot timing, DOM contract (`[data-tool]` / `[data-chat-running]` / `[data-terminal]` / contenteditable composer), theme attribute (`body[data-ds-dark-theme]`), settings-panel detection; fixes a false "working" state on first paint | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.2.0) · [Notes](docs/release-notes-v2.2.0.md) |
+| v2.1.0 | 2026-09-14 | She talks, and no longer vanishes | Optional MiMo TTS line playback; fix for the mascot disappearing behind dialogs (now a bottom-right mini); fix for settings-panel registration timing; prefer CNY balance account; GitHub Actions CI | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.1.0) |
+| v2.0.1 | 2026-09-05 | Store compatibility declaration | `dsh.compatibility.dshReleases` matrix; restored lineage to the store's pinned commit | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.0.1) |
+| v2.0.0 | 2026-08-28 | Balance · Tools · Journal | Balance readout, artwork preloading, per-tool poses, drag inertia, proactive care, accessibility mode, growth journal, theme adaptation | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.0.0) |
+| v1.5.0 | 2026-08-28 | Custom self-name + summon button | Custom mascot self-name; a 🐋 summon button appears when she is switched off | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v1.5.0) |
+| v1.4.2 | 2026-08-28 | DSH 0.1.1-rc.2 support | Fix for a stuck "flipped over" artwork after errors; fix for an unresponsive settings entry; settings panel shipped with the bundle | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v1.4.2) |
+
+- Full per-release changes: [CHANGELOG.md](CHANGELOG.md);
+- All historical releases: [Releases](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases);
+- How to update: see [Update / Rollback / Uninstall](#update--rollback--uninstall) above (the Desktop app must be restarted).
 
 ---
 

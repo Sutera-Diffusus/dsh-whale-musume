@@ -3,7 +3,8 @@
 ## 开发环境
 
 - Node.js 18+
-- DeepSeek Harness 0.1.0-rc.x（推荐使用独立副本做验证，避免污染主安装）
+- DeepSeek Harness 0.1.0-rc.x（旧版 Web）与/或 **DeepSeek Harness 桌面端**（Electron 壳，内嵌 DSH 0.2.0-rc.2）——推荐使用独立副本做验证，避免污染主安装
+- 桌面端适配的契约依据见 `docs/desktop-0.2.0-rc.2-contract.md`；改动涉及选择器/信号时请一并核对那份文档
 
 ## 修改与验证
 
@@ -12,13 +13,20 @@
 
 ```bash
 npm test
-# 或：
-node --test test/whale-moe-core.test.mjs test/whale-moe-growth.test.mjs test/apply-theme.test.mjs test/whale-moe-game.test.mjs test/whale-moe-fx.test.mjs test/whale-moe-quest.test.mjs test/whale-moe-zones.test.mjs
+# 或（等价，显式列出全部测试文件）：
+node --test test/whale-moe-core.test.mjs test/whale-moe-growth.test.mjs test/apply-theme.test.mjs test/whale-moe-game.test.mjs test/whale-moe-fx.test.mjs test/whale-moe-quest.test.mjs test/whale-moe-zones.test.mjs test/desktop-client.test.mjs test/mimo-tts-integration.test.mjs test/presenter-layout.test.mjs
 node test/motion-qa.mjs
 node test/cdp-whale-moe.mjs
 ```
 
 3. 全部通过后再合并到主安装。
+4. CI：`.github/workflows/test.yml` 会在 Node.js 18 与 22 上跑 `npm test`；PR 合并后的 Release 笔记分类由 `.github/release.yml` 决定。
+5. 桌面端改动建议额外跑一次一次性 headless 验收（需自建隔离 profile，**不要**对生产 `DSH_HOME` 操作）：
+
+```bash
+node tools/cdp-verify-whale.mjs   --url "<隔离 profile 的 GUI URL>" --timeout 90000
+node tools/cdp-contract-whale.mjs "<隔离 profile 的 GUI URL>"
+```
 
 ## 立绘生成管线
 

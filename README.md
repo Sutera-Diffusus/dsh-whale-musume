@@ -49,6 +49,7 @@
 - [第一次使用](#第一次使用)
 - [使用说明](#使用说明)
 - [更新 / 回滚 / 卸载](#更新--回滚--卸载)
+- [版本更新](#版本更新)
 - [数据与隐私](#数据与隐私)
 - [项目结构](#项目结构)
 - [开发与测试](#开发与测试)
@@ -386,6 +387,23 @@ node scripts/apply-theme.mjs --assets-only --target "<DSH_INSTALL_DIR>" --rollba
 
 ---
 
+## 版本更新
+
+| 版本 | 日期 | 主题 | 要点 | 链接 |
+|---|---|---|---|---|
+| **v2.2.0** | 2026-09-29 | 适配 DeepSeek Harness 桌面端 | 桌面端（Electron 壳，内嵌 DSH `0.2.0-rc.2`）适配：惰性 CJS 引导时机、DOM 契约（`[data-tool]` / `[data-chat-running]` / `[data-terminal]` / contenteditable 输入框）、主题属性（`body[data-ds-dark-theme]`）、设置面板判据；修复首屏误判工作态 | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.2.0) · [说明](docs/release-notes-v2.2.0.md) |
+| v2.1.0 | 2026-09-14 | 会说话，也不会凭空消失 | 可选 MiMo TTS 台词播报；修复弹窗导致桌宠永久消失（改为右下 mini）；修复设置面板注册时序；余额优先 CNY 账户；新增 GitHub Actions CI | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.1.0) |
+| v2.0.1 | 2026-09-05 | 商城兼容性声明 | `dsh.compatibility.dshReleases` 兼容矩阵；恢复与商城目录固定 Commit 的血缘 | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.0.1) |
+| v2.0.0 | 2026-08-28 | 余额 · 工具 · 日记 | 余额显示与播报、立绘预加载、按工具类型切换姿态、拖拽惯性、主动关怀、无障碍模式、成长日记、主题适配 | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.0.0) |
+| v1.5.0 | 2026-08-28 | 自定义自称 + 找回入口 | 自定义看板娘自称；关掉后左下角留唤回按钮 🐋 | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v1.5.0) |
+| v1.4.2 | 2026-08-28 | 适配 DSH 0.1.1-rc.2 | 修复出错后永久停留「翻车」立绘；修复设置入口无反应；bundle 自带设置面板 | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v1.4.2) |
+
+- 完整逐条变更见 [CHANGELOG.md](CHANGELOG.md)；
+- 全部历史版本在 [Releases](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases) 页面；
+- 更新方式见上文[更新](#更新)一节（桌面端需重启桌面端应用）。
+
+---
+
 ## 数据与隐私
 
 - 所有状态保存在宿主窗口的 `localStorage`，键名以 `whale-moe:` 开头；
@@ -423,6 +441,8 @@ dsh-whale-musume/
 │  ├─ whale-moe-zones.test.mjs
 │  ├─ apply-theme.test.mjs
 │  ├─ desktop-client.test.mjs       # 桌面端（0.2.0-rc.2）契约与回归断言
+│  ├─ mimo-tts-integration.test.mjs # MiMo TTS 播报联动
+│  ├─ presenter-layout.test.mjs     # 表现层布局回归
 │  ├─ cdp-whale-moe.mjs
 │  ├─ motion-qa.mjs
 │  ├─ soak-work.mjs
@@ -432,9 +452,18 @@ dsh-whale-musume/
 │  ├─ desktop-0.2.0-rc.2-contract.md   # 桌面端契约审计（适配依据）
 │  ├─ desktop-0.2.0-rc.2-deploy.md     # 桌面端部署手册
 │  ├─ desktop-0.2.0-rc.2-acceptance.md # 桌面端验收报告
+│  ├─ release-notes-v2.2.0.md    # 本版 Release 说明
 │  └─ images/                    # logo、运行截图与立绘总览图
+├─ tools/
+│  ├─ dom-stub.mjs               # 零浏览器 DOM 桩（客户端契约断言底座）
+│  ├─ cdp-verify-whale.mjs       # 一次性 headless 基础验收
+│  ├─ cdp-contract-whale.mjs     # 一次性 headless 契约验收（主题/设置页/工具信号）
+│  └─ asar.mjs                   # 只读 asar 工具（桌面端勘察用）
+├─ .github/
+│  └─ release.yml                # Release 自动更新日志分类规则
 ├─ LICENSE
 ├─ README.md
+├─ README.en.md
 ├─ CHANGELOG.md
 ├─ SECURITY.md
 └─ CONTRIBUTING.md

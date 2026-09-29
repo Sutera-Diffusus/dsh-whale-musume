@@ -1,0 +1,45 @@
+# GitHub Release 自动更新日志（"What's Changed"）分类规则。
+# 生成逻辑：GitHub 在生成 Release 笔记时按下面的类别顺序归类已合并的 PR，
+# 未命中的 PR 落到最后一条 `*`；标签为「跳过」的 PR 不进笔记。
+# 手动撰写的版本说明（例如 v2.2.0）仍然由仓库维护者写在 Release 正文里，
+# 本文件只决定「What's Changed」那一段怎么分类。
+changelog:
+  categories:
+    - title: 🚀 新功能
+      labels:
+        - feature
+        - enhancement
+        - feat
+    - title: 🐛 修复
+      labels:
+        - bug
+        - fix
+        - bugfix
+    - title: 🎨 表现层与素材
+      labels:
+        - artwork
+        - assets
+        - ui
+    - title: 📝 文档
+      labels:
+        - documentation
+        - docs
+    - title: 🧪 测试与 CI
+      labels:
+        - test
+        - tests
+        - ci
+    - title: 🧰 依赖与维护
+      labels:
+        - dependencies
+        - chore
+        - maintenance
+    - title: 其他变更
+      labels:
+        - "*"
+  exclude:
+    labels:
+      - skip-changelog
+      - duplicate
+      - invalid
+      - wontfix
