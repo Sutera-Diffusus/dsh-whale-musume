@@ -7,7 +7,7 @@
   <p>一只会陪你写代码的鲸鱼娘：待机安静陪伴，工作开始就抱起笔记本陪你干活；<br>可以摸头养成、解锁成就，也可以拖着她到处走。所有资源本地运行，无遥测、无外部请求。</p>
 
   <p>
-    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.1.0-4da3ff" alt="版本 2.1.0"></a>
+    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.2.0-4da3ff" alt="版本 2.2.0"></a>
     <a href="https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/latest"><img src="https://img.shields.io/badge/下载-最新版-31df76" alt="下载最新版"></a>
     <a href="https://github.com/Sutera-Diffusus/dsh-whale-musume/releases"><img src="https://img.shields.io/github/downloads/Sutera-Diffusus/dsh-whale-musume/total?label=downloads&color=31df76" alt="总下载量"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-6f42c1" alt="MIT license"></a>
@@ -16,9 +16,10 @@
 
   <p>
     <img src="https://img.shields.io/badge/DSH-0.1.0--rc.6%20%2B%20(0.1.1--rc.2%20实测)-0078D4" alt="DSH 0.1.0-rc.6+">
+    <img src="https://img.shields.io/badge/桌面端（Electron%20壳）-内嵌%20DSH%200.2.0--rc.2%20实测-0078D4" alt="桌面端（Electron 壳）内嵌 DSH 0.2.0-rc.2 实测">
     <img src="https://img.shields.io/badge/platform-Windows-0078D4?logo=windows&logoColor=white" alt="Windows">
     <img src="https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white" alt="Node.js 18+">
-    <img src="https://img.shields.io/badge/单元测试-102%20项全绿-31df76" alt="102 项单元测试">
+    <img src="https://img.shields.io/badge/单元测试-142%20项全绿-31df76" alt="142 项单元测试">
   </p>
 
   <p>
@@ -44,6 +45,7 @@
 - [效果预览](#效果预览)
 - [安装要求](#安装要求)
 - [安装教程](#安装教程)
+- [桌面端（DeepSeek Harness Desktop）](#桌面端deepseek-harness-desktop)
 - [第一次使用](#第一次使用)
 - [使用说明](#使用说明)
 - [更新 / 回滚 / 卸载](#更新--回滚--卸载)
@@ -68,7 +70,7 @@
 
 ### 💼 工作状态联动
 
-- 检测到工具运行（`data-running` / `data-state="ongoing"`）自动切换为「抱笔记本工作」；
+- 检测到工具运行自动切换为「抱笔记本工作」：旧版 Web 用 `data-running` / `data-state="ongoing"`；桌面端（0.2.0-rc.2）以工具卡 `[data-tool]`（值 = 工具名）+ 同元素 `data-state`（`preparing` / `running` / `stopped` / `error` / `ok`）为主信号，会话运行中另有 `[data-chat-running]`；
 - 工作中带淡蓝光晕和「工作中」标签；
 - 工作状态下点击她，会随机出现「害羞抱电脑」或「偷吃内存条」的反应，不会打断工作状态；工作期间保持 running 姿势稳定，不再随机切小剧场；
 - **按工具类型切换姿态**：跑命令、改文件、搜索、测试、评审、部署、调试各有对应姿势（全部复用已有的工作立绘，不新增素材）。识别不了会回落到通用工作姿势，不会乱猜。
@@ -139,7 +141,7 @@
 
 ### 🌗 主题适配
 
-- 跟随宿主明暗主题：识别 DSH 的 `data-theme` / `dark` class，退化到系统 `prefers-color-scheme`；
+- 跟随宿主明暗主题：旧版 Web 识别 DSH 的 `data-theme` / `dark` class；桌面端（0.2.0-rc.2）的明暗写在 `body[data-ds-dark-theme]`（**属性值为空串表示暗色**），主题来源另写在 `html[data-ds-theme-source]`（`light` / `dark` / `system`）；两者都退化到系统 `prefers-color-scheme`；
 - 只影响气泡、菜单这类 UI 元素，**立绘不做滤镜**，不改画风；
 - 仅在主题变化时写入，不做每帧探测。
 
@@ -195,10 +197,15 @@
 | --- | --- |
 | 操作系统 | Windows 10 / 11（开发与测试环境） |
 | Node.js | 18+（执行安装脚本需要；组合包方式不需要） |
-| DeepSeek Harness | `0.1.0-rc.6` 及以上；设置面板已适配并在 `0.1.1-rc.2` 实测 |
-| 浏览器 | Edge / Chrome 最新版 |
+| DeepSeek Harness（旧版 Web） | `0.1.0-rc.6` 及以上；设置面板已适配并在 `0.1.1-rc.2` 实测 |
+| DeepSeek Harness 桌面端 | Electron 壳、内嵌 DSH `0.2.0-rc.2`；已实测，并在 `dsh.compatibility.dshReleases` 声明为 `compatible` |
+| 浏览器 | Edge / Chrome 最新版（旧版 Web 方式；桌面端用自带窗口，无需另装浏览器） |
+
+**旧版 Web 与桌面端都支持**：同一份插件在两种宿主上都能用，但安装位置、生效方式与数据存放位置不同——旧版 Web 见下方[安装教程](#安装教程)，桌面端见[桌面端（DeepSeek Harness Desktop）](#桌面端deepseek-harness-desktop)。
 
 > 脚本安装方式会修改 DSH 安装目录中的前端资源文件。虽然脚本自带备份，仍建议安装前关闭 DSH 页面，并记录当前 DSH 版本号。追求零侵入请使用组合包方式。
+>
+> 桌面端主窗口的文档 origin 是 `dsh-app://app`（不是 `http://127.0.0.1:<端口>`），因此旧版 Web 下的 `whale-moe:*` localStorage（悬浮位置、养成数据、开关偏好）**不会自动带过来**，桌面端首次打开是全新状态。详见[桌面端（DeepSeek Harness Desktop）](#桌面端deepseek-harness-desktop)。
 
 ---
 
@@ -219,7 +226,7 @@
 dsh plugin --profile web add github:Sutera-Diffusus/dsh-whale-musume
 ```
 
-安装后重启 dsh web 并强制刷新页面（`Ctrl+F5`），鲸鱼娘会自动出现。此模式：
+安装后重启 dsh web 并强制刷新页面（`Ctrl+F5`），鲸鱼娘会自动出现。桌面端（DeepSeek Harness Desktop）没有可强制刷新的 Web 页面，请按[桌面端（DeepSeek Harness Desktop）](#桌面端deepseek-harness-desktop)的步骤安装并重启应用。此模式：
 
 - 宿主插件只注册只读静态资源路由 `/api/dsh-whale-musume/assets`，向浏览器提供样式/脚本/立绘；
 - 浏览器插件注入鲸鱼娘本体，资源全部来自本机，无外部请求、无遥测；
@@ -279,6 +286,21 @@ node scripts/apply-theme.mjs --mascot-settings
 2. 强制刷新：`Ctrl + F5`；
 3. 页面加载完成后，右下角应出现鲸鱼娘。
 
+> 桌面端不适用本步：桌面端主窗口的文档 origin 是 `dsh-app://app`，没有可强制刷新的 Web 页面，安装/更新后请重启桌面端应用——详见[桌面端（DeepSeek Harness Desktop）](#桌面端deepseek-harness-desktop)。
+
+---
+
+## 桌面端（DeepSeek Harness Desktop）
+
+鲸鱼娘已适配 DSH 桌面端（Electron 壳，内嵌 DSH `0.2.0-rc.2`），**旧版 Web 与桌面端都支持**。桌面端与旧版 Web 的差异：
+
+- **文档 origin 不同**：桌面端主窗口的 origin 是 `dsh-app://app`，不是 `http://127.0.0.1:<端口>`。因此旧版 Web 下的 `whale-moe:*` localStorage（悬浮位置、养成数据、开关偏好、成长日记）**不会自动迁移过来**，两边数据互不相通，桌面端首次打开是全新状态，需要重新设置一次；
+- **生效方式不同**：桌面端没有可强制刷新的 Web 页面，安装/更新后请**重启桌面端应用**（开发环境下客户端插件改动也可由 HMR 接住）；
+- **界面契约差异已适配**：设置面板仍经 `settings.section` slot 注册进 DSH 设置页；工具卡标记（`[data-tool]` + 同元素 `data-state`）、会话运行标记（`[data-chat-running]`）、终端标记（`[data-terminal]`）、输入框（contenteditable `[data-composer-input]`）、主题属性（`body[data-ds-dark-theme]` 空串表示暗 + `html[data-ds-theme-source]`）与「设置面板是否打开」的判据（`[data-shortcut-modal="settings"]`）都已按桌面端契约更新，逐条依据见 [`docs/desktop-0.2.0-rc.2-contract.md`](docs/desktop-0.2.0-rc.2-contract.md)；
+- **使用体验一致**：悬浮形态、拖拽、养成、成就、天气、余额等行为与旧版 Web 相同。
+
+桌面端的部署（安装 / 更新 / 回滚）步骤与命令见 [`docs/desktop-0.2.0-rc.2-deploy.md`](docs/desktop-0.2.0-rc.2-deploy.md)，实测记录见 [`docs/desktop-0.2.0-rc.2-acceptance.md`](docs/desktop-0.2.0-rc.2-acceptance.md)；旧版 Web 仍走上面的[安装教程](#安装教程)。
+
 ---
 
 ## 第一次使用
@@ -333,13 +355,13 @@ node scripts/apply-theme.mjs --mascot-settings
 
 ### 更新
 
-**组合包方式**：通过 dsh plugin 更新到最新版本后重启 dsh web 并强制刷新。
+**组合包方式**：通过 dsh plugin 更新到最新版本后重启 dsh web 并强制刷新。桌面端请改为重启桌面端应用，并按[桌面端（DeepSeek Harness Desktop）](#桌面端deepseek-harness-desktop)章节指向的部署文档核对步骤。
 
 **脚本方式**：
 
 1. 下载新版插件 zip，覆盖旧目录中的 `assets/` 和 `scripts/`；
 2. 重新执行方式 B 第 3 步的两条安装命令；
-3. 强制刷新页面。
+3. 强制刷新页面（桌面端改为重启桌面端应用）。
 
 ### 回滚
 
@@ -351,7 +373,7 @@ node scripts/apply-theme.mjs --rollback "<backup dir>"
 
 ### 卸载看板娘
 
-**组合包方式**：通过 dsh plugin 移除即可，无任何残留文件改写。
+**组合包方式**：通过 dsh plugin 移除即可，无任何残留文件改写（桌面端同此方式）。
 
 **脚本方式**：
 
@@ -366,7 +388,8 @@ node scripts/apply-theme.mjs --assets-only --target "<DSH_INSTALL_DIR>" --rollba
 
 ## 数据与隐私
 
-- 所有状态保存在浏览器 `localStorage`，键名以 `whale-moe:` 开头；
+- 所有状态保存在宿主窗口的 `localStorage`，键名以 `whale-moe:` 开头；
+- 桌面端主窗口 origin 为 `dsh-app://app`，与旧版 Web 的 origin 不同，两边的 `whale-moe:*` 数据互不相通、也不会自动迁移；
 - 不包含任何 API Key、用户凭据；
 - 不发送遥测、不上传数据、不访问外部网络；
 - 安装脚本只读取 DSH 前端资源文件并写入备份，不读取 DSH 会话数据；
@@ -399,12 +422,16 @@ dsh-whale-musume/
 │  ├─ whale-moe-quest.test.mjs
 │  ├─ whale-moe-zones.test.mjs
 │  ├─ apply-theme.test.mjs
+│  ├─ desktop-client.test.mjs       # 桌面端（0.2.0-rc.2）契约与回归断言
 │  ├─ cdp-whale-moe.mjs
 │  ├─ motion-qa.mjs
 │  ├─ soak-work.mjs
 │  ├─ showcase-poses.mjs
 │  └─ showcase-actions.mjs
 ├─ docs/
+│  ├─ desktop-0.2.0-rc.2-contract.md   # 桌面端契约审计（适配依据）
+│  ├─ desktop-0.2.0-rc.2-deploy.md     # 桌面端部署手册
+│  ├─ desktop-0.2.0-rc.2-acceptance.md # 桌面端验收报告
 │  └─ images/                    # logo、运行截图与立绘总览图
 ├─ LICENSE
 ├─ README.md
@@ -418,10 +445,10 @@ dsh-whale-musume/
 ## 开发与测试
 
 ```powershell
-# 单元测试（102 个）
+# 单元测试（142 个，含桌面端契约与回归断言）
 npm test
 # 或等价命令：
-node --test test/whale-moe-core.test.mjs test/whale-moe-growth.test.mjs test/apply-theme.test.mjs test/whale-moe-game.test.mjs test/whale-moe-fx.test.mjs test/whale-moe-quest.test.mjs test/whale-moe-zones.test.mjs
+node --test test/whale-moe-core.test.mjs test/whale-moe-growth.test.mjs test/apply-theme.test.mjs test/whale-moe-game.test.mjs test/whale-moe-fx.test.mjs test/whale-moe-quest.test.mjs test/whale-moe-zones.test.mjs test/desktop-client.test.mjs
 
 # 动效质量检查（需要测试用 DSH 副本运行在 3181 端口）
 node test/motion-qa.mjs
@@ -438,7 +465,8 @@ node test/cdp-whale-moe.mjs
 
 | 现象 | 处理 |
 | --- | --- |
-| 刷新后看不到鲸鱼娘 | 确认安装命令输出 `Applied`（组合包方式确认插件已启用）；强制刷新；检查设置面板「看板娘」开关 |
+| 刷新后看不到鲸鱼娘 | 确认安装命令输出 `Applied`（组合包方式确认插件已启用）；强制刷新（桌面端改为重启应用）；检查设置面板「看板娘」开关 |
+| 桌面端第一次打开，养成数据 / 位置都是新的 | 桌面端 origin 为 `dsh-app://app`，与旧版 Web 的 `whale-moe:*` 数据不互通，属预期行为；重新设置一次即可 |
 | 在设置里关掉了找不到她 | 左下角有一枚唤回按钮（🐋），点一下即可叫回 |
 | 图片不更新 | 强制刷新（`Ctrl+F5`）；资源 URL 带版本号，浏览器缓存过旧时清理站点缓存 |
 | 设置面板没有「看板娘」栏目 | 脚本方式执行 `--mascot-settings` 并刷新；组合包方式确认 DSH 为 0.1.1-rc.2+；确认 DSH 版本兼容 |

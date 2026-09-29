@@ -7,7 +7,7 @@
   <p>A whale girl who codes alongside you: she idles quietly by your side, and the moment work starts she picks up her laptop and gets busy with you.<br>Headpat her, raise her, unlock achievements, or drag her around the screen. Everything runs locally — no telemetry, no external requests.</p>
 
   <p>
-    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.1.0-4da3ff" alt="version 2.1.0"></a>
+    <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.2.0-4da3ff" alt="version 2.2.0"></a>
     <a href="https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/latest"><img src="https://img.shields.io/badge/Download-Latest-31df76" alt="Download latest"></a>
     <a href="https://github.com/Sutera-Diffusus/dsh-whale-musume/releases"><img src="https://img.shields.io/github/downloads/Sutera-Diffusus/dsh-whale-musume/total?label=downloads&color=31df76" alt="Total downloads"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-6f42c1" alt="MIT license"></a>
@@ -18,7 +18,7 @@
     <img src="https://img.shields.io/badge/DSH-0.1.0--rc.6%20%2B%20(0.1.1--rc.2%20tested)-0078D4" alt="DSH 0.1.0-rc.6+">
     <img src="https://img.shields.io/badge/platform-Windows-0078D4?logo=windows&logoColor=white" alt="Windows">
     <img src="https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white" alt="Node.js 18+">
-    <img src="https://img.shields.io/badge/Unit%20Tests-102%20passing-31df76" alt="102 unit tests passing">
+    <img src="https://img.shields.io/badge/Unit%20Tests-142%20passing-31df76" alt="142 unit tests passing">
   </p>
 
   <p>
@@ -199,6 +199,8 @@
 | Browser | Latest Edge / Chrome |
 
 > The script install modifies frontend asset files inside the DSH installation directory. The script always makes backups, but it is still recommended to close the DSH page before installing and note down your current DSH version. For a fully non-invasive install, use the bundle method.
+>
+> **Desktop support**: Whale Musume also runs in DeepSeek Harness Desktop — the Electron shell embedding DSH `0.2.0-rc.2` — alongside the old web UI. The desktop window's origin is `dsh-app://app`, so `whale-moe:*` localStorage from the old web UI is neither shared nor migrated, and the app must be restarted after install/update. Deployment steps: [`docs/desktop-0.2.0-rc.2-deploy.md`](docs/desktop-0.2.0-rc.2-deploy.md).
 
 ---
 
@@ -419,7 +421,7 @@ dsh-whale-musume/
 ## Development & Testing
 
 ```powershell
-# Unit tests (102)
+# Unit tests (142)
 npm test
 # or equivalently:
 node --test test/whale-moe-core.test.mjs test/whale-moe-growth.test.mjs test/apply-theme.test.mjs test/whale-moe-game.test.mjs test/whale-moe-fx.test.mjs test/whale-moe-quest.test.mjs test/whale-moe-zones.test.mjs

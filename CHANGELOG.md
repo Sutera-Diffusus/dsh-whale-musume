@@ -1,5 +1,28 @@
 # Changelog
 
+## v2.2.0 (2026-09-29)
+
+### 适配
+
+- **适配 DSH 桌面端 `0.2.0-rc.2`（Electron 壳，内嵌 DSH 0.2.0-rc.2）**：桌面端主窗口的文档 origin 是 `dsh-app://app`（不是 `http://127.0.0.1:<端口>`），旧版 Web 下的 `whale-moe:*` localStorage（悬浮位置 / 养成数据 / 开关偏好 / 成长日记）不会自动带过来，桌面端首次打开是全新状态。旧版 Web（`0.1.x`）的适配与行为保持不变
+- **客户端模块改为惰性 CJS 契约**：引导时机移到 factory 物化期——`window.__ModuleLoader__.load({id, factory})` 注册路径不变，但执行 bundle 只注册 factory，包括 CSS 注入在内的副作用都发生在 factory 物化期，`boot()` 因此从 `apply()` 移入 factory 体内（`apply()` 只保留 MiMo TTS 桥接与设置面板注册）
+- **DOM 契约更新**（选择器只增不减，旧宿主行为不受影响）：工具卡改用 `[data-tool]`（值 = 工具名）+ 同元素 `data-state`，其中只有 `running` / `preparing` 算「正在工作」——卡片完成后仍留在 DOM 里（`ok` / `stopped` / `error`），按存在性匹配会让桌宠被历史卡片永久钉在工作态；新增会话运行标记 `[data-chat-running]`；终端块 `[data-terminal]`；输入框是 contenteditable `[data-composer-input]`（不再是 textarea）
+- **主题属性适配**：桌面端的明暗写在 `body[data-ds-dark-theme]`（属性值为空串表示暗色），主题来源写在 `html[data-ds-theme-source]`（`light` / `dark` / `system`）；旧版 Web 的 `data-theme` / `dark` class 识别保留为回落
+- **设置面板判据适配**：「设置面板已打开」改用 `[data-shortcut-modal="settings"]`（桌面端的引导弹窗同样是 `role="dialog"`，旧判据会误命中）
+- **兼容性声明**：`package.json` 的 `dsh.compatibility.dshReleases` 新增 `0.2.0-rc.2: "compatible"`
+
+### 修复
+
+- **修复桌面端首页被误判为设置页**：刷新后常驻的引导弹窗（OnboardingModal）同样是 `role="dialog"`，旧判据 `[role="dialog"]` 会把首页误认成设置页；v2.1.0 起该场景已是 120px 右下角 mini（不再整体隐藏），本次把判据收敛到 `[data-shortcut-modal="settings"]`，桌面端首页不再误命中
+- **修复冷启动头几秒误判工作态**：`toolGoneAt` 初值 0 会被「首次下沿」分支当成刚消失的工作信号，导致首屏摆出 running 并念出工具台词；初值改为远期过去（`-1`），首屏稳定停在待机
+- **清理死代码**：删除永不命中的 `ANIM_ROOT` 资源路径改写（presenter 里从来没有这个常量，`assets/anim/*.webm` 未被引用）
+
+### 测试与文档
+
+- 单元 **108 → 142 全绿**（新增 34 项桌面端契约与回归断言：`[data-tool]` / `[data-chat-running]` / `[data-terminal]` 信号、composer 输入框、主题属性、设置面板判据、历史工具卡不得钉住忙态，以及上述两条回归；跑 `npm test`）
+- 新增桌面端文档：`docs/desktop-0.2.0-rc.2-contract.md`（契约审计）、`docs/desktop-0.2.0-rc.2-deploy.md`（部署手册）、`docs/desktop-0.2.0-rc.2-acceptance.md`（验收报告）
+- 新增验收工具：`tools/dom-stub.mjs`、`tools/cdp-verify-whale.mjs`、`tools/cdp-contract-whale.mjs`、`tools/asar.mjs`
+
 ## v2.1.0 (2026-09-14)
 
 - **可选 MiMo TTS 台词播报**（Issue #9 / PR #10，感谢 @ppy-web）：检测到 `dsh-xiaomi-tts` 服务时显示默认关闭的「台词播报」开关；开启后播报头部、肚皮、尾巴与三连击台词。未安装、未配置或播放失败均不影响原交互，并补充异步播放拒绝保护

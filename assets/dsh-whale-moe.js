@@ -22,23 +22,36 @@
     { key: "particles", label: "粒子效果" }
   ];
 
+  /* 0.2.0-rc.2 实测（CDP + 客户端 bundle 双向核对）：
+     · 刷新后常驻一个 role="dialog" 的「预览版说明」引导弹窗（OnboardingModal），
+       用 [role="dialog"] 判「设置页」会把首页判成设置页。上游 v2.1.0 已把该场景
+       从「整体隐藏」改成「右下 mini」，但判据仍会在桌面端把首页误认成设置页；
+       这里补上真正的设置面板根 [data-shortcut-modal="settings"]（portal 到 body），
+       旧版 [data-slot="settings.header"] 保留兼容。
+     · workbench 在 0.2.0-rc.2 没有 data-phase="session"（取值是 settling|hero|active），
+       改用会话节点与运行标记 [data-chat-running] / [data-terminal]。 */
   var VIEW_SELECTORS = Object.freeze({
-    settings: '[role="dialog"], [data-slot="settings.header"]',
-    workbench: '[data-slot="conversation.chat.node"], [data-phase="session"]'
+    settings: '[data-shortcut-modal="settings"], [data-slot="settings.header"]',
+    workbench: '[data-slot="conversation.chat.node"], [data-chat-running], [data-terminal]'
   });
 
   /* Structural signal banks: presence-only detection, never reads text.
-     data-running / data-state="ongoing" are the real DSH terminal/turn
-     indicators (from the web-frontend bundle). data-state="running" is NOT
-     a live DSH state — historical step cards keep it forever and would pin
-     the mascot as permanently busy. The data-status variants stay only for
-     test fixtures and older builds. */
+     0.2.0-rc.2 的真实标记（全部来自 dsh-client-ui-tool / -chat 的 bundle）：
+     · 工具卡 = [data-tool]（值就是工具名），状态在同一元素上；**完成后卡片仍留在
+       DOM 里**（state 变成 ok/error/stopped，见 dsh-client-ui-tool:278），所以只能按
+       状态取值匹配，不能用「存在 [data-tool]」当忙信号，否则历史卡片会把桌宠
+       永久钉在工作态。活跃取值：running / preparing。
+     · 会话正在运行 = [data-chat-running]（仅运行时挂载），是最干净的活信号。
+     · 思考中的推理块 = [data-state="running"]（收尾会翻成 "ok"）。
+     · 终端 = [data-terminal]（配 [data-running]），没有 data-slot="terminal"。
+     · 出错 = [data-tool][data-state="error"] 或带 [data-error] 的输出块。
+     旧选择器保留在同一 bank 里，只增不减，旧宿主（0.1.x）行为不受影响。 */
   var SIGNAL_BANKS = Object.freeze({
-    thinking: ['[aria-busy="true"]', '[data-status="pending"]', '[data-state="loading"]', '[data-slot="conversation.chat.node"] [class*="stream" i]'],
-    tool: ['[data-role="tool"]', '[data-tool="true"]', '[data-tool-card="true"]', '[data-status="running"]', '[data-running]', '[data-state="ongoing"]', '[data-state="running"]'],
-    error: ['[data-state="error"]:not([class*="turnErrorDot"])', '[data-status="error"]', '[aria-invalid="true"]'],
+    thinking: ['[data-state="running"]', '[data-streaming]', '[aria-busy="true"]', '[data-status="pending"]', '[data-state="loading"]', '[data-slot="conversation.chat.node"] [class*="stream" i]'],
+    tool: ['[data-tool][data-state="running"]', '[data-tool][data-state="preparing"]', '[data-chat-running]', '[data-tool][data-state="ongoing"]', '[data-running]', '[data-state="ongoing"]', '[data-role="tool"]', '[data-tool="true"]', '[data-tool-card="true"]', '[data-status="running"]'],
+    error: ['[data-tool][data-state="error"]', '[data-error]', '[data-state="error"]:not([class*="turnErrorDot"])', '[data-status="error"]', '[aria-invalid="true"]'],
     success: ['[data-state="success"]', '[data-status="success"]'],
-    code: ['pre', '[data-slot="terminal"]', '[data-role="log"]', '[data-terminal]'],
+    code: ['pre', '[data-terminal]', '[data-slot="terminal"]', '[data-role="log"]'],
     chat: ['[data-slot="conversation.chat.node"]']
   });
 
@@ -119,8 +132,10 @@
   function findComposerSurface() {
     var card = firstVisible('[data-composer-card="true"]');
     if (card) return card;
-    var textarea = firstVisible('[data-slot="conversation.composer.bar"] textarea');
-    return textarea && textarea.closest ? textarea.closest("form, [class]") : null;
+    /* 0.2.0-rc.2 的输入框是 contenteditable（[data-composer-input][role=textbox]），
+       不再是 textarea；两种都试。 */
+    var input = firstVisible('[data-composer-input]') || firstVisible('[data-slot="conversation.composer.bar"] [role="textbox"]') || firstVisible('[data-slot="conversation.composer.bar"] textarea');
+    return input && input.closest ? input.closest("form, [class]") : null;
   }
 
   /* ---------- own layers ---------- */
@@ -1541,10 +1556,13 @@
     lastInteractionAt: Date.now(),
     toolWasActive: false,
     toolSeenAt: 0,
-    toolGoneAt: 0,
+    /* 桌面端 0.2.0-rc.2 实测：初始 0 会被 collectSignals 的「首次下沿」分支
+       当成刚消失的工作信号（memory.toolGoneAt = now），冷启动头 4 秒摆出
+       running 并说工具台词。初始值取远期过去，使首屏稳定停在待机姿势。 */
+    toolGoneAt: -1,
     toolRawSeen: false,
     thinkingSeenAt: 0,
-    thinkingGoneAt: 0,
+    thinkingGoneAt: -1,
     thinkingRawSeen: false,
     lastSuccessAt: -Infinity,
     state: { state: "idle", lastSpeechAt: -Infinity },
@@ -1639,13 +1657,13 @@
     for (var i = 0; i < SIGNAL_BANKS.tool.length; i += 1) {
       var nodes = doc.querySelectorAll(SIGNAL_BANKS.tool[i]);
       for (var j = 0; j < nodes.length; j += 1) {
-        var n = nodes[j];
-        /* 历史步骤卡片会永久带着 data-state="running"；会话消息流内的
-           视为历史，消息流之外的运行标记才代表当前正在工作。 */
-        if (SIGNAL_BANKS.tool[i] === '[data-state="running"]') {
-          if (typeof n.closest === "function" && n.closest('[data-slot="conversation.chat.node"]')) continue;
-        }
-        if (isVisible(n)) return true;
+        /* 0.2.0-rc.2：工具卡就是 [data-tool]，状态在同一元素上（running/preparing/
+           error/ok）。旧版曾用「在 [data-slot=conversation.chat.node] 内的
+           data-state="running" 一律视为历史卡片」来兜底，但现在
+           data-state="running" 只出现在「正在跑的推理块」上、收尾会翻成 "ok"，
+           那个排除反而会把所有运行中的工具卡过滤掉（并降级成 thinking），故已移除。
+           历史失败卡片仍由 errorVisible() 的「出错后对话是否继续推进」规则翻篇。 */
+        if (isVisible(nodes[j])) return true;
       }
     }
     return false;
@@ -2958,13 +2976,27 @@
   /* ── 主题适配（v1.9.0）────────────────────────────────────────────────
      跟随宿主明暗主题，只影响气泡/菜单这类 UI 元素，立绘本身不做滤镜，
      避免把画风改坏。识别不了时回落系统偏好。 */
+  /* v2.2.0 适配桌面端：0.2.0-rc.2 的实际写入点（dsh-client-ui-theme/lib/index.js:55、
+     dsh-client-ui-layout/lib/client.js:535-538）明暗只写在 <body> 的 data-ds-dark-theme 上，
+     且**取值恒为空串**（存在=暗、不存在=亮，从不写 "true"/"false"）；<html> 上只有
+     data-ds-theme-source（light|dark|system）。旧版 web 宿主的 data-theme / dark class /
+     系统偏好全部保留为回落。 */
   function detectTheme() {
     try {
       var el = doc.documentElement;
-      var attr = el.getAttribute("data-theme") || el.getAttribute("data-dsh-theme") || "";
-      if (attr === "dark" || attr === "light") return attr;
-      var cls = el.className;
-      if (typeof cls === "string" && /(^|\s)dark(\s|$)/.test(cls)) return "dark";
+      var body = doc.body;
+      if (body && typeof body.hasAttribute === "function" && body.hasAttribute("data-ds-dark-theme")) return "dark";
+      if (el && typeof el.hasAttribute === "function") {
+        /* 兼容：若某版本把它写在 <html> 上（含 "true"/"false" 写法） */
+        var dsDark = el.getAttribute("data-ds-dark-theme");
+        if (dsDark !== null && dsDark !== "false") return "dark";
+        var source = el.getAttribute("data-ds-theme-source");
+        if (source === "dark" || source === "light") return source;
+        var attr = el.getAttribute("data-theme") || el.getAttribute("data-dsh-theme") || el.getAttribute("data-ds-theme") || "";
+        if (attr === "dark" || attr === "light") return attr;
+        var cls = el.className;
+        if (typeof cls === "string" && /(^|\s)dark(\s|$)/.test(cls)) return "dark";
+      }
       if (root.matchMedia && root.matchMedia("(prefers-color-scheme: dark)").matches) return "dark";
     } catch (e) { /* ignore */ }
     return "light";
