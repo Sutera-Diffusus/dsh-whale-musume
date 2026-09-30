@@ -1,0 +1,140 @@
+name: "🐛 Bug 报告"
+description: "报告鲸鱼娘（dsh-whale-musume）在 DSH 桌面端或旧版 Web 上的异常行为"
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 提交前请先看这里
+
+        **1. 先搜一遍已有 Issue（含已关闭的）**：<https://github.com/Sutera-Diffusus/dsh-whale-musume/issues?q=is%3Aissue>
+        同一个问题可能已经有结论或绕法，重复 Issue 会被合并关闭。
+
+        **2. 顺手把版本号和调试信息准备好**（下面的表单会逐项要）：
+
+        | 需要的值 | 从哪拿 |
+        | --- | --- |
+        | 鲸鱼娘版本 | 仓库 [`package.json`](https://github.com/Sutera-Diffusus/dsh-whale-musume/blob/main/package.json) 的 `version`（当前 `2.2.0`），或你安装时用的 Release 标签（如 `v2.2.0`） |
+        | DSH 版本 | 旧版 Web 填 DSH 版本号（如 `0.1.1-rc.2`）；桌面端填内嵌运行时版本（当前 `0.2.0-rc.2`） |
+        | 调试信息 | 在 GUI 窗口按 `F12` 打开 DevTools → Console，执行下面三条并贴回输出 |
+
+        ```js
+        window.__dshWhaleMusumeBooted                            // true 表示客户端插件已启动
+        window.__dshWhaleMoeDebug                                // 她的实时状态（state / pose / view 等）
+        document.querySelectorAll('[data-dsh-whale-root]').length // 页面上有几个她，正常是 1
+        ```
+
+        > 贴日志前请先去掉 API 密钥、带用户名的本地路径等敏感信息。鲸鱼娘运行时零网络请求，
+        > 但 DSH 本身的日志可能包含你的会话内容，自己过一眼再发。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: "一两句话说明发生了什么，以及它出现在哪一步。"
+      placeholder: "例如：装着装着，鲸鱼娘在设置面板打开时不再缩成右下角 mini，而是整只消失了。"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: "从冷启动开始，一步一步写；能稳定复现最好，偶发也请注明「偶发」。"
+      placeholder: |
+        1. 启动 DSH（桌面端 / 旧版 Web）
+        2. 打开设置面板 → 看板娘分组
+        3. 打开「关键词感知」
+        4. 在对话里发送任何消息
+        5. 观察气泡区域
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+      description: "你原本以为会发生什么（有截图/文档依据更好）。"
+      placeholder: "例如：设置面板打开时她应该缩成 120px 的 mini 停在右下角，而不是消失。"
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+      description: "实际发生了什么；有报错、卡顿、位置错乱等细节都写上来。"
+      placeholder: "例如：设置面板一打开，`[data-dsh-whale-root]` 数量变成 0，关掉面板也不回来，要刷新页面才行。"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: dsh_host
+    attributes:
+      label: DSH 环境
+      description: "问题出现在哪种宿主上？"
+      options:
+        - "桌面端（DeepSeek Harness Desktop，Electron 壳）"
+        - "旧版 Web（DSH 0.1.x）"
+        - "两者都有"
+        - "不确定"
+    validations:
+      required: true
+
+  - type: input
+    id: dsh_version
+    attributes:
+      label: DSH 版本
+      description: "旧版 Web 填 DSH 版本号；桌面端填内嵌运行时版本。真不确定就写「不确定」。"
+      placeholder: "例如 0.2.0-rc.2 或 0.1.1-rc.2"
+    validations:
+      required: true
+
+  - type: input
+    id: musume_version
+    attributes:
+      label: 鲸鱼娘版本
+      description: "见 `package.json` 的 `version`，或你安装用的 Release 标签。"
+      placeholder: "例如 2.2.0 或 v2.2.0"
+    validations:
+      required: true
+
+  - type: input
+    id: host_env
+    attributes:
+      label: 浏览器或宿主
+      description: "旧版 Web 填浏览器与版本；桌面端填「桌面端自带窗口」即可。"
+      placeholder: "例如 Edge 141 / Chrome 最新版 / 桌面端自带窗口（dsh-app://app）"
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 截图 / 录屏（可选）
+      description: "可直接把图片或录屏文件拖拽到这个输入框上传，也可以贴图床或 GIF 链接。能看到问题现象的画面比文字描述有用得多。"
+      placeholder: "拖拽文件到这里，或粘贴链接。"
+    validations:
+      required: false
+
+  - type: textarea
+    id: console_errors
+    attributes:
+      label: 控制台报错（可选）
+      description: "按 `F12` 打开 DevTools → Console，把红色报错连同堆栈整段贴进来；没有报错就写「无」。"
+      placeholder: |
+        无报错，或：
+        Uncaught TypeError: Cannot read properties of null (reading 'appendChild')
+            at mountPresenter (dsh-whale-moe.js:1234)
+    validations:
+      required: false
+
+  - type: input
+    id: toggles
+    attributes:
+      label: 已开启的相关开关（可选）
+      description: "设置面板里和这个问题相关的开关，只填有关的即可：看板娘 / 台词气泡 / 台词播报 / 粒子效果 / 小游戏 / 关键词感知 / 摸鱼提醒 / 深夜模式 / 天气特效 / 工具细分 / 拖拽惯性 / 主动关怀 / 无障碍 / 余额关心 / 余额显示数字。"
+      placeholder: "例如：关键词感知 开、余额关心 开、无障碍 关"
+    validations:
+      required: false

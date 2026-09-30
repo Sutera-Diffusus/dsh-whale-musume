@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "💬 使用问题 / 想分享（Discussions）"
+    url: https://github.com/Sutera-Diffusus/dsh-whale-musume/discussions
+    about: "安装配置、使用疑问、立绘与台词建议、晒图分享请走这里；Discussions 比 Issue 更适合问答与闲聊。"
+  - name: "🔒 安全漏洞报告（Security）"
+    url: https://github.com/Sutera-Diffusus/dsh-whale-musume/blob/main/SECURITY.md
+    about: "发现安全漏洞请不要开公开 Issue，请按 SECURITY.md 的说明私下报告。"
