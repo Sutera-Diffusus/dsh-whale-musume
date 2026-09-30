@@ -97,19 +97,72 @@ https://github.com/Sutera-Diffusus/dsh-whale-musume
 
 ---
 
-## 4. 其他已提交的目录 PR（无需再发帖）
+## 3b. DSH-Store · 分类纠正（已提交）
+
+- 事实：我们**已被 DSH-Store 自动收录**（`status: approved`、`version 2.2.0`、固定 Commit `156dce7`、`updatePolicy: user-reviewed`），**无需再申请上架**。
+- 问题：条目被派生成 `themes`（主题/皮肤）类，名称「鲸娘主题」，检索词全是「主题/皮肤/背景/界面美化」；而同类桌宠（`pet-whale`、`dsh-codex-pet`）都在 **`fun`** 类。搜「桌宠 / 看板娘 / 宠物」找不到我们。
+- 根因（已修）：目录的分类/描述派生自 manifest 的 `description`，而原文 `A whale-girl Kanban Musume mascot for DeepSeek Harness` 缺少 pet/mascot 关键词。已把 `package.json` 的 description 改为含「桌面宠物 / 看板娘 / desktop pet mascot」，并推送（版本号保持 `2.2.0`，走同版本固定源更新通道）。
+- 已提交纠正 Issue：https://github.com/AI-Scarlett/DSH-Store/issues/1249 （请求重新派生元信息，建议 `categories: ["fun"]`）
+- 注意：DSH-Store **只接受 GitHub 仓库，明确不接受 npm-only**；因此本项与「是否发 npm」无关（早期判断已修正）。
+
+---
+
+## 3c. 英文社区（文案已备，需你本人账号发布）
+
+英文社群的规则比中文社群更硬：Hacker News 要求「Show HN」必须是你能回答的实物、且不允许纯推广；Reddit 多数 sub 有 9:1 参与比。**因此这里只给文案，发布与否由你决定。**
+
+**Show HN 标题（≤80 字符）**
+
+```
+Show HN: Whale-girl desktop pet for DeepSeek Harness (desktop + web)
+```
+
+**Show HN 正文（首帖正文要短，放链接前先说明是什么）**
+
+```
+I built a desktop-pet plugin for DeepSeek Harness: a whale-girl who idles in the corner,
+picks up a laptop when a tool call starts running, and never talks while you're working.
+
+Highlights: pat-to-raise growth, 90+ artworks, 39 achievements, optional weather companion,
+optional MiMo TTS line playback, a built-in settings panel, and an accessibility mode.
+Local-first: no telemetry, no external requests (weather only if you set a city).
+
+v2.2.0 adds support for the DeepSeek Harness Desktop app (Electron shell with bundled DSH
+0.2.0-rc.2) alongside the classic web UI. The desktop port surfaced a few contract changes
+worth knowing if you write DSH plugins: tool cards moved to [data-tool] + same-element
+data-state, dark mode lives on body[data-ds-dark-theme] (empty string = dark), and the
+lazy-CJS client model expects side effects at factory materialization time. I wrote the
+whole audit up with file:line evidence.
+
+MIT, 142 unit tests. Repo: https://github.com/Sutera-Diffusus/dsh-whale-musume
+```
+
+**Reddit（r/DeepSeek 或 r/LocalLLaMA 之类）**：把上面正文改成「先说清楚是什么 → 一张截图 → 仓库链接 → 一句话说明无遥测」，并且**先在该 sub 正常参与几轮再发自己的东西**，否则容易被当 spam 或被版主删。
+
+**dev.to / 技术博客**：适合把「给第三方 UI 插件做版本适配」的过程写成一篇技术文（惰性 CJS、DOM 契约换代、固定 Commit 审核），比纯推广贴更容易被推。要写的话我可以出全文。
+
+---
+
+## 4. 已提交的目录 / 店铺 / 社区（台账）
 
 | 位置 | 提交物 | 状态 |
 |---|---|---|
-| kejixiaoliang/awesome-dsh-plugins | PR #113 收录进「桌宠 / 表情 / 贴纸」 | open，待维护者合并 |
-| 0xsline/awesome-deepseek-harness（1123★） | PR #669 更新条目描述（补桌面端支持） | open，待维护者合并 |
-| vvlife/awesome-deepseek-harness-plugins → WhaleHub | PR #156 收录进「Web UI & Skins」 | open，CI 规则自动审 |
-| WhaleHub 自动快照 | 无需动作（`dsh-plugin` topic 每日同步） | 已收录 ✅ |
+| GitHub 官方 Discussions · Show Your Plugins! | [discussion #8463](https://github.com/deepseek-ai/deepseek-harness/discussions/8463) | **已发布** ✅ |
+| kejixiaoliang/awesome-dsh-plugins | [PR #113](https://github.com/kejixiaoliang/awesome-dsh-plugins/pull/113) 收录进「桌宠 / 表情 / 贴纸」 | open，待维护者合并 |
+| 0xsline/awesome-deepseek-harness（1123★） | [PR #669](https://github.com/0xsline/awesome-deepseek-harness/pull/669) 更新条目描述（补桌面端支持） | open，待维护者合并 |
+| vvlife/awesome-deepseek-harness-plugins → WhaleHub | [PR #156](https://github.com/vvlife/awesome-deepseek-harness-plugins/pull/156) 收录进「Web UI & Skins」 | open，CI 规则自动审 |
+| WhaleHub 自动快照（`PLUGINS.md`） | 无需动作（`dsh-plugin` topic 每日同步） | **已收录** ✅ |
+| DSH-Store 目录 | 自动收录（`approved`，v2.2.0） | **已上架** ✅ |
+| DSH-Store 分类纠正 | [Issue #1249](https://github.com/AI-Scarlett/DSH-Store/issues/1249) | open，待重新派生元信息 |
+| dshbase（中文站） | 已标注「已验证 · 实测可装」；徽章已进 README | **已收录** ✅ |
+| kingselyjoe/awesome-dsh-list | 已收录（条目较旧，仓库 8/17 后未推送，暂不提 PR） | **已收录** ✅ |
+| dsh-meme-hub（专收皮肤/桌宠） | 已收录并配展示图 | **已收录** ✅ |
 
 ---
 
 ## 5. 尚未投放 / 需要你决定
 
-1. **npm 发布**（`dsh-whale-musume`）：目前 `private: true` 且未发 npm，多数商城（含 DSH-Store）把「npm 与仓库同源」当准入门槛。要投 DSH-Store 建议先发 npm。**这项要你确认**：发 npm 会用你的账号与包名，我不擅自代发。
-2. **Reddit / HN**：英文社群对 self-promotion 有明确配额（HN 的 Show HN、Reddit 各 sub 的 9:1 规则），且受众是英文开发者；如果要投，我可以另出一版英文文案，但**建议先看有没有英文用户反馈再决定**。
-3. **B 站 / 小红书等视频图文平台**：桌宠类在这些平台表现通常比论坛更好，但需要真实的操作录屏（我不能替你录屏，也不适合代运营）。素材我可以从 `docs/images/` 里挑。
+1. **视频图文平台（B 站 / 小红书 / 抖音）**：桌宠类在这些平台的表现通常好过论坛，但需要**真实操作录屏**（我不能替你录屏，也不适合代运营）。可用素材在 `docs/images/`（首页宣传图 + 5 张运行截图 + 4 张海报）。
+2. **英文社区**：文案见第 3c 节，需要你的账号（HN/Reddit 对自我推广有硬规则）。
+3. **npm 发布**：与 DSH-Store 无关（已确认它只收 GitHub 仓库）；发 npm 的收益主要是 `dsh plugin add dsh-whale-musume` 这种短安装命令。要用你的账号与包名，需你确认。
+
