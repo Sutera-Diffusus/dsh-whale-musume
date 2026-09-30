@@ -166,3 +166,15 @@ MIT, 142 unit tests. Repo: https://github.com/Sutera-Diffusus/dsh-whale-musume
 2. **英文社区**：文案见第 3c 节，需要你的账号（HN/Reddit 对自我推广有硬规则）。
 3. **npm 发布**：与 DSH-Store 无关（已确认它只收 GitHub 仓库）；发 npm 的收益主要是 `dsh plugin add dsh-whale-musume` 这种短安装命令。要用你的账号与包名，需你确认。
 
+---
+
+## 6. GitHub 个人主页（已完成）
+
+- 主页仓库：`Sutera-Diffusus/Sutera-Diffusus`（public，GitHub 显示个人主页 README 的唯一方式），README 见仓库 `README.md`
+- 风格：科幻风（深空蓝 `#04080f` → 霓虹青 `#22d3ee`）、等宽字体、capsule-render 波浪横幅 + 打字机标题 + 原创作品双栏卡 + DSH 工具表 + skillicons + streak 贡献图
+- **只展示 6 个原创仓库**（★99 / ★32 / ★5 / ★2 / ★2 / ★1）：`dsh-whale-musume`、`WeChat-daily`、`dsh-sandbox-tester`、`dsh-windows-notify`、`metera`、`dsh-statusbar`；18 个 fork（awesome 清单）不进作品区
+- 资源可用性实测：capsule-render / readme-typing-svg / streak-stats / skillicons / shields.io 全部 200；
+  **github-readme-stats 返回 503、activity-graph 返回 402（要付费）、star-history 返回 403** —— 这三个没有采用，避免主页出现坏图
+- 工具：`tools/setup-profile-repo.mjs`（建仓库 + 传 README + 设简介/topics）、`tools/set-user-profile.mjs`（改账号资料）
+- **未完成**：账号 `bio` 更新被 GitHub 拒绝（HTTP 404）——当前 git 凭据的 OAuth 令牌 scope 为 `gist, read:org, repo, workflow`，**缺少 `user` scope**。要么在网页 Settings → Public profile 手填，要么 `gh auth refresh -h github.com -s user` 后用 `tools/set-user-profile.mjs` 重跑。
+
