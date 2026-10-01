@@ -811,3 +811,68 @@ test("z1 【诊断·不断言】把注入的三段脚本在桩 DOM 里按序执�
   // 诊断项不做断言:桩 DOM 的覆盖度不足以判定 presenter 行为,失败也不代表 lib 有问题。
   assert.ok(true);
 });
+
+/**
+ * issue #18：桌宠贴到屏幕左/右边缘时，台词气泡与偏好面板都挂在桌宠中心
+ * （left:50% + translateX(-50%)），没有视口钳制 → 弹出层一半在屏幕外；贴顶时
+ * 向上弹出也会出屏。修法是按桌宠视口位置写 align/valign 懒标记，CSS 换锚定边。
+ * 这里逐一钉住：贴左、贴右、贴顶、居中四种情况，以及居中时必须没有残留标记。
+ */
+test("i7 【桌面端契约】贴边时弹出层方向校正:写入 align/valign 标记,居中时不得残留", async () => {
+  const VIEW_W = 1440;
+  const VIEW_H = 900;
+  const MASCOT = 200;
+
+  const atPosition = async (floatX, floatY) =>
+    bootAndRunPresenter((env) => {
+      env.localStorage.setItem("whale-moe:floatX", String(floatX));
+      env.localStorage.setItem("whale-moe:floatY", String(floatY));
+    });
+
+  const marker = (root) => ({
+    align: root.getAttribute("data-dsh-whale-align"),
+    valign: root.getAttribute("data-dsh-whale-valign"),
+    anchor: root.style.getPropertyValue("--dsh-whale-anchor"),
+    left: Number.parseFloat(root.style.left),
+    top: Number.parseFloat(root.style.top),
+  });
+
+  /* ① 拖到最左：位置被钳在 8px */
+  const leftRoot = (await atPosition(-50, 600)).document.querySelector("[data-dsh-whale-root]");
+  assert.ok(leftRoot, "贴左时桌宠必须仍然挂载");
+  let m = marker(leftRoot);
+  assert.equal(m.left, 8, "贴左时桌宠应被钳到距边 8px");
+  assert.equal(m.align, "left", "桌宠中心距左边缘小于弹出层半宽时必须写入 align=left");
+  assert.equal(m.valign, null, "y=600 上方空间充足,不应写入 valign");
+  assert.equal(m.anchor, "108px", `小三角应指回桌宠中心(8+200/2),实测 ${m.anchor}`);
+
+  /* ② 拖到最右：位置被钳在 1440-200-8 = 1232 */
+  const rightRoot = (await atPosition(9e9, 600)).document.querySelector("[data-dsh-whale-root]");
+  let mr = marker(rightRoot);
+  assert.equal(mr.left, VIEW_W - MASCOT - 8, "贴右时应被钳到 1232");
+  assert.equal(mr.align, "right", "桌宠中心距右边缘小于弹出层半宽时必须写入 align=right");
+  /* 右对齐时面板贴右缘，桌宠中心距面板右缘同样是 100(半宽)+8(边距) = 108，
+     与左侧对称——两边小三角都应精确指回桌宠中心，不是"贴到角落"。 */
+  assert.equal(mr.anchor, "108px", `右对齐时小三角距右缘应为 108(半宽100+边距8),实测 ${mr.anchor}`);
+
+  /* ③ 贴顶：向上弹出的空间不足，必须改为向下 */
+  const topRoot = (await atPosition(600, -50)).document.querySelector("[data-dsh-whale-root]");
+  const mt = marker(topRoot);
+  assert.equal(mt.top, 8, "贴顶时桌宠应被钳到 8px");
+  assert.equal(mt.valign, "below", "顶部距屏幕顶小于 220px 时必须写入 valign=below");
+  assert.equal(mt.align, null, "x=600 处于中部,不应写入 align");
+
+  /* ④ 居中：不得留下任何标记（否则会污染正常位置的样式） */
+  const centerRoot = (await atPosition(600, 400)).document.querySelector("[data-dsh-whale-root]");
+  const mc = marker(centerRoot);
+  assert.equal(mc.align, null, "居中位置不得残留 align 标记");
+  assert.equal(mc.valign, null, "居中位置不得残留 valign 标记");
+  assert.equal(mc.anchor, "", "居中位置不得残留锚点变量");
+
+  /* ⑤ CSS 侧必须真的消费这些标记：规则缺失时上面的标记全是死代码 */
+  assert.match(CSS_TEXT, /\[data-dsh-whale-align="left"\][^{]*\[data-dsh-whale-bubble\]/, "CSS 缺少 align=left 的气泡规则");
+  assert.match(CSS_TEXT, /\[data-dsh-whale-align="right"\][^{]*\[data-dsh-whale-prefs\]/, "CSS 缺少 align=right 的面板规则");
+  assert.match(CSS_TEXT, /\[data-dsh-whale-valign="below"\][^{]*\[data-dsh-whale-prefs\]/, "CSS 缺少 valign=below 的面板规则");
+  assert.match(CSS_TEXT, /--dsh-whale-anchor/, "CSS 未使用 --dsh-whale-anchor 变量");
+  assert.equal(VIEW_H > 0, true);
+});

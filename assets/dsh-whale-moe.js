@@ -1812,6 +1812,14 @@
       }
       if (layout.anchor) placeAnchored(rootNode, layout);
       else placeAt(rootNode, layout.x, layout.y, layout.w, layout.h);
+      /* 贴边时校正弹出层方向（issue #18）：读取刚写入的样式，避免与钳制逻辑重复计算 */
+      applyPopupDirection(
+        rootNode,
+        parseFloat(rootNode.style.left) || 0,
+        parseFloat(rootNode.style.top) || 0,
+        layout.w,
+        layout.h
+      );
       rootNode.style.width = layout.w + "px";
       rootNode.style.height = layout.h + "px";
       frame.style.width = layout.w + "px";
@@ -2104,6 +2112,36 @@
     rootNode.style.display = "block";
     rootNode.style.left = Math.round(clamp(x, 8, root.innerWidth - width - 8)) + "px";
     rootNode.style.top = Math.round(clamp(y, 8, root.innerHeight - height - 8)) + "px";
+  }
+
+  /* ── 视口边界校正（issue #18）─────────────────────────────────────────────
+     气泡（max-width 250）与偏好面板（宽 196）都挂在桌宠中心（left:50% +
+     translateX(-50%)），桌宠贴边时弹出层会有一半在屏幕外；贴顶时向上弹出同样出屏。
+     这里在每次渲染后按桌宠的实际视口位置写两枚懒标记（只在贴边时写、离开即删），
+     CSS 依据标记换锚定边。阈值取弹出层半宽的上界（125px）与"向上弹出所需高度"
+     （220px），两种情况都能覆盖。 */
+  function applyPopupDirection(rootNode, left, top, width, height) {
+    if (!rootNode || !rootNode.setAttribute) return;
+    var iw = root.innerWidth || 0;
+    var ih = root.innerHeight || 0;
+    if (!iw || !ih) return;
+    var centerX = left + width / 2;
+    var POPUP_HALF = 125;
+    var POPUP_ABOVE = 220;
+    var align = centerX < POPUP_HALF ? "left" : (iw - centerX < POPUP_HALF ? "right" : null);
+    var valign = top < POPUP_ABOVE ? "below" : null;
+    if (align) rootNode.setAttribute("data-dsh-whale-align", align);
+    else rootNode.removeAttribute("data-dsh-whale-align");
+    if (valign) rootNode.setAttribute("data-dsh-whale-valign", valign);
+    else rootNode.removeAttribute("data-dsh-whale-valign");
+    if (align) {
+      /* 小三角对回桌宠中心：左对齐时从左缘量，右对齐时从右缘量 */
+      var anchorFromCenter = (width / 2) + (align === "left" ? left : (iw - left - width));
+      var anchorPx = clamp(anchorFromCenter, 12, 234);
+      try { rootNode.style.setProperty("--dsh-whale-anchor", Math.round(anchorPx) + "px"); } catch (e) { /* stub 无此 API 时忽略 */ }
+    } else {
+      try { rootNode.style.removeProperty("--dsh-whale-anchor"); } catch (e) { /* ignore */ }
+    }
   }
 
   /* ---------- reconcile / lifecycle ---------- */

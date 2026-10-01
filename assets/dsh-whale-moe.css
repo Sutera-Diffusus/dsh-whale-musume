@@ -64,7 +64,7 @@
   box-shadow: 0 8px 20px rgb(0 0 0 / 18%);
   font-size: 13px;
   line-height: 1.5;
-  transform: translateX(-50%);
+  transform: translateX(var(--dsh-whale-pop-x, -50%));
   pointer-events: auto;
 }
 [data-dsh-whale-bubble]::after {
@@ -82,7 +82,7 @@
 [data-dsh-whale-bubble][hidden] { display: none; }
 [data-dsh-whale-bubble].dsh-whale-out {
   opacity: 0;
-  transform: translateX(-50%) translateY(4px);
+  transform: translateX(var(--dsh-whale-pop-x, -50%)) translateY(4px);
   transition: opacity 180ms ease, transform 180ms ease;
 }
 [data-dsh-whale-bubble].dsh-whale-pop {
@@ -90,9 +90,9 @@
 }
 
 @keyframes wm-pop {
-  from { opacity: 0; transform: translateX(-50%) scale(0.92); }
-  70% { opacity: 1; transform: translateX(-50%) scale(1.03); }
-  to { opacity: 1; transform: translateX(-50%) scale(1); }
+  from { opacity: 0; transform: translateX(var(--dsh-whale-pop-x, -50%)) scale(0.92); }
+  70% { opacity: 1; transform: translateX(var(--dsh-whale-pop-x, -50%)) scale(1.03); }
+  to { opacity: 1; transform: translateX(var(--dsh-whale-pop-x, -50%)) scale(1); }
 }
 
 /* 气泡内齿轮 */
@@ -143,7 +143,7 @@
   border: 1px solid var(--dsw-alias-border-l3, rgb(0 0 0 / 18%));
   border-radius: 12px;
   box-shadow: 0 10px 26px rgb(0 0 0 / 22%);
-  transform: translateX(-50%);
+  transform: translateX(var(--dsh-whale-pop-x, -50%));
   pointer-events: auto;
 }
 [data-dsh-whale-prefs][hidden] { display: none; }
@@ -664,4 +664,72 @@ body[data-dsh-whale-night]::after {
   [data-dsh-whale-cell][data-dsh-whale-bubble-kind] { background: ButtonFace; }
   [data-dsh-whale-cell][data-dsh-whale-bubble-kind="bomb"] { background: ButtonFace; border: 2px solid CanvasText; }
   [data-dsh-whale-game-overlay] { background: Canvas; }
+}
+
+/* ── 视口边界校正（issue #18）───────────────────────────────────────────────
+   问题：气泡与偏好面板用 left:50% + translateX(-50%) 挂在桌宠上，没有视口钳制，
+   桌宠贴到屏幕左/右边缘时弹出层有一半在屏幕外；贴到顶部时向上弹出也会出屏。
+   做法：JS 每次渲染按桌宠视口位置写两枚标记（align / valign），这里按标记换锚定边。
+   标记只在贴边时写入、离开边缘即移除，因此默认样式保持原样。
+   注意：本块必须位于文件末尾 —— 气泡小三角的 left:50% 在文件中部，
+   靠层叠顺序后才能被下一条更高特异性的规则覆盖。 */
+
+/* 桌宠中心偏左时，弹出层改为左边对齐（从桌宠左缘向右展开） */
+[data-dsh-whale-root][data-dsh-whale-align="left"] [data-dsh-whale-bubble],
+[data-dsh-whale-root][data-dsh-whale-align="left"] [data-dsh-whale-prefs] {
+  left: 0;
+  transform: none;
+}
+
+/* 桌宠中心偏右时，弹出层改为右边对齐 */
+[data-dsh-whale-root][data-dsh-whale-align="right"] [data-dsh-whale-bubble],
+[data-dsh-whale-root][data-dsh-whale-align="right"] [data-dsh-whale-prefs] {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+/* 锚定边改变后，小三角要用变量对回桌宠中心（--dsh-whale-anchor 由 JS 写入） */
+[data-dsh-whale-root][data-dsh-whale-align="left"] [data-dsh-whale-bubble]::after,
+[data-dsh-whale-root][data-dsh-whale-align="right"] [data-dsh-whale-bubble]::after {
+  left: var(--dsh-whale-anchor, 50%);
+}
+
+/* 锚定时不需要横向位移，只保留纵向淡出 */
+[data-dsh-whale-root][data-dsh-whale-align="left"] [data-dsh-whale-bubble].dsh-whale-out,
+[data-dsh-whale-root][data-dsh-whale-align="right"] [data-dsh-whale-bubble].dsh-whale-out {
+  transform: translateY(4px);
+}
+
+/* 锚定时沿用原弹入动画，但去掉 translateX(-50%) */
+[data-dsh-whale-root][data-dsh-whale-align="left"] [data-dsh-whale-bubble].dsh-whale-pop,
+[data-dsh-whale-root][data-dsh-whale-align="right"] [data-dsh-whale-bubble].dsh-whale-pop {
+  animation-name: wm-pop-anchored;
+}
+
+@keyframes wm-pop-anchored {
+  from { opacity: 0; transform: scale(0.92); }
+  70% { opacity: 1; transform: scale(1.03); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* 顶部空间不足时改为向下弹出 */
+[data-dsh-whale-root][data-dsh-whale-valign="below"] [data-dsh-whale-bubble],
+[data-dsh-whale-root][data-dsh-whale-valign="below"] [data-dsh-whale-prefs] {
+  bottom: auto;
+  top: calc(100% + 10px);
+}
+
+[data-dsh-whale-root][data-dsh-whale-valign="below"] [data-dsh-whale-bubble]::after {
+  top: auto;
+  bottom: 100%;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 1px solid var(--dsw-alias-border-l3, rgb(0 0 0 / 18%));
+  border-top: 1px solid var(--dsw-alias-border-l3, rgb(0 0 0 / 18%));
+  transform: translate(-50%, 6px) rotate(45deg);
+}
+
+[data-dsh-whale-root][data-dsh-whale-valign="below"] [data-dsh-whale-bubble].dsh-whale-out {
+  transform: translateY(-4px);
 }
