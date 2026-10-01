@@ -79,8 +79,12 @@ function downloads() {
       "https://api.github.com/repos/Sutera-Diffusus/dsh-whale-musume/releases?per_page=100"], { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
     const rel = JSON.parse(raw);
     if (Array.isArray(rel)) n = rel.reduce((s, r) => s + (r.assets ?? []).reduce((t, a) => t + (a.download_count ?? 0), 0), 0);
-  } catch { /* 取不到用占位 */ }
-  return { file: "downloads.svg", label: "downloads", value: n === null ? "990+" : `${Math.floor(n / 10) * 10}+`, color: "#31df76", valueColor: LIGHT };
+  } catch { /* 取不到则视为失败 */ }
+  if (n === null) {
+    console.warn("[badges] 警告：下载量取不到 —— 检查代理后重跑；本次退回 0 以免显示错误数字");
+    n = 0;
+  }
+  return { file: "downloads.svg", label: "downloads", value: String(n), color: "#31df76", valueColor: LIGHT };
 }
 
 const measure = makeMeasurer();
