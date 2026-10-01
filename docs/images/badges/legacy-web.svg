@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="127" height="20" role="img" aria-label="旧版 Web: DSH 0.1.x">
+  <title>旧版 Web: DSH 0.1.x</title>
+  <g shape-rendering="crispEdges">
+    <rect width="60" height="20" fill="#555"/>
+    <rect x="60" width="67" height="20" fill="#0078D4"/>
+    <rect x="60" width="67" y="19" height="1" fill="#bbb" fill-opacity="0.18"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110">
+    <text x="300" y="140" textLength="496" transform="scale(.1)">旧版 Web</text>
+    <text x="935" y="140" textLength="566" transform="scale(.1)" fill="#e2e8f0">DSH 0.1.x</text>
+  </g>
+</svg>

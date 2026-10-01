@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="106" height="20" role="img" aria-label="Discussions: 交流">
+  <title>Discussions: 交流</title>
+  <g shape-rendering="crispEdges">
+    <rect width="74" height="20" fill="#555"/>
+    <rect x="74" width="32" height="20" fill="#0969da"/>
+    <rect x="74" width="32" y="19" height="1" fill="#bbb" fill-opacity="0.18"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110">
+    <text x="370" y="140" textLength="638" transform="scale(.1)">Discussions</text>
+    <text x="900" y="140" textLength="220" transform="scale(.1)" fill="#ffffff">交流</text>
+  </g>
+</svg>

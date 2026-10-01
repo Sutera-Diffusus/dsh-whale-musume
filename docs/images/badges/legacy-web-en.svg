@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="139" height="20" role="img" aria-label="legacy web: DSH 0.1.x">
+  <title>legacy web: DSH 0.1.x</title>
+  <g shape-rendering="crispEdges">
+    <rect width="72" height="20" fill="#555"/>
+    <rect x="72" width="67" height="20" fill="#0078D4"/>
+    <rect x="72" width="67" y="19" height="1" fill="#bbb" fill-opacity="0.18"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110">
+    <text x="360" y="140" textLength="616" transform="scale(.1)">legacy web</text>
+    <text x="1055" y="140" textLength="566" transform="scale(.1)" fill="#e2e8f0">DSH 0.1.x</text>
+  </g>
+</svg>

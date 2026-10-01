@@ -6,15 +6,15 @@
 
 **DeepSeek Harness 的桌宠看板娘：安静陪你写代码，工作一开始她就抱起笔记本，绝不插嘴。**
 
-[![版本](https://img.shields.io/badge/version-2.2.0-4da3ff?style=flat-square)](CHANGELOG.md)
-[![单元测试](https://img.shields.io/badge/单元测试-142%20项全绿-31df76?style=flat-square)](.github/workflows/test.yml)
-[![许可证](https://img.shields.io/badge/license-MIT-6f42c1?style=flat-square)](LICENSE)
-[![平台](https://img.shields.io/badge/平台-Windows%2010%2F11-0078D4?style=flat-square&logo=windows&logoColor=white)](#兼容性)
-[![桌面端](https://img.shields.io/badge/桌面端-Electron%20壳%20%C2%B7%20DSH%200.2.0--rc.2-0078D4?style=flat-square)](#兼容性)
-[![旧版 Web](https://img.shields.io/badge/旧版%20Web-DSH%200.1.x-0078D4?style=flat-square)](#兼容性)
+[![版本](https://docs/images/badges/version.svg)](CHANGELOG.md)
+[![单元测试](https://docs/images/badges/tests.svg)](.github/workflows/test.yml)
+[![许可证](https://docs/images/badges/license.svg)](LICENSE)
+[![平台](https://docs/images/badges/platform.svg)](#兼容性)
+[![桌面端](https://docs/images/badges/desktop.svg)](#兼容性)
+[![旧版 Web](https://docs/images/badges/legacy-web.svg)](#兼容性)
 [![dshbase 实测](https://dshbase.com/badges/dsh-whale-musume.svg)](https://dshbase.com/zh/plugins/dsh-whale-musume/)
-[![Downloads](https://img.shields.io/github/downloads/Sutera-Diffusus/dsh-whale-musume/total?style=flat-square&label=downloads&color=31df76)](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases)
-[![Discussions](https://img.shields.io/badge/Discussions-交流-blue?style=flat-square)](https://github.com/Sutera-Diffusus/dsh-whale-musume/discussions)
+[![Downloads](https://docs/images/badges/downloads.svg)](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases)
+[![Discussions](https://docs/images/badges/discussions.svg)](https://github.com/Sutera-Diffusus/dsh-whale-musume/discussions)
 
 [**一分钟上手**](#一分钟上手) · [看看她长什么样](#看看她长什么样) · [她有什么](#她有什么) · [常见问题](#常见问题) · [English](README.en.md)
 

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="257" height="20" role="img" aria-label="desktop app: Electron shell · DSH 0.2.0-rc.2">
+  <title>desktop app: Electron shell · DSH 0.2.0-rc.2</title>
+  <g shape-rendering="crispEdges">
+    <rect width="78" height="20" fill="#555"/>
+    <rect x="78" width="179" height="20" fill="#0078D4"/>
+    <rect x="78" width="179" y="19" height="1" fill="#bbb" fill-opacity="0.18"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110">
+    <text x="390" y="140" textLength="677" transform="scale(.1)">desktop app</text>
+    <text x="1675" y="140" textLength="1693" transform="scale(.1)" fill="#e2e8f0">Electron shell · DSH 0.2.0-rc.2</text>
+  </g>
+</svg>

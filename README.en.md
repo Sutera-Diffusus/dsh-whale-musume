@@ -6,15 +6,15 @@
 
 **A desktop-pet mascot for DeepSeek Harness: quiet company while you code — the moment work starts, she picks up a laptop and stops talking.**
 
-[![Version](https://img.shields.io/badge/version-2.2.0-4da3ff?style=flat-square)](CHANGELOG.md)
-[![Unit tests](https://img.shields.io/badge/unit%20tests-142%20passing-31df76?style=flat-square)](.github/workflows/test.yml)
-[![License](https://img.shields.io/badge/license-MIT-6f42c1?style=flat-square)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078D4?style=flat-square&logo=windows&logoColor=white)](#compatibility)
-[![Desktop app](https://img.shields.io/badge/desktop%20app-Electron%20shell%20%C2%B7%20DSH%200.2.0--rc.2-0078D4?style=flat-square)](#compatibility)
-[![Legacy web](https://img.shields.io/badge/legacy%20web-DSH%200.1.x-0078D4?style=flat-square)](#compatibility)
+[![Version](https://docs/images/badges/version.svg)](CHANGELOG.md)
+[![Unit tests](https://docs/images/badges/tests-en.svg)](.github/workflows/test.yml)
+[![License](https://docs/images/badges/license.svg)](LICENSE)
+[![Platform](https://docs/images/badges/platform-en.svg)](#compatibility)
+[![Desktop app](https://docs/images/badges/desktop-en.svg)](#compatibility)
+[![Legacy web](https://docs/images/badges/legacy-web-en.svg)](#compatibility)
 [![dshbase tested](https://dshbase.com/badges/dsh-whale-musume.svg)](https://dshbase.com/zh/plugins/dsh-whale-musume/)
-[![Downloads](https://img.shields.io/github/downloads/Sutera-Diffusus/dsh-whale-musume/total?style=flat-square&label=downloads&color=31df76)](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases)
-[![Discussions](https://img.shields.io/badge/Discussions-community-blue?style=flat-square)](https://github.com/Sutera-Diffusus/dsh-whale-musume/discussions)
+[![Downloads](https://docs/images/badges/downloads.svg)](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases)
+[![Discussions](https://docs/images/badges/discussions.svg)](https://github.com/Sutera-Diffusus/dsh-whale-musume/discussions)
 
 [**Quick start**](#quick-start) · [**Screenshots**](#screenshots) · [**Features**](#features) · [**FAQ**](#faq) · [中文](README.md)
 

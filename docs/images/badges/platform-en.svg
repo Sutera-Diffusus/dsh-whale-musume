@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="153" height="20" role="img" aria-label="platform: Windows 10/11">
+  <title>platform: Windows 10/11</title>
+  <g shape-rendering="crispEdges">
+    <rect width="57" height="20" fill="#555"/>
+    <rect x="57" width="96" height="20" fill="#0078D4"/>
+    <rect x="57" width="96" y="19" height="1" fill="#bbb" fill-opacity="0.18"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110">
+    <text x="285" y="140" textLength="468" transform="scale(.1)">platform</text>
+    <text x="1050" y="140" textLength="860" transform="scale(.1)" fill="#e2e8f0">Windows 10/11</text>
+  </g>
+</svg>

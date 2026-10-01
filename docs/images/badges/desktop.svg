@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="208" height="20" role="img" aria-label="桌面端: Electron 壳 · DSH 0.2.0-rc.2">
+  <title>桌面端: Electron 壳 · DSH 0.2.0-rc.2</title>
+  <g shape-rendering="crispEdges">
+    <rect width="43" height="20" fill="#555"/>
+    <rect x="43" width="165" height="20" fill="#0078D4"/>
+    <rect x="43" width="165" y="19" height="1" fill="#bbb" fill-opacity="0.18"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110">
+    <text x="215" y="140" textLength="330" transform="scale(.1)">桌面端</text>
+    <text x="1255" y="140" textLength="1551" transform="scale(.1)" fill="#e2e8f0">Electron 壳 · DSH 0.2.0-rc.2</text>
+  </g>
+</svg>
