@@ -6,15 +6,15 @@
 
 **A desktop-pet mascot for DeepSeek Harness: quiet company while you code — the moment work starts, she picks up a laptop and stops talking.**
 
-[![Version](https://docs/images/badges/version.svg)](CHANGELOG.md)
-[![Unit tests](https://docs/images/badges/tests-en.svg)](.github/workflows/test.yml)
-[![License](https://docs/images/badges/license.svg)](LICENSE)
-[![Platform](https://docs/images/badges/platform-en.svg)](#compatibility)
-[![Desktop app](https://docs/images/badges/desktop-en.svg)](#compatibility)
-[![Legacy web](https://docs/images/badges/legacy-web-en.svg)](#compatibility)
+<a href="CHANGELOG.md"><img src="docs/images/badges/version.svg" alt="version" height="20"></a>
+<a href=".github/workflows/test.yml"><img src="docs/images/badges/tests-en.svg" alt="tests-en" height="20"></a>
+<a href="LICENSE"><img src="docs/images/badges/license.svg" alt="license" height="20"></a>
+<a href="#compatibility"><img src="docs/images/badges/platform-en.svg" alt="platform-en" height="20"></a>
+<a href="#compatibility"><img src="docs/images/badges/desktop-en.svg" alt="desktop-en" height="20"></a>
+<a href="#compatibility"><img src="docs/images/badges/legacy-web-en.svg" alt="legacy-web-en" height="20"></a>
 [![dshbase tested](https://dshbase.com/badges/dsh-whale-musume.svg)](https://dshbase.com/zh/plugins/dsh-whale-musume/)
-[![Downloads](https://docs/images/badges/downloads.svg)](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases)
-[![Discussions](https://docs/images/badges/discussions.svg)](https://github.com/Sutera-Diffusus/dsh-whale-musume/discussions)
+<a href="https://github.com/Sutera-Diffusus/dsh-whale-musume/releases"><img src="docs/images/badges/downloads.svg" alt="downloads" height="20"></a>
+<a href="https://github.com/Sutera-Diffusus/dsh-whale-musume/discussions"><img src="docs/images/badges/discussions.svg" alt="discussions" height="20"></a>
 
 [**Quick start**](#quick-start) · [**Screenshots**](#screenshots) · [**Features**](#features) · [**FAQ**](#faq) · [中文](README.md)
 

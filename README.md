@@ -6,15 +6,15 @@
 
 **DeepSeek Harness 的桌宠看板娘：安静陪你写代码，工作一开始她就抱起笔记本，绝不插嘴。**
 
-[![版本](https://docs/images/badges/version.svg)](CHANGELOG.md)
-[![单元测试](https://docs/images/badges/tests.svg)](.github/workflows/test.yml)
-[![许可证](https://docs/images/badges/license.svg)](LICENSE)
-[![平台](https://docs/images/badges/platform.svg)](#兼容性)
-[![桌面端](https://docs/images/badges/desktop.svg)](#兼容性)
-[![旧版 Web](https://docs/images/badges/legacy-web.svg)](#兼容性)
+<a href="CHANGELOG.md"><img src="docs/images/badges/version.svg" alt="version" height="20"></a>
+<a href=".github/workflows/test.yml"><img src="docs/images/badges/tests.svg" alt="tests" height="20"></a>
+<a href="LICENSE"><img src="docs/images/badges/license.svg" alt="license" height="20"></a>
+<a href="#兼容性"><img src="docs/images/badges/platform.svg" alt="platform" height="20"></a>
+<a href="#兼容性"><img src="docs/images/badges/desktop.svg" alt="desktop" height="20"></a>
+<a href="#兼容性"><img src="docs/images/badges/legacy-web.svg" alt="legacy-web" height="20"></a>
 [![dshbase 实测](https://dshbase.com/badges/dsh-whale-musume.svg)](https://dshbase.com/zh/plugins/dsh-whale-musume/)
-[![Downloads](https://docs/images/badges/downloads.svg)](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases)
-[![Discussions](https://docs/images/badges/discussions.svg)](https://github.com/Sutera-Diffusus/dsh-whale-musume/discussions)
+<a href="https://github.com/Sutera-Diffusus/dsh-whale-musume/releases"><img src="docs/images/badges/downloads.svg" alt="downloads" height="20"></a>
+<a href="https://github.com/Sutera-Diffusus/dsh-whale-musume/discussions"><img src="docs/images/badges/discussions.svg" alt="discussions" height="20"></a>
 
 [**一分钟上手**](#一分钟上手) · [看看她长什么样](#看看她长什么样) · [她有什么](#她有什么) · [常见问题](#常见问题) · [English](README.en.md)
 
