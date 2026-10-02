@@ -3,17 +3,38 @@
 // 背景：GitHub 的图片代理 camo 会把「带 URL 编码中文」与「需查 GitHub API」的 shields.io 徽章
 // 拖到 504 超时，仓库页出现坏图。自托管后图片由 GitHub 自己提供，不经 camo、不经第三方。
 //
-// 宽度不用估算：先跑 `.qa/measure-badge-text.mjs` 用浏览器实测文本宽度，结果写入
-// `.qa/run/badge-metrics.json`，本脚本据此排版。找不到实测值时回退到保守估算。
+// 宽度不用估算：先跑 `.qa/measure-badge-text.mjs` 用浏览器实测文本宽度，结果落在
+// `tools/badge-metrics.json`（**已提交进仓库**，因此 CI 无需浏览器也能复现同样排版；
+// 该文件缺失时才回退到保守估算）。
 //
 // 用法：node tools/make-badges.mjs [outDir]
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 
+/** 跨平台抓取 JSON：Windows 本地用 curl.exe，GitHub Actions(Linux) 用 curl，都没有则回退 fetch。
+ *  代理只在本机生效（GITHUB_PROXY 有值时才加 -x），CI 里置空即直连。 */
+async function fetchJson(url, extraHeaders = {}) {
+  const headers = { "User-Agent": "dsh-agent", Accept: "application/vnd.github+json", ...extraHeaders };
+  const candidates = ["curl.exe", "curl"];
+  for (const bin of candidates) {
+    const args = ["-sS", "--max-time", "30", "-L"];
+    if (proxy) args.push("-x", proxy);
+    for (const [k, v] of Object.entries(headers)) args.push("-H", `${k}: ${v}`);
+    args.push(url);
+    try {
+      const raw = execFileSync(bin, args, { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
+      return JSON.parse(raw);
+    } catch { /* 换下一种方式 */ }
+  }
+  const res = await fetch(url, { headers });
+  return res.json();
+}
+
 const outDir = process.argv[2] ?? "docs/images/badges";
 const proxy = process.env.GITHUB_PROXY ?? "http://127.0.0.1:7897";
-const metricsFile = ".qa/run/badge-metrics.json";
+// 注意：CI 环境没有本地代理，GITHUB_PROXY 需显式置空才能直连
+const metricsFile = path.resolve("tools/badge-metrics.json");
 
 const LIGHT = "#e2e8f0";
 const H = 20;
@@ -71,25 +92,34 @@ function badge({ label, value, color, valueColor }, measure) {
 `;
 }
 
-/** 下载量：数值取自 GitHub API，生成时定值（向下取整到 10），避免运行时依赖 */
+/** 下载量：逐 Release 累加资产下载数，展示精确值（不取整）。
+ *  走 GitHub API 每次实时获取，因此本地与 CI（定时任务）都能拿到最新数字。
+ *  注意：不要依赖 shields.io —— 它的该仓库接口曾返回 `downloads: invalid`。 */
 function downloads() {
+  const rel = [];
   let n = null;
-  try {
-    const raw = execFileSync("curl.exe", ["-sS", "--max-time", "30", "-x", proxy, "-H", "User-Agent: dsh-agent",
-      "https://api.github.com/repos/Sutera-Diffusus/dsh-whale-musume/releases?per_page=100"], { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
-    const rel = JSON.parse(raw);
-    if (Array.isArray(rel)) n = rel.reduce((s, r) => s + (r.assets ?? []).reduce((t, a) => t + (a.download_count ?? 0), 0), 0);
-  } catch { /* 取不到则视为失败 */ }
-  if (n === null) {
-    console.warn("[badges] 警告：下载量取不到 —— 检查代理后重跑；本次退回 0 以免显示错误数字");
-    n = 0;
-  }
-  return { file: "downloads.svg", label: "downloads", value: String(n), color: "#31df76", valueColor: LIGHT };
+  const auth = process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {};
+  return (async () => {
+    try {
+      for (let page = 1; page <= 5; page += 1) {
+        const batch = await fetchJson(`https://api.github.com/repos/Sutera-Diffusus/dsh-whale-musume/releases?per_page=100&page=${page}`, auth);
+        if (!Array.isArray(batch)) break;
+        rel.push(...batch);
+        if (batch.length < 100) break;
+      }
+      n = rel.reduce((s, r) => s + (r.assets ?? []).reduce((t, a) => t + (a.download_count ?? 0), 0), 0);
+    } catch { /* 取不到则视为失败 */ }
+    if (n === null) {
+      console.warn("[badges] 警告：下载量取不到 —— 检查网络/代理后重跑；本次退回 0 以免显示错误数字");
+      n = 0;
+    }
+    return { file: "downloads.svg", label: "downloads", value: String(n), color: "#31df76", valueColor: LIGHT };
+  })();
 }
 
 const measure = makeMeasurer();
 mkdirSync(outDir, { recursive: true });
-const all = [...specs, downloads()];
+const all = [...specs, await downloads()];
 for (const { file, ...spec } of all) {
   const svg = badge(spec, measure);
   writeFileSync(path.join(outDir, file), svg, "utf8");

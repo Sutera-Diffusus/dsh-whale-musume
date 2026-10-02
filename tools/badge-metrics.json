@@ -1,0 +1,74 @@
+[
+  {
+    "label": "version",
+    "value": "2.2.0",
+    "lw": 40.046875,
+    "vw": 28.984375
+  },
+  {
+    "label": "单元测试",
+    "value": "142 项全绿",
+    "lw": 44,
+    "vw": 57.859375
+  },
+  {
+    "label": "license",
+    "value": "MIT",
+    "lw": 37.578125,
+    "vw": 20.6875
+  },
+  {
+    "label": "平台",
+    "value": "Windows 10/11",
+    "lw": 22,
+    "vw": 85.96875
+  },
+  {
+    "label": "桌面端",
+    "value": "Electron 壳 · DSH 0.2.0-rc.2",
+    "lw": 33,
+    "vw": 155.0625
+  },
+  {
+    "label": "旧版 Web",
+    "value": "DSH 0.1.x",
+    "lw": 49.625,
+    "vw": 56.640625
+  },
+  {
+    "label": "unit tests",
+    "value": "142 passing",
+    "lw": 51.828125,
+    "vw": 66.609375
+  },
+  {
+    "label": "platform",
+    "value": "Windows 10/11",
+    "lw": 46.75,
+    "vw": 85.96875
+  },
+  {
+    "label": "desktop app",
+    "value": "Electron shell · DSH 0.2.0-rc.2",
+    "lw": 67.703125,
+    "vw": 169.34375
+  },
+  {
+    "label": "legacy web",
+    "value": "DSH 0.1.x",
+    "lw": 61.5625,
+    "vw": 56.640625
+  },
+  {
+    "label": "Discussions",
+    "value": "交流",
+    "lw": 63.765625,
+    "vw": 22
+  },
+  {
+    "label": "downloads",
+    "value": "990+",
+    "lw": 58.390625,
+    "vw": 29.984375
+  }
+]

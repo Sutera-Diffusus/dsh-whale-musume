@@ -1,0 +1,59 @@
+## 自动刷新自托管徽章的下载量
+##
+## 背景：README 的徽章不再走 shields.io（GitHub 的图片代理 camo 会把它拖到 504，
+## 仓库页出现坏图），改为由 tools/make-badges.mjs 生成、随仓库一起分发的静态 SVG。
+## 代价是数字不会自己变——这个工作流就是补上这一点：定时重算下载量并提交。
+##
+## 只改 docs/images/badges/downloads.svg 一个文件，且内容无变化时不会产生提交
+## （git diff --cached --quiet 判定），因此不会往历史里灌噪音。
+name: refresh-badges
+
+on:
+  schedule:
+    # 每天 03:17 UTC（北京时间 11:17），避开整点高峰
+    - cron: "17 3 * * *"
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# 同一时间只跑一个，避免两次自动提交互相竞争
+concurrency:
+  group: refresh-badges
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Regenerate badges
+        env:
+          # Actions 里必须显式置空：脚本默认会带上本机代理 127.0.0.1:7897
+          GITHUB_PROXY: ""
+          # 带上令牌以避免匿名 API 限流（60 req/h）
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node tools/make-badges.mjs docs/images/badges
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- docs/images/badges; then
+            echo "徽章无变化，跳过提交"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/images/badges
+          COUNT=$(git diff --cached --numstat -- docs/images/badges | awk '{print $1+$2}')
+          git commit -m "chore(badges): 自动刷新下载量"
+          git push
+          echo "已提交 ${COUNT} 行改动"
