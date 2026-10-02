@@ -310,6 +310,7 @@ node scripts/apply-theme.mjs --rollback "<backup dir>"
 
 | Version | Date | Theme | Highlights | Links |
 |---|---|---|---|---|
+| **v2.2.1** | 2026-10-01 | Popups stay on screen at screen edges | See highlights below | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.2.1) · [Notes](docs/release-notes-v2.2.1.md) |
 | **v2.2.0** | 2026-09-29 | DeepSeek Harness Desktop support | Desktop (Electron shell, bundled DSH `0.2.0-rc.2`): lazy-CJS boot timing, DOM contract (`[data-tool]` / `[data-chat-running]` / `[data-terminal]` / contenteditable composer), theme attribute (`body[data-ds-dark-theme]`), settings-panel detection; fixes a false "working" state on first paint | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.2.0) · [Notes](docs/release-notes-v2.2.0.md) |
 | v2.1.0 | 2026-09-14 | She talks, and no longer vanishes | Optional MiMo TTS line playback; fix for the mascot disappearing behind dialogs (now a bottom-right mini); fix for settings-panel registration timing; prefer CNY balance account; GitHub Actions CI | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.1.0) |
 | v2.0.1 | 2026-09-05 | Store compatibility declaration | `dsh.compatibility.dshReleases` matrix; restored lineage to the store's pinned commit | [CHANGELOG](CHANGELOG.md) |

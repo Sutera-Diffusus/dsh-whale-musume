@@ -8,7 +8,7 @@
 // 该文件缺失时才回退到保守估算）。
 //
 // 用法：node tools/make-badges.mjs [outDir]
-import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
+import { writeFileSync, mkdirSync, existsSync, readFileSync, readdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 
@@ -40,14 +40,25 @@ const LIGHT = "#e2e8f0";
 const H = 20;
 const PAD = 10; // 每段左右各 5px 内边距
 
+// 版本号与测试数都从真实来源读取，避免发版时漏改徽章（此前版本号写死过）
+const pkg = JSON.parse(readFileSync(path.resolve("package.json"), "utf8"));
+const TEST_COUNT = (() => {
+  try {
+    const files = readdirSync(path.resolve("test")).filter((f) => f.endsWith(".test.mjs"));
+    let n = 0;
+    for (const f of files) n += (readFileSync(path.join("test", f), "utf8").match(/^test\(/gm) ?? []).length;
+    return n > 0 ? n : 142;
+  } catch { return 142; }
+})();
+
 const specs = [
-  { file: "version.svg", label: "version", value: "2.2.0", color: "#4da3ff", valueColor: LIGHT },
-  { file: "tests.svg", label: "单元测试", value: "142 项全绿", color: "#31df76", valueColor: LIGHT },
+  { file: "version.svg", label: "version", value: pkg.version, color: "#4da3ff", valueColor: LIGHT },
+  { file: "tests.svg", label: "单元测试", value: `${TEST_COUNT} 项全绿`, color: "#31df76", valueColor: LIGHT },
   { file: "license.svg", label: "license", value: "MIT", color: "#6f42c1", valueColor: LIGHT },
   { file: "platform.svg", label: "平台", value: "Windows 10/11", color: "#0078D4", valueColor: LIGHT },
   { file: "desktop.svg", label: "桌面端", value: "Electron 壳 · DSH 0.2.0-rc.2", color: "#0078D4", valueColor: LIGHT },
   { file: "legacy-web.svg", label: "旧版 Web", value: "DSH 0.1.x", color: "#0078D4", valueColor: LIGHT },
-  { file: "tests-en.svg", label: "unit tests", value: "142 passing", color: "#31df76", valueColor: LIGHT },
+  { file: "tests-en.svg", label: "unit tests", value: `${TEST_COUNT} passing`, color: "#31df76", valueColor: LIGHT },
   { file: "platform-en.svg", label: "platform", value: "Windows 10/11", color: "#0078D4", valueColor: LIGHT },
   { file: "desktop-en.svg", label: "desktop app", value: "Electron shell · DSH 0.2.0-rc.2", color: "#0078D4", valueColor: LIGHT },
   { file: "legacy-web-en.svg", label: "legacy web", value: "DSH 0.1.x", color: "#0078D4", valueColor: LIGHT },

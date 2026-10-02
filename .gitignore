@@ -24,3 +24,5 @@ Thumbs.db
 # 从桌面端 app.asar 解出的参考包（含厂商 .d.ts 与构建产物，不入库）
 # 需要长期保存的结论已沉淀到 docs/desktop-0.2.0-rc.2-*.md
 _reference/
+
+dist/

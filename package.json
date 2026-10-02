@@ -1,6 +1,6 @@
 {
   "name": "dsh-whale-musume",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "private": true,
   "description": "鲸鱼娘桌面宠物（看板娘 / desktop pet mascot）for DeepSeek Harness：陪你写代码的 whale-girl 桌宠，桌面端与 Web 双端支持",
   "publishConfig": {

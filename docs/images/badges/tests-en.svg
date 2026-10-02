@@ -1,12 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="139" height="20" role="img" aria-label="unit tests: 142 passing">
-  <title>unit tests: 142 passing</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="159" height="20" role="img" aria-label="unit tests: 143 passing">
+  <title>unit tests: 143 passing</title>
   <g shape-rendering="crispEdges">
-    <rect width="62" height="20" fill="#555"/>
-    <rect x="62" width="77" height="20" fill="#31df76"/>
-    <rect x="62" width="77" y="19" height="1" fill="#bbb" fill-opacity="0.18"/>
+    <rect width="76" height="20" fill="#555"/>
+    <rect x="76" width="83" height="20" fill="#31df76"/>
+    <rect x="76" width="83" y="19" height="1" fill="#bbb" fill-opacity="0.18"/>
   </g>
   <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110">
-    <text x="310" y="140" textLength="518" transform="scale(.1)">unit tests</text>
-    <text x="1005" y="140" textLength="666" transform="scale(.1)" fill="#e2e8f0">142 passing</text>
+    <text x="380" y="140" textLength="660" transform="scale(.1)">unit tests</text>
+    <text x="1175" y="140" textLength="726" transform="scale(.1)" fill="#e2e8f0">143 passing</text>
   </g>
 </svg>
