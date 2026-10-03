@@ -5,8 +5,17 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "output" / "imagegen" / "raw-batch3"
-OUTPUT = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / "output" / "imagegen" / "review-v2"
+
+
+def _validate_path(path: Path) -> Path:
+    resolved = path.resolve()
+    if resolved != ROOT and ROOT not in resolved.parents:
+        raise ValueError(f"path must stay within project root: {path}")
+    return resolved
+
+
+SOURCE = _validate_path(Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "output" / "imagegen" / "raw-batch3")
+OUTPUT = _validate_path(Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / "output" / "imagegen" / "review-v2")
 
 
 def trim(image, threshold=8):
