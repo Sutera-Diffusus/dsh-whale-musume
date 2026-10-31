@@ -1,5 +1,12 @@
 # Changelog
 
+## 未发布
+
+### 工程
+
+- **兼容 DSH `0.2.1-rc.3`**：`engines.dsh` 追加 `0.2.1-rc.3`，`dsh.compatibility.dshReleases` 同步标为 `compatible`。依据是两台 Windows 机器在真实 Electron 桌面端完成的安装、加载与重启复验——bundle patch 叠加、静态资源路由、`dsh.client` 注入三条链路均通过，见 issue #32。
+- `test/dsh-engines.test.mjs` 的放行表与兼容矩阵断言同步到 rc.3，**203 项全部通过**。
+
 ## v2.5.0 (2026-10-21)
 
 ### 新增

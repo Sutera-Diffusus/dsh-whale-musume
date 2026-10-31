@@ -34,7 +34,7 @@
   "license": "MIT",
   "engines": {
     "node": ">=18",
-    "dsh": ">=0.1.0-rc.6 <0.2.0-rc.1 || 0.2.0-rc.2 || 0.2.1-rc.1 || 0.2.1-rc.2"
+    "dsh": ">=0.1.0-rc.6 <0.2.0-rc.1 || 0.2.0-rc.2 || 0.2.1-rc.1 || 0.2.1-rc.2 || 0.2.1-rc.3"
   },
   "dsh": {
     "bundle": {
@@ -54,9 +54,10 @@
         "0.1.2-rc.1": "compatible",
         "0.2.0-rc.2": "compatible",
         "0.2.1-rc.1": "compatible",
-        "0.2.1-rc.2": "compatible"
+        "0.2.1-rc.2": "compatible",
+        "0.2.1-rc.3": "compatible"
       },
-      "note": "0.2.0-rc.2 已在隔离 profile 上完成安装、加载与 DOM 契约验收。0.2.1-rc.1 / 0.2.1-rc.2 的 compatible 来自对 tag dsh-v0.2.1-rc.2 的静态契约核对加本仓库单元测试，尚未在真实 Electron 桌面端复跑。自 DSH 0.2.1-alpha.4 起，安装门禁优先读顶层 engines.dsh（未声明才回落 peerDependencies）；本包没有 DSH peer，因此必须声明 engines.dsh。说明见 docs/desktop-0.2.1-rc.2-contract.md。"
+      "note": "0.2.0-rc.2 已在隔离 profile 上完成安装、加载与 DOM 契约验收。0.2.1-rc.1 / 0.2.1-rc.2 的 compatible 来自对 tag dsh-v0.2.1-rc.2 的静态契约核对加本仓库单元测试，尚未在真实 Electron 桌面端复跑。0.2.1-rc.3 已在两台 Windows 机器的真实 Electron 桌面端完成安装、加载与重启复验（bundle patch 叠加、静态资源路由、dsh.client 注入均通过），见 issue #32。自 DSH 0.2.1-alpha.4 起，安装门禁优先读顶层 engines.dsh（未声明才回落 peerDependencies）；本包没有 DSH peer，因此必须声明 engines.dsh。说明见 docs/desktop-0.2.1-rc.2-contract.md。"
     }
   },
   "keywords": [

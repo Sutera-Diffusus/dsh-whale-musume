@@ -17,7 +17,7 @@ const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url),
 const presenter = readFileSync(new URL("../assets/dsh-whale-moe.js", import.meta.url), "utf8");
 const client = readFileSync(new URL("../lib/client.js", import.meta.url), "utf8");
 
-const RANGE = ">=0.1.0-rc.6 <0.2.0-rc.1 || 0.2.0-rc.2 || 0.2.1-rc.1 || 0.2.1-rc.2";
+const RANGE = ">=0.1.0-rc.6 <0.2.0-rc.1 || 0.2.0-rc.2 || 0.2.1-rc.1 || 0.2.1-rc.2 || 0.2.1-rc.3";
 
 /** @returns {{major:number,minor:number,patch:number,pre:string[]|null}|null} */
 function parse(version) {
@@ -87,7 +87,7 @@ test("package 版本是 2.5.0，且 engines.dsh 是字符串范围", () => {
   assert.deepEqual(pkg.dsh.client.inject, ["slots"]);
 });
 
-test("dshReleases 保留旧矩阵，并标明 0.2.1-rc.1 / rc.2", () => {
+test("dshReleases 保留旧矩阵，并标明 0.2.1-rc.1 / rc.2 / rc.3", () => {
   const releases = pkg.dsh.compatibility.dshReleases;
   assert.equal(releases["0.1.1-rc.2"], "compatible");
   assert.equal(releases["0.1.2-alpha.4"], "unknown");
@@ -96,6 +96,7 @@ test("dshReleases 保留旧矩阵，并标明 0.2.1-rc.1 / rc.2", () => {
   assert.equal(releases["0.2.0-rc.2"], "compatible");
   assert.equal(releases["0.2.1-rc.1"], "compatible");
   assert.equal(releases["0.2.1-rc.2"], "compatible");
+  assert.equal(releases["0.2.1-rc.3"], "compatible");
   assert.match(pkg.dsh.compatibility.note, /尚未在真实 Electron/);
 });
 
@@ -112,6 +113,7 @@ test("engines.dsh 放行已支持的 0.1.x、0.2.0-rc.2 与 0.2.1 rc", () => {
     "0.2.0-rc.2",
     "0.2.1-rc.1",
     "0.2.1-rc.2",
+    "0.2.1-rc.3",
   ]) {
     assert.equal(satisfies(version, pkg.engines.dsh), true, `${version} 应被 engines.dsh 放行`);
   }
