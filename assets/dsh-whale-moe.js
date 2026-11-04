@@ -2444,8 +2444,10 @@
 
     if (effective === "float") {
       var saved = readFloatPos();
-      var fw = 200;
-      var fh = 200;
+      var customSize = Number(root.localStorage.getItem("whale-moe:customSize"));
+      var defaultSize = vw <= 600 ? 130 : 200;
+      var fw = (customSize >= 80 && customSize <= 300) ? customSize : defaultSize;
+      var fh = fw;
       /* during an active drag, keep the live pointer position; never snap back */
       var fx = saved ? saved.x : vw - fw - 20;
       var fy = saved ? saved.y : vh - fh - 20;
