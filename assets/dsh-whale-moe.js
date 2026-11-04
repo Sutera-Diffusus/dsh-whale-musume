@@ -467,6 +467,7 @@
   }
 
   var dragState = null;
+  var longPressTimer = null;
   function startDrag(event, rootNode) {
     event.preventDefault();
     dragState = {
