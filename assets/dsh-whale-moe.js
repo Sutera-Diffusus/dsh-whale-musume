@@ -495,9 +495,11 @@
   }
   function onDrag(event) {
     if (!dragState) return;
+    if (event.cancelable) event.preventDefault();
     var node = dragState.node;
-    var width = node.getBoundingClientRect().width;
-    var height = node.getBoundingClientRect().height;
+    if (!dragState.rect) dragState.rect = node.getBoundingClientRect();
+    var width = dragState.rect.width;
+    var height = dragState.rect.height;
     var left = event.clientX - dragState.dx;
     var top = event.clientY - dragState.dy;
     if (longPressTimer) { root.clearTimeout(longPressTimer); longPressTimer = null; }
