@@ -455,6 +455,15 @@
     });
     frame.addEventListener("pointerdown", function (event) {
       pressStartedAt = Date.now();
+      if (event.pointerType === "touch") {
+        if (longPressTimer) { root.clearTimeout(longPressTimer); longPressTimer = null; }
+        longPressTimer = root.setTimeout(function () {
+          if (dragState && !dragState.moved) {
+            endDrag();
+            showContextMenu(event.clientX, event.clientY);
+          }
+        }, 500);
+      }
       if (readMode() === "float" && event.button === 0) startDrag(event, rootNode);
     });
     frame.addEventListener("contextmenu", function (event) {
