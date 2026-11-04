@@ -490,6 +490,7 @@
     var height = node.getBoundingClientRect().height;
     var left = event.clientX - dragState.dx;
     var top = event.clientY - dragState.dy;
+    if (longPressTimer) { root.clearTimeout(longPressTimer); longPressTimer = null; }
     if (!dragState.moved && (Math.abs(event.clientX - dragState.startX) > 4 || Math.abs(event.clientY - dragState.startY) > 4)) {
       dragState.moved = true;
       node.classList.add("dsh-whale-dragging");
@@ -632,6 +633,19 @@
       items.push({ label: "小游戏：鲸鱼翻翻乐", action: function () { openMemoryGame(); } });
     }
     items.push(
+      { label: "桌宠尺寸 ⇄ 切换 (小/中/大/自适应)", action: function () {
+        var cur = Number(root.localStorage.getItem("whale-moe:customSize")) || 0;
+        var next = 120;
+        if (cur === 120) next = 150;
+        else if (cur === 150) next = 200;
+        else if (cur === 200) next = 0;
+        else next = 120;
+        try {
+          if (next > 0) root.localStorage.setItem("whale-moe:customSize", String(next));
+          else root.localStorage.removeItem("whale-moe:customSize");
+        } catch (e) {}
+        reconcile();
+      } },
       { label: "回到原位", action: function () { try { root.localStorage.removeItem("whale-moe:floatX"); root.localStorage.removeItem("whale-moe:floatY"); } catch (e) { /* ignore */ } reconcile(); } },
       { label: "打开看板娘设置", action: function () {
         /* DSH 新版设置入口是纯图标按钮(无文本),旧版是文本“设置”按钮:

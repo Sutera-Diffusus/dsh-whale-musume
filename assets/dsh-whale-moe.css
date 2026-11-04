@@ -5,6 +5,8 @@
 
 [data-dsh-whale-root] {
   position: fixed;
+  -webkit-touch-callout: none !important;
+  touch-action: none !important;
   z-index: 60;
   pointer-events: none;
   user-select: none;
@@ -12,6 +14,8 @@
 
 [data-dsh-whale-frame] {
   display: block;
+  -webkit-touch-callout: none !important;
+  touch-action: none !important;
   object-fit: contain;
   pointer-events: auto;
   cursor: pointer;
@@ -250,6 +254,9 @@
   opacity: 0;
   transform-origin: 50% 92%;
   animation: wm-sway 6s ease-in-out infinite;
+  pointer-events: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-drag: none !important;
 }
 [data-dsh-whale-layer].dsh-whale-active {
   opacity: 1;
