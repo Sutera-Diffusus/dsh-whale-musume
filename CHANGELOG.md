@@ -1,3 +1,17 @@
+## [Unreleased]
+
+### Mobile touch support
+
+- Fix: `onDrag()` referenced an undeclared `longPressTimer`, throwing `ReferenceError` on every
+  `pointermove` under strict mode and breaking dragging outright.
+- Add: 500ms touch long-press opens the mascot context menu; dragging past the threshold cancels it.
+- Add: narrow viewports (<=600px) default to a 130px mascot; explicit `whale-moe:customSize`
+  (80-300) takes precedence, so the settings slider now actually applies.
+- Perf: sample the drag rect once per drag and `preventDefault()` during movement, removing a
+  per-frame reflow that made dragging stutter on phones.
+- Style: disable `-webkit-touch-callout`, text selection and native image drag on the mascot
+  layers so long-press no longer raises the browser "save image" sheet.
+
 # Changelog
 
 ## v2.5.0 (2026-10-21)
