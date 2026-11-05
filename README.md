@@ -18,7 +18,7 @@
 
 [**一分钟上手**](#一分钟上手) · [看看她长什么样](#看看她长什么样) · [她有什么](#她有什么) · [常见问题](#常见问题) · [English](README.en.md)
 
-<img src="docs/images/preview-idle-coffee.png" alt="鲸鱼娘：待机时在右下角喝咖啡陪你" width="720">
+<img src="https://raw.githubusercontent.com/kingOfSoySauce/dsh-skin-market/main/site/public/skin-screenshots/Sutera-Diffusus__dsh-whale-musume/120b6e244fab2a7c841b768b98d3aebae22ec8de/home.gif" alt="鲸鱼娘：待机时在右下角喝咖啡陪你" width="720">
 
 </div>
 
