@@ -56,11 +56,11 @@ const specs = [
   { file: "tests.svg", label: "单元测试", value: `${TEST_COUNT} 项全绿`, color: "#31df76", valueColor: LIGHT },
   { file: "license.svg", label: "license", value: "MIT", color: "#6f42c1", valueColor: LIGHT },
   { file: "platform.svg", label: "平台", value: "Windows 10/11", color: "#0078D4", valueColor: LIGHT },
-  { file: "desktop.svg", label: "桌面端", value: "Electron 壳 · DSH 0.2.1-rc.2", color: "#0078D4", valueColor: LIGHT },
+  { file: "desktop.svg", label: "桌面端", value: "Electron 壳 · DSH 0.2.2-rc.1", color: "#0078D4", valueColor: LIGHT },
   { file: "legacy-web.svg", label: "旧版 Web", value: "DSH 0.1.x", color: "#0078D4", valueColor: LIGHT },
   { file: "tests-en.svg", label: "unit tests", value: `${TEST_COUNT} passing`, color: "#31df76", valueColor: LIGHT },
   { file: "platform-en.svg", label: "platform", value: "Windows 10/11", color: "#0078D4", valueColor: LIGHT },
-  { file: "desktop-en.svg", label: "desktop app", value: "Electron shell · DSH 0.2.1-rc.2", color: "#0078D4", valueColor: LIGHT },
+  { file: "desktop-en.svg", label: "desktop app", value: "Electron shell · DSH 0.2.2-rc.1", color: "#0078D4", valueColor: LIGHT },
   { file: "legacy-web-en.svg", label: "legacy web", value: "DSH 0.1.x", color: "#0078D4", valueColor: LIGHT },
   { file: "discussions.svg", label: "Discussions", value: "交流", color: "#0969da", valueColor: "#ffffff" },
 ];

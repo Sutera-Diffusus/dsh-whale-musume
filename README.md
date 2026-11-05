@@ -18,7 +18,9 @@
 
 [**一分钟上手**](#一分钟上手) · [看看她长什么样](#看看她长什么样) · [她有什么](#她有什么) · [常见问题](#常见问题) · [English](README.en.md)
 
-<img src="docs/images/preview-idle-coffee.png" alt="鲸鱼娘：待机时在右下角喝咖啡陪你" width="720">
+<img src="docs/images/preview-idle-loop.gif" alt="鲸鱼娘：待机时在右下角喝咖啡陪你（动图）" width="720">
+
+<sub>动图由 [@kingOfSoySauce](https://github.com/kingOfSoySauce) 录制（[PR #37](https://github.com/Sutera-Diffusus/dsh-whale-musume/pull/37)），已收进仓库，不依赖外链。</sub>
 
 </div>
 
@@ -87,7 +89,7 @@ dsh plugin --profile web add github:Sutera-Diffusus/dsh-whale-musume
 
 装完**重启宿主**（桌面端重启应用；旧版 Web 重启 `dsh web` 后 `Ctrl+F5`），她就出现在右下角了。
 
-> **镜像同步提示**：新包在 npmmirror 上可能短暂显示 `0.0.0-stage`（发布占位版本）。看到这个版本不要装；在插件管理器的 Registry 选择器切到 **npm 官方源**，或等镜像同步。官方源核验：`npm view dsh-whale-musume version --registry=https://registry.npmjs.org` 应为 `2.5.0`。
+> **镜像同步提示**：新包在 npmmirror 上可能短暂显示 `0.0.0-stage`（发布占位版本）。看到这个版本不要装；在插件管理器的 Registry 选择器切到 **npm 官方源**，或等镜像同步。官方源核验：`npm view dsh-whale-musume version --registry=https://registry.npmjs.org` 应为 `2.5.1`。
 
 > 从插件市场或 `dsh plugin add` 装不上时，见[安装失败排查](#安装失败排查从插件市场--dsh-plugin-add-装不上)。日志被截成只剩 `[exit 1]`、走 git 源时的 `git ls-remote` 超时、还有 `allowBuilds` 提示，那一节都写了。
 
@@ -208,7 +210,8 @@ window.__dshWhaleMoeDebug                                      // state 非 "hid
 | 宿主 | 支持 | 说明 |
 |---|:---:|---|
 | **DeepSeek Harness 桌面端** `0.2.0-rc.2` | ✅ 已实测 | 那个构建的 GUI 默认 `127.0.0.1:19387`。安装/回滚见[0.2.0 部署手册](docs/desktop-0.2.0-rc.2-deploy.md) |
-| **DeepSeek Harness 桌面端 / Web** `0.2.1-rc.1`、`0.2.1-rc.2` | ✅ 静态契约 | 对照 tag `dsh-v0.2.1-rc.2` 的源码与单元测试，**没有**在真实 Electron 里复跑。0.2.1 的桌面端端口改为系统分配（`--port 0`），不要再假设 `19387`。差分见[0.2.1 契约](docs/desktop-0.2.1-rc.2-contract.md)与[部署差分](docs/desktop-0.2.1-rc.2-deploy.md) |
+| **DeepSeek Harness 桌面端 / Web** `0.2.1-rc.1`～`0.2.1-rc.5`、`0.2.2-rc.1` | ✅ 静态契约 | 对照上游 tag 的源码、本机 0.2.2-rc.1 `app.asar` 的 DOM 标记扫描与单元测试，**没有**在真实 Electron 里做视觉复跑。0.2.1 的桌面端端口改为系统分配（`--port 0`），不要再假设 `19387`。差分见[0.2.1 契约](docs/desktop-0.2.1-rc.2-contract.md)与[部署差分](docs/desktop-0.2.1-rc.2-deploy.md)；2.5.1 的核对结论见[发布说明](docs/release-notes-v2.5.1.md) |
+| `0.2.2-alpha.2`、`0.2.2-alpha.3` | ⚠️ 可装但不承诺 | `engines.dsh` 放行（属于 0.2.2 线），但未逐版本核对，矩阵里标 `unknown` |
 | **旧版 Web profile**（DSH `0.1.x`） | ✅ 已实测 | `0.1.0-rc.6` 及以上；设置面板在 `0.1.1-rc.2` 实测 |
 | 其他 profile（headless / acp 等） | ➖ 无界面 | 没有浏览器界面，桌宠无处显示 |
 
@@ -349,6 +352,7 @@ node scripts/apply-theme.mjs --rollback "<backup dir>"
 
 | 版本 | 日期 | 主题 | 要点 | 链接 |
 |---|---|---|---|---|
+| **v2.5.1** | 2026-11-06 | 兼容 DSH 0.2.1-rc.3–0.2.2-rc.1 + 修透明隐身 | 见下方要点 | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.5.1) · [Notes](docs/release-notes-v2.5.1.md) |
 | **v2.5.0** | 2026-10-21 | 翻翻乐 + 跨端迁移 | 第三个小游戏「鲸鱼翻翻乐」（16 张现有立绘、60 秒、连击/零失误）；设置面板新增「跨端迁移」（JSON 导出/导入 + 迁移码，导入后热重载）；新增 6 个成就（翻翻乐 4 + 百日/一年 2），成就总数 45 | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.5.0) · [说明](docs/release-notes-v2.5.0.md) |
 | **v2.4.0** | 2026-10-19 | 适配 DSH 0.2.1-rc.2 | 补 `engines.dsh`；`0.2.1-rc.1` / `0.2.1-rc.2` 按静态契约标为 compatible（未跑真实 Electron）；0.2.0-rc.2 与旧版 Web 仍放行；DOM 选择器无增删 | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.4.0) · [说明](docs/release-notes-v2.4.0.md) |
 | **v2.3.0** | 2026-10-14 | 工作中台词两档 + 菜单不再被裁 | 见下方要点 | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.3.0) · [Notes](docs/release-notes-v2.3.0.md) |
@@ -599,6 +603,7 @@ node test/cdp-whale-moe.mjs
 - **[@icemaple77](https://github.com/icemaple77)** —— 修复弹窗导致桌宠永久消失、余额优先 CNY 账户（v2.1.0）
 - **[@Lurantis](https://github.com/Lurantis)** —— 早期贡献
 - **[@ClutchBear](https://github.com/ClutchBear)** —— 非官方 Windows 原生移植 [workbuddy-whale-musume](https://github.com/ClutchBear/workbuddy-whale-musume)（Rust，与本仓库无隶属关系，不是官方 Windows 版）。MIT 归属已在 [#17](https://github.com/Sutera-Diffusus/dsh-whale-musume/issues/17) 确认
+- **[@kingOfSoySauce](https://github.com/kingOfSoySauce)** —— README 待机动图录制（[PR #37](https://github.com/Sutera-Diffusus/dsh-whale-musume/pull/37)，v2.5.1 收进仓库）
 - 也感谢 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 提供的插件体系，以及各插件目录的收录与实测：[awesome-deepseek-harness](https://github.com/0xsline/awesome-deepseek-harness)、[awesome-dsh-plugins](https://github.com/kejixiaoliang/awesome-dsh-plugins)、[WhaleHub](https://github.com/vvlife/whalehub-dsh)、[dshbase](https://dshbase.com/zh/plugins/dsh-whale-musume/)、[dsh-meme-hub](https://github.com/the-beating-light-of-the-nail/dsh-meme-hub)
 
 ## License

@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="236" height="20" role="img" aria-label="桌面端: Electron 壳 · DSH 0.2.1-rc.2">
-  <title>桌面端: Electron 壳 · DSH 0.2.1-rc.2</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="236" height="20" role="img" aria-label="桌面端: Electron 壳 · DSH 0.2.2-rc.1">
+  <title>桌面端: Electron 壳 · DSH 0.2.2-rc.1</title>
   <g shape-rendering="crispEdges">
     <rect width="43" height="20" fill="#555"/>
     <rect x="43" width="193" height="20" fill="#0078D4"/>
@@ -7,6 +7,6 @@
   </g>
   <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110">
     <text x="215" y="140" textLength="330" transform="scale(.1)">桌面端</text>
-    <text x="1395" y="140" textLength="1826" transform="scale(.1)" fill="#e2e8f0">Electron 壳 · DSH 0.2.1-rc.2</text>
+    <text x="1395" y="140" textLength="1826" transform="scale(.1)" fill="#e2e8f0">Electron 壳 · DSH 0.2.2-rc.1</text>
   </g>
 </svg>

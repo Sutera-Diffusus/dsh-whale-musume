@@ -18,7 +18,9 @@
 
 [**Quick start**](#quick-start) · [**Screenshots**](#screenshots) · [**Features**](#features) · [**FAQ**](#faq) · [中文](README.md)
 
-<img src="docs/images/preview-idle-coffee.png" alt="The whale girl idling in the corner with a coffee" width="720">
+<img src="docs/images/preview-idle-loop.gif" alt="The whale girl idling in the corner with a coffee (animated)" width="720">
+
+<sub>GIF recorded by [@kingOfSoySauce](https://github.com/kingOfSoySauce) ([PR #37](https://github.com/Sutera-Diffusus/dsh-whale-musume/pull/37)); vendored into the repo, no external hotlink.</sub>
 
 </div>
 
@@ -87,7 +89,7 @@ dsh plugin --profile web add github:Sutera-Diffusus/dsh-whale-musume
 
 Then **restart the host** (restart the desktop app, or restart `dsh web` and hit `Ctrl+F5`). She shows up in the bottom-right corner.
 
-> **Mirror sync note**: on npmmirror a new package may briefly show `0.0.0-stage` (the publish placeholder). Do not install that version; switch the plugin manager's Registry selector to the **official npm registry**, or wait for the mirror to sync. Check the official source with `npm view dsh-whale-musume version --registry=https://registry.npmjs.org` — it should be `2.5.0`.
+> **Mirror sync note**: on npmmirror a new package may briefly show `0.0.0-stage` (the publish placeholder). Do not install that version; switch the plugin manager's Registry selector to the **official npm registry**, or wait for the mirror to sync. Check the official source with `npm view dsh-whale-musume version --registry=https://registry.npmjs.org` — it should be `2.5.1`.
 
 > If the plugin store or `dsh plugin add` fails to install it, see [When the plugin store cannot install it](#when-the-plugin-store--dsh-plugin-add-cannot-install-it). A log that only shows `[exit 1]`, `git ls-remote` timeouts on the git path, and the `allowBuilds` note are all covered there.
 
@@ -208,7 +210,8 @@ More: [interaction board](docs/images/actions-board.png) · [new artwork board](
 | Host | Support | Notes |
 |---|:---:|---|
 | **DeepSeek Harness Desktop** `0.2.0-rc.2` | ✅ tested | That build's GUI defaulted to `127.0.0.1:19387`. Install and rollback: [0.2.0 deploy guide](docs/desktop-0.2.0-rc.2-deploy.md) |
-| **DeepSeek Harness Desktop / Web** `0.2.1-rc.1`, `0.2.1-rc.2` | ✅ static contract | Checked against tag `dsh-v0.2.1-rc.2` and the unit tests. **Not** re-run inside the Electron app. Desktop 0.2.1 binds with `--port 0` (OS-assigned); do not assume `19387`. See the [0.2.1 contract](docs/desktop-0.2.1-rc.2-contract.md) and [deploy delta](docs/desktop-0.2.1-rc.2-deploy.md) |
+| **DeepSeek Harness Desktop / Web** `0.2.1-rc.1`–`0.2.1-rc.5`, `0.2.2-rc.1` | ✅ static contract | Checked against upstream tags, a DOM-marker scan of the local `0.2.2-rc.1` `app.asar`, and the unit tests. **Not** re-run visually inside Electron. Desktop 0.2.1 binds with `--port 0` (OS-assigned); do not assume `19387`. See the [0.2.1 contract](docs/desktop-0.2.1-rc.2-contract.md), [deploy delta](docs/desktop-0.2.1-rc.2-deploy.md) and the [v2.5.1 notes](docs/release-notes-v2.5.1.md) |
+| `0.2.2-alpha.2`, `0.2.2-alpha.3` | ⚠️ installable, not certified | Allowed by `engines.dsh` (part of the 0.2.2 line) but not verified per release; marked `unknown` in the matrix |
 | **Legacy web profile** (DSH `0.1.x`) | ✅ tested | `0.1.0-rc.6` and newer; the settings panel is verified on `0.1.1-rc.2` |
 | Other profiles (headless / acp, …) | ➖ no UI | There is no browser surface, so there is nowhere to show a pet |
 
@@ -349,6 +352,7 @@ node scripts/apply-theme.mjs --rollback "<backup dir>"
 
 | Version | Date | Theme | Highlights | Links |
 |---|---|---|---|---|
+| **v2.5.1** | 2026-11-06 | DSH 0.2.1-rc.3–0.2.2-rc.1 support + invisible-mascot fix | See highlights below | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.5.1) · [Notes](docs/release-notes-v2.5.1.md) |
 | **v2.5.0** | 2026-10-21 | Memory game + migration | Third mini-game "Whale Memory" (16 existing artworks, 60 s, combo / zero-mistake); new "Cross-device migration" settings group (JSON export/import + migration code, hot reload); six new achievements (four memory + hundred-day / one-year), 45 total | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.5.0) · [Notes](docs/release-notes-v2.5.0.md) |
 | **v2.4.0** | 2026-10-19 | DSH 0.2.1-rc.2 support | Declares `engines.dsh`; `0.2.1-rc.1` / `0.2.1-rc.2` marked compatible from a static contract (not a live Electron run); `0.2.0-rc.2` and legacy Web stay allowed; no selector changes | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.4.0) · [Notes](docs/release-notes-v2.4.0.md) |
 | **v2.3.0** | 2026-10-14 | Two work-speech modes + menu placement fix | See highlights below | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.3.0) · [Notes](docs/release-notes-v2.3.0.md) |
@@ -576,6 +580,7 @@ Conventions live in [CONTRIBUTING.md](CONTRIBUTING.md): after touching the prese
 - **[@icemaple77](https://github.com/icemaple77)** — fix for the mascot vanishing behind dialogs, and CNY-preferred balance accounts (v2.1.0)
 - **[@Lurantis](https://github.com/Lurantis)** — early contributions
 - **[@ClutchBear](https://github.com/ClutchBear)** — unofficial native Windows port, [workbuddy-whale-musume](https://github.com/ClutchBear/workbuddy-whale-musume) (Rust; no affiliation with this project, and not an official Windows build). MIT attribution was confirmed in [#17](https://github.com/Sutera-Diffusus/dsh-whale-musume/issues/17)
+- **[@kingOfSoySauce](https://github.com/kingOfSoySauce)** — the idle-loop GIF used in this README ([PR #37](https://github.com/Sutera-Diffusus/dsh-whale-musume/pull/37), vendored in v2.5.1)
 - Thanks also to [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) for the plugin system, and to the directories that list and test community plugins: [awesome-deepseek-harness](https://github.com/0xsline/awesome-deepseek-harness), [awesome-dsh-plugins](https://github.com/kejixiaoliang/awesome-dsh-plugins), [WhaleHub](https://github.com/vvlife/whalehub-dsh), [dshbase](https://dshbase.com/zh/plugins/dsh-whale-musume/), [dsh-meme-hub](https://github.com/the-beating-light-of-the-nail/dsh-meme-hub)
 
 ## License

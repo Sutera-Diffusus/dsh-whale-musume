@@ -162,6 +162,16 @@
     if (gameTimer) { root.clearInterval(gameTimer); gameTimer = null; }
     if (catchTimer) { root.clearInterval(catchTimer); catchTimer = null; }
     weatherFxStop();
+    /* 根节点被摘掉后，下一次 ensureRoot() 会生成全新的 <img>；但 layerState 是
+       模块级缓存，会继续记着「这个姿势已经加载过」。不复位的话，重新打开看板娘
+       时 setPose() 会命中「loaded === src」早退，新 <img> 永远拿不到 src，表现为
+       只剩透明线框（用户反馈：齿轮菜单关掉再打开角色隐身）。gen 自增同时作废
+       旧的换图回调，避免它们在节点重建后改到新状态。 */
+    layerState.active = "a";
+    layerState.loaded = { a: "", b: "" };
+    layerState.pendingSwap = "";
+    layerState.pendingSince = 0;
+    layerState.gen += 1;
   }
 
   function createToggleButton(label, key) {
@@ -209,7 +219,19 @@
       layerState.active = nextName;
     }
 
-    if (layerState.loaded[layerState.active] === src) return;
+    if (layerState.loaded[layerState.active] === src) {
+      /* 缓存说「这个姿势已加载」，但 DOM 可能被重建过（removeRoot + ensureRoot，
+         或宿主把我们挂的根节点摘掉后重挂）。以新节点为准：新节点上没有 src 或
+         active 类名时必须重放一次，否则桌宠保持透明（issue #34）。 */
+      var activeLayer = rootNode.querySelector('[data-dsh-whale-layer="' + layerState.active + '"]');
+      var domReady = activeLayer !== null &&
+        activeLayer.getAttribute("src") === src &&
+        activeLayer.classList.contains("dsh-whale-active");
+      if (domReady) return;
+      layerState.loaded[layerState.active] = "";
+      layerState.pendingSwap = "";
+      layerState.pendingSince = 0;
+    }
 
     /* Motion-hide swap (industry sprite/VTuber style): old pose squashes down
        quickly, the image is swapped at the heaviest motion point, then the new
@@ -3663,7 +3685,7 @@
     else init();
   }
 
-  root.__dshWhaleMoeVersion = "2.5.0";
+  root.__dshWhaleMoeVersion = "2.5.1";
   root.__dshWhaleMoeDebug = { state: "boot", pose: null, line: "", view: "home" };
   start();
   schedulePreload();
