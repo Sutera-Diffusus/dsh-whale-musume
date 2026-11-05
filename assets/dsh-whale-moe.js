@@ -477,6 +477,15 @@
     });
     frame.addEventListener("pointerdown", function (event) {
       pressStartedAt = Date.now();
+      if (event.pointerType === "touch") {
+        if (longPressTimer) { root.clearTimeout(longPressTimer); longPressTimer = null; }
+        longPressTimer = root.setTimeout(function () {
+          if (dragState && !dragState.moved) {
+            endDrag();
+            showContextMenu(event.clientX, event.clientY);
+          }
+        }, 500);
+      }
       if (readMode() === "float" && event.button === 0) startDrag(event, rootNode);
     });
     frame.addEventListener("contextmenu", function (event) {
@@ -489,6 +498,7 @@
   }
 
   var dragState = null;
+  var longPressTimer = null;
   function startDrag(event, rootNode) {
     event.preventDefault();
     dragState = {
@@ -507,11 +517,14 @@
   }
   function onDrag(event) {
     if (!dragState) return;
+    if (event.cancelable) event.preventDefault();
     var node = dragState.node;
-    var width = node.getBoundingClientRect().width;
-    var height = node.getBoundingClientRect().height;
+    if (!dragState.rect) dragState.rect = node.getBoundingClientRect();
+    var width = dragState.rect.width;
+    var height = dragState.rect.height;
     var left = event.clientX - dragState.dx;
     var top = event.clientY - dragState.dy;
+    if (longPressTimer) { root.clearTimeout(longPressTimer); longPressTimer = null; }
     if (!dragState.moved && (Math.abs(event.clientX - dragState.startX) > 4 || Math.abs(event.clientY - dragState.startY) > 4)) {
       dragState.moved = true;
       node.classList.add("dsh-whale-dragging");
@@ -654,6 +667,19 @@
       items.push({ label: "小游戏：鲸鱼翻翻乐", action: function () { openMemoryGame(); } });
     }
     items.push(
+      { label: "桌宠尺寸 ⇄ 切换 (小/中/大/自适应)", action: function () {
+        var cur = Number(root.localStorage.getItem("whale-moe:customSize")) || 0;
+        var next = 120;
+        if (cur === 120) next = 150;
+        else if (cur === 150) next = 200;
+        else if (cur === 200) next = 0;
+        else next = 120;
+        try {
+          if (next > 0) root.localStorage.setItem("whale-moe:customSize", String(next));
+          else root.localStorage.removeItem("whale-moe:customSize");
+        } catch (e) {}
+        reconcile();
+      } },
       { label: "回到原位", action: function () { try { root.localStorage.removeItem("whale-moe:floatX"); root.localStorage.removeItem("whale-moe:floatY"); } catch (e) { /* ignore */ } reconcile(); } },
       { label: "打开看板娘设置", action: function () {
         /* DSH 新版设置入口是纯图标按钮(无文本),旧版是文本“设置”按钮:
@@ -2442,8 +2468,10 @@
 
     if (effective === "float") {
       var saved = readFloatPos();
-      var fw = 200;
-      var fh = 200;
+      var customSize = Number(root.localStorage.getItem("whale-moe:customSize"));
+      var defaultSize = vw <= 600 ? 130 : 200;
+      var fw = (customSize >= 80 && customSize <= 300) ? customSize : defaultSize;
+      var fh = fw;
       /* during an active drag, keep the live pointer position; never snap back */
       var fx = saved ? saved.x : vw - fw - 20;
       var fy = saved ? saved.y : vh - fh - 20;
