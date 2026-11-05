@@ -1,6 +1,6 @@
 {
   "name": "dsh-whale-musume",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "description": "鲸鱼娘桌面宠物（看板娘 / desktop pet mascot）for DeepSeek Harness：陪你写代码的 whale-girl 桌宠，桌面端与 Web 双端支持",
   "publishConfig": {
     "access": "public"
@@ -34,7 +34,7 @@
   "license": "MIT",
   "engines": {
     "node": ">=18",
-    "dsh": ">=0.1.0-rc.6 <0.2.0-rc.1 || 0.2.0-rc.2 || 0.2.1-rc.1 || 0.2.1-rc.2"
+    "dsh": ">=0.1.0-rc.6 <0.2.0-rc.1 || 0.2.0-rc.2 || >=0.2.1-rc.1 <0.2.3-0"
   },
   "dsh": {
     "bundle": {
@@ -54,9 +54,15 @@
         "0.1.2-rc.1": "compatible",
         "0.2.0-rc.2": "compatible",
         "0.2.1-rc.1": "compatible",
-        "0.2.1-rc.2": "compatible"
+        "0.2.1-rc.2": "compatible",
+        "0.2.1-rc.3": "compatible",
+        "0.2.1-rc.4": "compatible",
+        "0.2.1-rc.5": "compatible",
+        "0.2.2-alpha.2": "unknown",
+        "0.2.2-alpha.3": "unknown",
+        "0.2.2-rc.1": "compatible"
       },
-      "note": "0.2.0-rc.2 已在隔离 profile 上完成安装、加载与 DOM 契约验收。0.2.1-rc.1 / 0.2.1-rc.2 的 compatible 来自对 tag dsh-v0.2.1-rc.2 的静态契约核对加本仓库单元测试，尚未在真实 Electron 桌面端复跑。自 DSH 0.2.1-alpha.4 起，安装门禁优先读顶层 engines.dsh（未声明才回落 peerDependencies）；本包没有 DSH peer，因此必须声明 engines.dsh。说明见 docs/desktop-0.2.1-rc.2-contract.md。"
+      "note": "0.2.0-rc.2 已在隔离 profile 上完成安装、加载与 DOM 契约验收。0.2.1 全线（rc.1–rc.5）与 0.2.2-rc.1 的 compatible 来自上游发布说明与 tag 源码核对、本机 0.2.2-rc.1 app.asar 的 DOM 标记扫描，外加本仓库单元测试，尚未在真实 Electron 桌面端做视觉复跑；0.2.2-alpha.2 / alpha.3 标 unknown（engines.dsh 会放行，但不承诺）。自 DSH 0.2.1-alpha.4 起，安装门禁优先读顶层 engines.dsh（未声明才回落 peerDependencies）；本包没有 DSH peer，因此必须声明 engines.dsh。2.5.1 起 engines.dsh 改为按版本线放行（>=0.2.1-rc.1 <0.2.3-0），不再每发一个 rc 就把用户挡在门外。说明见 docs/desktop-0.2.1-rc.2-contract.md 与 docs/release-notes-v2.5.1.md。"
     }
   },
   "keywords": [
