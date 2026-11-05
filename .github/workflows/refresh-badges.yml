@@ -31,8 +31,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # release 事件默认 checkout 到 tag（detached HEAD），此时末尾的 git push 会失败。
-          # 固定检出 main，让「发布后刷新下载量」也能正常提交。
+          # release 的默认 checkout 是 tag（detached HEAD）。固定 main 后，
+          # actions/checkout 会执行 `git checkout -B main`，提交落在分支上而不是 tag 上。
           ref: main
 
       - name: Setup Node
@@ -59,5 +59,8 @@ jobs:
           git add docs/images/badges
           COUNT=$(git diff --cached --numstat -- docs/images/badges | awk '{print $1+$2}')
           git commit -m "chore(badges): 自动刷新下载量"
-          git push
+          # 裸 `git push` 在 detached HEAD 上会失败（v2.4.0、v2.5.0：
+          # "You are not currently on a branch"）。HEAD:main 在 release、
+          # schedule、workflow_dispatch 下都把这次提交快进到 main。
+          git push origin HEAD:main
           echo "已提交 ${COUNT} 行改动"
