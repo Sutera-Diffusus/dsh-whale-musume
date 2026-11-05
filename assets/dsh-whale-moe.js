@@ -161,6 +161,7 @@
     catchOpen = false;
     if (gameTimer) { root.clearInterval(gameTimer); gameTimer = null; }
     if (catchTimer) { root.clearInterval(catchTimer); catchTimer = null; }
+    clearLongPress();
     weatherFxStop();
     /* 根节点被摘掉后，下一次 ensureRoot() 会生成全新的 <img>；但 layerState 是
        模块级缓存，会继续记着「这个姿势已经加载过」。不复位的话，重新打开看板娘
@@ -477,17 +478,29 @@
     });
     frame.addEventListener("pointerdown", function (event) {
       pressStartedAt = Date.now();
-      if (event.pointerType === "touch") {
-        if (longPressTimer) { root.clearTimeout(longPressTimer); longPressTimer = null; }
+      if (event.pointerType === "touch" && event.isPrimary !== false) {
+        clearLongPress();
+        longPressStart = { x: event.clientX, y: event.clientY };
         longPressTimer = root.setTimeout(function () {
-          if (dragState && !dragState.moved) {
-            endDrag();
-            showContextMenu(event.clientX, event.clientY);
-          }
+          var start = longPressStart;
+          longPressTimer = null;
+          longPressStart = null;
+          if (!start) return;
+          if (dragState && dragState.moved) return; /* 拖了就不弹菜单 */
+          if (dragState) endDrag();
+          showContextMenu(start.x, start.y);
         }, 500);
       }
-      if (readMode() === "float" && event.button === 0) startDrag(event, rootNode);
+      if (readMode() === "float" && event.button === 0 && event.isPrimary !== false) startDrag(event, rootNode);
     });
+    /* 非 float 模式没有 onDrag，长按取消要靠这里；float 下 onDrag 会在超过拖拽阈值时取消。
+       注意：只有真的移动超过阈值才取消——轻微的抖动不能把长按吃掉。 */
+    frame.addEventListener("pointermove", function (event) {
+      if (!longPressStart || event.isPrimary === false) return;
+      if (Math.abs(event.clientX - longPressStart.x) > 8 || Math.abs(event.clientY - longPressStart.y) > 8) clearLongPress();
+    });
+    frame.addEventListener("pointerup", function (event) { if (event.isPrimary !== false) clearLongPress(); });
+    frame.addEventListener("pointercancel", clearLongPress);
     frame.addEventListener("contextmenu", function (event) {
       event.preventDefault();
       event.stopPropagation();
@@ -499,6 +512,11 @@
 
   var dragState = null;
   var longPressTimer = null;
+  var longPressStart = null;
+  function clearLongPress() {
+    if (longPressTimer) { root.clearTimeout(longPressTimer); longPressTimer = null; }
+    longPressStart = null;
+  }
   function startDrag(event, rootNode) {
     event.preventDefault();
     dragState = {
@@ -516,7 +534,7 @@
     root.addEventListener("pointercancel", endDrag, true);
   }
   function onDrag(event) {
-    if (!dragState) return;
+    if (!dragState || event.isPrimary === false) return;
     if (event.cancelable) event.preventDefault();
     var node = dragState.node;
     if (!dragState.rect) dragState.rect = node.getBoundingClientRect();
@@ -524,8 +542,8 @@
     var height = dragState.rect.height;
     var left = event.clientX - dragState.dx;
     var top = event.clientY - dragState.dy;
-    if (longPressTimer) { root.clearTimeout(longPressTimer); longPressTimer = null; }
     if (!dragState.moved && (Math.abs(event.clientX - dragState.startX) > 4 || Math.abs(event.clientY - dragState.startY) > 4)) {
+      clearLongPress();
       dragState.moved = true;
       node.classList.add("dsh-whale-dragging");
       schedule();
@@ -604,7 +622,9 @@
     }
   }
 
-  function endDrag() {
+  function endDrag(event) {
+    if (event && event.isPrimary === false) return; /* 多指：别让第二根手指结束主拖拽 */
+    clearLongPress();
     var state = dragState;
     root.removeEventListener("pointermove", onDrag, true);
     root.removeEventListener("pointerup", endDrag, true);
@@ -634,7 +654,7 @@
      只要桌宠本身在视口内，菜单就完整可见。 */
   var MENU_MARGIN = 8;
   var MENU_FALLBACK_W = 180;
-  var MENU_FALLBACK_H = 306; /* 9 项（开小游戏）：投喂/戳/夸夸 + 3 个游戏 + 回到原位/设置/关闭 */
+  var MENU_FALLBACK_H = 340; /* 10 项（开小游戏 + 尺寸项）：投喂/戳/夸夸 + 3 个游戏 + 尺寸 + 回到原位/设置/关闭 */
   function placeMenu(anchorX, anchorY, menuW, menuH, viewW, viewH, margin) {
     var gap = margin === undefined ? MENU_MARGIN : margin;
     var width = menuW > 1 ? menuW : MENU_FALLBACK_W;
@@ -668,7 +688,8 @@
     }
     items.push(
       { label: "桌宠尺寸 ⇄ 切换 (小/中/大/自适应)", action: function () {
-        var cur = Number(root.localStorage.getItem("whale-moe:customSize")) || 0;
+        var cur = 0;
+        try { cur = Number(root.localStorage.getItem("whale-moe:customSize")) || 0; } catch (e) { /* storage blocked */ }
         var next = 120;
         if (cur === 120) next = 150;
         else if (cur === 150) next = 200;
@@ -2468,9 +2489,9 @@
 
     if (effective === "float") {
       var saved = readFloatPos();
-      var customSize = Number(root.localStorage.getItem("whale-moe:customSize"));
-      var defaultSize = vw <= 600 ? 130 : 200;
-      var fw = (customSize >= 80 && customSize <= 300) ? customSize : defaultSize;
+      var rawSize = null;
+      try { rawSize = root.localStorage.getItem("whale-moe:customSize"); } catch (e) { /* storage blocked */ }
+      var fw = core.resolveFloatSize(rawSize, vw);
       var fh = fw;
       /* during an active drag, keep the live pointer position; never snap back */
       var fx = saved ? saved.x : vw - fw - 20;

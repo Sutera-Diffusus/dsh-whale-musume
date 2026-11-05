@@ -2365,6 +2365,14 @@
     return pool[(Math.abs(counter | 0) + Math.floor(r * 97)) % pool.length];
   }
 
+  /* 桌宠悬浮尺寸：自定义值只在 80–240 之间生效；存储不可用 / 值非法时回落
+     窄屏 130、桌面 200。抽成纯函数便于单测，表现层只负责读 localStorage。 */
+  function resolveFloatSize(rawSize, viewportWidth) {
+    var n = Number(rawSize);
+    if (rawSize !== null && rawSize !== undefined && rawSize !== "" && isFinite(n) && n >= 80 && n <= 240) return n;
+    return viewportWidth <= 600 ? 130 : 200;
+  }
+
   return Object.freeze({
     PACK_ID: PACK_ID,
     AFK_MS: AFK_MS,
@@ -2372,6 +2380,7 @@
     SUCCESS_WINDOW_MS: SUCCESS_WINDOW_MS,
     CURIOUS_WINDOW_MS: CURIOUS_WINDOW_MS,
     TEASE_CHANCE: TEASE_CHANCE,
+    resolveFloatSize: resolveFloatSize,
     POSES: POSES,
     LINES: LINES,
     applyNames: applyNames,

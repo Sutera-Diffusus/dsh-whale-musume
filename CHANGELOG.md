@@ -1,18 +1,21 @@
+# Changelog
+
 ## [Unreleased]
 
-### Mobile touch support
+### 新增
 
-- Fix: `onDrag()` referenced an undeclared `longPressTimer`, throwing `ReferenceError` on every
-  `pointermove` under strict mode and breaking dragging outright.
-- Add: 500ms touch long-press opens the mascot context menu; dragging past the threshold cancels it.
-- Add: narrow viewports (<=600px) default to a 130px mascot; explicit `whale-moe:customSize`
-  (80-300) takes precedence, so the settings slider now actually applies.
-- Perf: sample the drag rect once per drag and `preventDefault()` during movement, removing a
-  per-frame reflow that made dragging stutter on phones.
-- Style: disable `-webkit-touch-callout`, text selection and native image drag on the mascot
-  layers so long-press no longer raises the browser "save image" sheet.
+- **触屏支持**：触摸拖拽（每次拖拽只量一次包围盒，移动时 `preventDefault`，手机上不再卡顿）；长按 500ms 打开右键菜单，移动超过阈值或抬手取消；窄屏（≤600px）默认 130px。
+- **桌宠大小**：设置 → 看板娘 → 桌宠大小，80–240px 滑块；「自适应」恢复默认（窄屏 130 / 桌面 200）。仅悬浮形态生效；设置面板打开时桌宠固定 120px，关掉设置后看到新尺寸。右键菜单同时新增「桌宠尺寸 ⇄ 切换」。
+- 关闭触摸长按时的浏览器原生图片菜单（`-webkit-touch-callout` / `-webkit-user-drag`）。
 
-# Changelog
+### 修复
+
+- 长按判定的计时器此前会被任意一次 `pointermove` 清掉（手指轻微抖动就再也弹不出菜单）；并且非悬浮形态（auto / bar / side / mini）没有 `dragState`，长按完全没有菜单入口。现在只在移动超过阈值时取消，并补齐所有形态的入口与 `pointerup` / `pointercancel` 清理。
+
+### 工程
+
+- 桌宠尺寸解析抽成 core 的纯函数 `resolveFloatSize(rawSize, viewportWidth)`：非法值 / 存储不可用时回落默认，80–240 之外一律忽略；表现层与设置面板共用同一套边界。
+- 补长按回归（轻微抖动仍能长按 / 非悬浮形态长按可用 / 拖动超过阈值取消）与 `resolveFloatSize` 真值表。
 
 ## v2.5.1 (2026-11-06)
 

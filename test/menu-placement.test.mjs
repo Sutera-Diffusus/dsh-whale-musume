@@ -39,8 +39,8 @@ test("下方放不下且上方也放不下时，底部对齐视口（仍然完�
   assert.ok(spot.top >= 8 && spot.top + 268 <= 300);
 });
 
-test("菜单高度随开关变化：6 项与 9 项都不会越界（旧常量 160 会裁掉 44-146px）", () => {
-  for (const height of [204, 306]) {
+test("菜单高度随开关变化：6 项 / 9 项 / 10 项都不会越界（旧常量 160 会裁掉 44-180px）", () => {
+  for (const height of [204, 306, 340]) {
     const spot = placeMenu(980, 790, 180, height, VIEW.w, VIEW.h);
     assert.ok(spot.top + height <= VIEW.h, `height ${height} 越界: top=${spot.top}`);
     assert.ok(spot.top >= 8, `height ${height} 顶到上边缘: top=${spot.top}`);
@@ -52,9 +52,9 @@ test("极小视口下仍受 8px 边距钳制，不会出现负坐标", () => {
   assert.ok(spot.left >= 8 && spot.top >= 8, JSON.stringify(spot));
 });
 
-test("量不到尺寸（stub / 未挂载）时回落到 180x306 保守值", () => {
+test("量不到尺寸（stub / 未挂载）时回落到 180x340 保守值", () => {
   const spot = placeMenu(980, 790, 0, 0, VIEW.w, VIEW.h);
-  assert.ok(spot.top + 306 <= VIEW.h, "回落高度按最坏情况（开小游戏 9 项）处理");
+  assert.ok(spot.top + 340 <= VIEW.h, "回落高度按最坏情况（开小游戏 + 尺寸项 10 项）处理");
   assert.equal(spot.left, VIEW.w - 180 - 8);
 });
 
