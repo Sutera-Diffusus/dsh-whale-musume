@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="123" height="20" role="img" aria-label="单元测试: 205 项全绿">
-  <title>单元测试: 205 项全绿</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="123" height="20" role="img" aria-label="单元测试: 209 项全绿">
+  <title>单元测试: 209 项全绿</title>
   <g shape-rendering="crispEdges">
     <rect width="54" height="20" fill="#555"/>
     <rect x="54" width="69" height="20" fill="#31df76"/>
@@ -7,6 +7,6 @@
   </g>
   <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110">
     <text x="270" y="140" textLength="440" transform="scale(.1)">单元测试</text>
-    <text x="885" y="140" textLength="594" transform="scale(.1)" fill="#e2e8f0">205 项全绿</text>
+    <text x="885" y="140" textLength="594" transform="scale(.1)" fill="#e2e8f0">209 项全绿</text>
   </g>
 </svg>

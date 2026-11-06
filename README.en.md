@@ -290,7 +290,7 @@ Path: **DSH Settings → Mascot** — 15 pill toggles, a Chatty / Quiet work-spe
 
 | Group | Contents |
 |---|---|
-| Companion behaviour | What to call you, **her self-name** (empty falls back to the default), mascot on/off, speech bubbles, work speech (Chatty / Quiet), TTS playback (optional), particles, keyword reactions, slacking reminders, night mode, per-tool poses, drag inertia, proactive care, accessibility |
+| Companion behaviour | What to call you, **her self-name** (empty falls back to the default), mascot on/off, speech bubbles, work speech (Chatty / Quiet), TTS playback (optional), particles, keyword reactions, slacking reminders, night mode, per-tool poses, drag inertia, proactive care, accessibility, **mascot size (80–240 px, auto)** |
 | Weather | City, optional API key, weather effects toggle |
 | Balance | Balance care toggle, show-number toggle, current balance and tier |
 | Daily & growth | Today's quests / weekly sign-in / titles (tabbed) |
@@ -300,6 +300,8 @@ Path: **DSH Settings → Mascot** — 15 pill toggles, a Chatty / Quiet work-spe
 | Data & reset | Reset floating position, reset growth data |
 
 **Off by default** (these read conversation content or account amounts): keyword reactions, balance care, show-balance-number, TTS playback, accessibility.
+
+**Mobile / touch**: drag the mascot with a finger; a 500 ms long-press opens the context menu (which also flips the mascot size); narrow viewports (≤600 px) default to 130 px.
 
 ### Cross-device migration (desktop ↔ legacy web)
 
@@ -352,6 +354,7 @@ node scripts/apply-theme.mjs --rollback "<backup dir>"
 
 | Version | Date | Theme | Highlights | Links |
 |---|---|---|---|---|
+| **v2.5.2** | 2026-11-06 | Mobile touch + mascot size | See highlights below | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.5.2) · [Notes](docs/release-notes-v2.5.2.md) |
 | **v2.5.1** | 2026-11-06 | DSH 0.2.1-rc.3–0.2.2-rc.1 support + invisible-mascot fix | See highlights below | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.5.1) · [Notes](docs/release-notes-v2.5.1.md) |
 | **v2.5.0** | 2026-10-21 | Memory game + migration | Third mini-game "Whale Memory" (16 existing artworks, 60 s, combo / zero-mistake); new "Cross-device migration" settings group (JSON export/import + migration code, hot reload); six new achievements (four memory + hundred-day / one-year), 45 total | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.5.0) · [Notes](docs/release-notes-v2.5.0.md) |
 | **v2.4.0** | 2026-10-19 | DSH 0.2.1-rc.2 support | Declares `engines.dsh`; `0.2.1-rc.1` / `0.2.1-rc.2` marked compatible from a static contract (not a live Electron run); `0.2.0-rc.2` and legacy Web stay allowed; no selector changes | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.4.0) · [Notes](docs/release-notes-v2.4.0.md) |

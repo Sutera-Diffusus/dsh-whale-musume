@@ -48,7 +48,7 @@ test("presenter：翻翻乐面板、右键入口、结算与存档热重载都�
     'core.evaluateMemoryAchievements',
     'save-import',
     'growth-reset',
-    '__dshWhaleMoeVersion = "2.5.1"',
+    '__dshWhaleMoeVersion = "2.5.2"',
     '{ id: "day100", days: 100 }',
     '{ id: "day365", days: 365 }',
     'readStoredNumber("mood"',
@@ -94,7 +94,7 @@ test("CSS：翻翻乐棋盘具备翻转/配对/暂停/结算与减弱动效样�
 });
 
 test("版本号与迁移 schema 对齐", () => {
-  assert.equal(pkg.version, "2.5.1");
+  assert.equal(pkg.version, "2.5.2");
   assert.equal(core.PORTABLE.SCHEMA, "dsh-whale-musume/save");
   assert.equal(core.PORTABLE.VERSION, 1);
 });
