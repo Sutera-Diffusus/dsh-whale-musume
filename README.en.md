@@ -89,7 +89,7 @@ dsh plugin --profile web add github:Sutera-Diffusus/dsh-whale-musume
 
 Then **restart the host** (restart the desktop app, or restart `dsh web` and hit `Ctrl+F5`). She shows up in the bottom-right corner.
 
-> **Mirror sync note**: on npmmirror a new package may briefly show `0.0.0-stage` (the publish placeholder). Do not install that version; switch the plugin manager's Registry selector to the **official npm registry**, or wait for the mirror to sync. Check the official source with `npm view dsh-whale-musume version --registry=https://registry.npmjs.org` — it should be `2.5.1`.
+> **Mirror sync note**: on npmmirror a new package may briefly show `0.0.0-stage` (the publish placeholder). Do not install that version; switch the plugin manager's Registry selector to the **official npm registry**, or wait for the mirror to sync. Check the official source with `npm view dsh-whale-musume version --registry=https://registry.npmjs.org` — it should be `2.5.2`.
 
 > If the plugin store or `dsh plugin add` fails to install it, see [When the plugin store cannot install it](#when-the-plugin-store--dsh-plugin-add-cannot-install-it). A log that only shows `[exit 1]`, `git ls-remote` timeouts on the git path, and the `allowBuilds` note are all covered there.
 
