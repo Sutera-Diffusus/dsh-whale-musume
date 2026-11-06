@@ -290,7 +290,7 @@ v2.4.0 又对照了 tag `dsh-v0.2.1-rc.2`（见 [`docs/desktop-0.2.1-rc.2-contra
 
 | 分组 | 内容 |
 |---|---|
-| 陪伴表现 | 如何称呼我、**她的自称**（留空回落到「鲸鱼娘」）、看板娘开关、台词气泡、台词播报（可选）、粒子效果、关键词感知、摸鱼提醒、深夜模式、工具细分、拖拽惯性、主动关怀、无障碍、**工作中台词（话痨 / 安静）** |
+| 陪伴表现 | 如何称呼我、**她的自称**（留空回落到「鲸鱼娘」）、看板娘开关、台词气泡、台词播报（可选）、粒子效果、关键词感知、摸鱼提醒、深夜模式、工具细分、拖拽惯性、主动关怀、无障碍、**工作中台词（话痨 / 安静）**、**桌宠大小（80–240px，自适应）** |
 | 天气 | 天气城市、选填 API Key、天气特效开关 |
 | 余额 | 余额关心开关、余额显示数字开关、当前余额与档位 |
 | 日常与养成 | 今日任务 / 本周签到 / 称号（标签页收纳） |
@@ -300,6 +300,8 @@ v2.4.0 又对照了 tag `dsh-v0.2.1-rc.2`（见 [`docs/desktop-0.2.1-rc.2-contra
 | 数据与重置 | 重置悬浮位置、重置养成数据 |
 
 **默认关闭**（涉及读取聊天内容或账户金额）：关键词感知、余额关心、余额显示数字、台词播报、无障碍。
+
+**手机 / 触屏**：直接触摸拖动桌宠；长按 500 ms 打开右键菜单（菜单里可直接切换「桌宠尺寸」）；≤600px 的窄屏默认 130px。
 
 ### 跨端迁移（桌面端 ↔ 旧版 Web）
 
@@ -352,6 +354,7 @@ node scripts/apply-theme.mjs --rollback "<backup dir>"
 
 | 版本 | 日期 | 主题 | 要点 | 链接 |
 |---|---|---|---|---|
+| **v2.5.2** | 2026-11-06 | 手机触屏 + 桌宠大小 | 见下方要点 | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.5.2) · [Notes](docs/release-notes-v2.5.2.md) |
 | **v2.5.1** | 2026-11-06 | 兼容 DSH 0.2.1-rc.3–0.2.2-rc.1 + 修透明隐身 | 见下方要点 | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.5.1) · [Notes](docs/release-notes-v2.5.1.md) |
 | **v2.5.0** | 2026-10-21 | 翻翻乐 + 跨端迁移 | 第三个小游戏「鲸鱼翻翻乐」（16 张现有立绘、60 秒、连击/零失误）；设置面板新增「跨端迁移」（JSON 导出/导入 + 迁移码，导入后热重载）；新增 6 个成就（翻翻乐 4 + 百日/一年 2），成就总数 45 | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.5.0) · [说明](docs/release-notes-v2.5.0.md) |
 | **v2.4.0** | 2026-10-19 | 适配 DSH 0.2.1-rc.2 | 补 `engines.dsh`；`0.2.1-rc.1` / `0.2.1-rc.2` 按静态契约标为 compatible（未跑真实 Electron）；0.2.0-rc.2 与旧版 Web 仍放行；DOM 选择器无增删 | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.4.0) · [说明](docs/release-notes-v2.4.0.md) |

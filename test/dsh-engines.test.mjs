@@ -79,8 +79,8 @@ function satisfies(version, range) {
   });
 }
 
-test("package 版本是 2.5.1，且 engines.dsh 是字符串范围", () => {
-  assert.equal(pkg.version, "2.5.1");
+test("package 版本是 2.5.2，且 engines.dsh 是字符串范围", () => {
+  assert.equal(pkg.version, "2.5.2");
   assert.equal(typeof pkg.engines?.dsh, "string", "engines.dsh 不是字符串时，0.2.1 会把整个清单判为格式错误并拒绝安装");
   assert.equal(pkg.engines.dsh, RANGE);
   assert.equal(pkg.dsh.client.platform, "web");
