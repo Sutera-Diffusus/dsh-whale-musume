@@ -1,6 +1,6 @@
 # npm 发布手册（v2.5.0 起）
 
-> **状态：2026-11-06 已发布 `dsh-whale-musume@2.5.2`（latest）**；`NPM_TOKEN` 已配置为仓库 secret，之后每次 GitHub Release 都会自动发布 npm。安装：`dsh plugin add dsh-whale-musume`。下面的登录/Token 流程保留作备用。
+> **状态：2026-11-08 已发布 `dsh-whale-musume@2.5.3`（latest）**；`NPM_TOKEN` 已配置为仓库 secret，之后每次 GitHub Release 都会自动发布 npm。安装：`dsh plugin add dsh-whale-musume`。下面的登录/Token 流程保留作备用。
 >
 > 目的：把 `dsh-whale-musume` 从「只能 git 安装」变成「npm 一行安装」。
 > 这能同时解决三件事：install 时的 `git ls-remote` 失败（#21 / #29）、插件市场的下载排序、以及 dsh 0.2.1+ 的 Discover / `plugin_market` 对 npm 包的索引。
