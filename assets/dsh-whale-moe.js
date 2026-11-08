@@ -3734,7 +3734,7 @@
     else init();
   }
 
-  root.__dshWhaleMoeVersion = "2.5.2";
+  root.__dshWhaleMoeVersion = "2.5.3";
   root.__dshWhaleMoeDebug = { state: "boot", pose: null, line: "", view: "home" };
   start();
   schedulePreload();

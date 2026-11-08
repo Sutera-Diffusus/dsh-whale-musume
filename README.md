@@ -211,8 +211,9 @@ window.__dshWhaleMoeDebug                                      // state 非 "hid
 |---|:---:|---|
 | **DeepSeek Harness 桌面端** `0.2.0-rc.2` | ✅ 已实测 | 那个构建的 GUI 默认 `127.0.0.1:19387`。安装/回滚见[0.2.0 部署手册](docs/desktop-0.2.0-rc.2-deploy.md) |
 | **DeepSeek Harness 桌面端 / Web** `0.2.1-rc.1`～`0.2.1-rc.5`、`0.2.2-rc.1` | ✅ 静态契约 | 对照上游 tag 的源码、本机 0.2.2-rc.1 `app.asar` 的 DOM 标记扫描与单元测试，**没有**在真实 Electron 里做视觉复跑。0.2.1 的桌面端端口改为系统分配（`--port 0`），不要再假设 `19387`。差分见[0.2.1 契约](docs/desktop-0.2.1-rc.2-contract.md)与[部署差分](docs/desktop-0.2.1-rc.2-deploy.md)；2.5.1 的核对结论见[发布说明](docs/release-notes-v2.5.1.md) |
-| `0.2.2-alpha.2`、`0.2.2-alpha.3` | ⚠️ 可装但不承诺 | `engines.dsh` 放行（属于 0.2.2 线），但未逐版本核对，矩阵里标 `unknown` |
-| **旧版 Web profile**（DSH `0.1.x`） | ✅ 已实测 | `0.1.0-rc.6` 及以上；设置面板在 `0.1.1-rc.2` 实测 |
+| `0.2.0-rc.1`、`0.2.1-alpha.1`～`alpha.5`、`0.2.2-alpha.2` / `alpha.3`、未来的 `0.2.3`～`0.2.x` | ⚠️ 可装但不承诺 | 2.5.3 起 `engines.dsh` 已放行整条 0.2.x 线；这些版本没有逐版本实测，矩阵里标 `unknown`。装得上，但遇到行为问题请带 DSH 版本与日志反馈 |
+| **DSH `0.3.0` 起（含 alpha）** | ❌ 拒绝 | 大版本契约未核对，门禁保持在 `<0.3.0-0`，不会被未来 alpha 自动放进来的 |
+| **旧版 Web profile**（DSH `0.1.x`） | ✅ 已实测 | `0.1.0-rc.6` 及以上；设置面板在 `0.1.1-rc.2` 实测。再早的 0.1.0 预发布没有 `dsh.bundle` 安装通道，不在支持范围 |
 | 其他 profile（headless / acp 等） | ➖ 无界面 | 没有浏览器界面，桌宠无处显示 |
 
 | 项目 | 要求 |
@@ -354,6 +355,7 @@ node scripts/apply-theme.mjs --rollback "<backup dir>"
 
 | 版本 | 日期 | 主题 | 要点 | 链接 |
 |---|---|---|---|---|
+| **v2.5.3** | 2026-11-08 | 兼容全部 0.2.x | `engines.dsh` 放宽为 `>=0.1.0-rc.6 <0.3.0-0`：0.2.0-rc.1、0.2.1 / 0.2.2 的 alpha 与未来 0.2.3 线均可安装，未逐版本实测的标 `unknown`；0.3.0 起仍拒绝 | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.5.3) · [Notes](docs/release-notes-v2.5.3.md) |
 | **v2.5.2** | 2026-11-06 | 手机触屏 + 桌宠大小 | 见下方要点 | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.5.2) · [Notes](docs/release-notes-v2.5.2.md) |
 | **v2.5.1** | 2026-11-06 | 兼容 DSH 0.2.1-rc.3–0.2.2-rc.1 + 修透明隐身 | 见下方要点 | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.5.1) · [Notes](docs/release-notes-v2.5.1.md) |
 | **v2.5.0** | 2026-10-21 | 翻翻乐 + 跨端迁移 | 第三个小游戏「鲸鱼翻翻乐」（16 张现有立绘、60 秒、连击/零失误）；设置面板新增「跨端迁移」（JSON 导出/导入 + 迁移码，导入后热重载）；新增 6 个成就（翻翻乐 4 + 百日/一年 2），成就总数 45 | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.5.0) · [说明](docs/release-notes-v2.5.0.md) |

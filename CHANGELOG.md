@@ -1,5 +1,21 @@
 # Changelog
 
+## v2.5.3 (2026-11-08)
+
+### 适配
+
+- **安装门禁放宽到整条 0.1.0-rc.6–0.2.x 版本线**：`engines.dsh` 从逐段白名单改为 `>=0.1.0-rc.6 <0.3.0-0`。之前被挡在门外的 `0.2.0-rc.1`、`0.2.1-alpha.1`～`alpha.5`、所有 `0.2.2` alpha，以及未来的 `0.2.3`～`0.2.x` 现在都能安装；`0.3.0` 起（含 alpha）仍拒绝，避免未核对的大版本线被自动放进来。
+- **兼容矩阵补齐**：`dsh.compatibility.dshReleases` 增加 `0.2.0-rc.1` 与 `0.2.1-alpha.1`～`alpha.5`，统一标 `unknown`。已核对过的 `0.2.0-rc.2`、`0.2.1-rc.1`～`rc.5`、`0.2.2-rc.1` 保持 `compatible`。未逐版本实测的版本**可装但不承诺**，遇到问题按 DSH 版本 + 日志反馈。
+- **0.1.0-rc.6 之前不放开**：更早的 0.1.0 预发布没有 `dsh.bundle` 安装通道，放行也没有意义。
+
+### 测试
+
+- 209 项全绿。`test/dsh-engines.test.mjs` 的放行/拒绝真值表同步更新：新增 `0.2.0-rc.1`、`0.2.1-alpha.*`、`0.2.3-alpha.1` / `0.2.3` / `0.2.9` 的放行断言，以及 `0.3.0-alpha.1` / `0.3.0` / `0.3.1` 的拒绝断言。
+
+### 社区
+
+- 回应 [#32](https://github.com/Sutera-Diffusus/dsh-whale-musume/issues/32)：感谢 [@MaizioO123](https://github.com/MaizioO123) 的两台机器实测记录，以及 [@lvziji](https://github.com/lvziji)、[@DaftJun](https://github.com/DaftJun) 的反馈。这次按“整条版本线放行”落地，不再每发一个 rc 就改一次门禁。
+
 ## v2.5.2 (2026-11-06)
 
 ### 新增

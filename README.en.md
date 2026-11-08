@@ -211,8 +211,9 @@ More: [interaction board](docs/images/actions-board.png) · [new artwork board](
 |---|:---:|---|
 | **DeepSeek Harness Desktop** `0.2.0-rc.2` | ✅ tested | That build's GUI defaulted to `127.0.0.1:19387`. Install and rollback: [0.2.0 deploy guide](docs/desktop-0.2.0-rc.2-deploy.md) |
 | **DeepSeek Harness Desktop / Web** `0.2.1-rc.1`–`0.2.1-rc.5`, `0.2.2-rc.1` | ✅ static contract | Checked against upstream tags, a DOM-marker scan of the local `0.2.2-rc.1` `app.asar`, and the unit tests. **Not** re-run visually inside Electron. Desktop 0.2.1 binds with `--port 0` (OS-assigned); do not assume `19387`. See the [0.2.1 contract](docs/desktop-0.2.1-rc.2-contract.md), [deploy delta](docs/desktop-0.2.1-rc.2-deploy.md) and the [v2.5.1 notes](docs/release-notes-v2.5.1.md) |
-| `0.2.2-alpha.2`, `0.2.2-alpha.3` | ⚠️ installable, not certified | Allowed by `engines.dsh` (part of the 0.2.2 line) but not verified per release; marked `unknown` in the matrix |
-| **Legacy web profile** (DSH `0.1.x`) | ✅ tested | `0.1.0-rc.6` and newer; the settings panel is verified on `0.1.1-rc.2` |
+| `0.2.0-rc.1`, `0.2.1-alpha.1`–`alpha.5`, `0.2.2-alpha.2` / `alpha.3`, future `0.2.3`–`0.2.x` | ⚠️ installable, not certified | Since 2.5.3 `engines.dsh` allows the whole 0.2.x line; these releases were not verified one by one and are marked `unknown`. Install is allowed, but please report the DSH version and logs if something misbehaves |
+| **DSH `0.3.0` and newer (including alpha)** | ❌ refused | The major-line contract has not been audited; the gate stays `<0.3.0-0` so a future alpha is never admitted automatically |
+| **Legacy web profile** (DSH `0.1.x`) | ✅ tested | `0.1.0-rc.6` and newer; the settings panel is verified on `0.1.1-rc.2`. Earlier 0.1.0 prereleases have no `dsh.bundle` install path and are out of scope |
 | Other profiles (headless / acp, …) | ➖ no UI | There is no browser surface, so there is nowhere to show a pet |
 
 | Requirement | Value |
@@ -354,6 +355,7 @@ node scripts/apply-theme.mjs --rollback "<backup dir>"
 
 | Version | Date | Theme | Highlights | Links |
 |---|---|---|---|---|
+| **v2.5.3** | 2026-11-08 | Full 0.2.x compatibility | `engines.dsh` widened to `>=0.1.0-rc.6 <0.3.0-0`: 0.2.0-rc.1, the 0.2.1 / 0.2.2 alphas and the future 0.2.3 line install again; unverified releases are marked `unknown`; 0.3.0+ stays refused | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.5.3) · [Notes](docs/release-notes-v2.5.3.md) |
 | **v2.5.2** | 2026-11-06 | Mobile touch + mascot size | See highlights below | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.5.2) · [Notes](docs/release-notes-v2.5.2.md) |
 | **v2.5.1** | 2026-11-06 | DSH 0.2.1-rc.3–0.2.2-rc.1 support + invisible-mascot fix | See highlights below | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.5.1) · [Notes](docs/release-notes-v2.5.1.md) |
 | **v2.5.0** | 2026-10-21 | Memory game + migration | Third mini-game "Whale Memory" (16 existing artworks, 60 s, combo / zero-mistake); new "Cross-device migration" settings group (JSON export/import + migration code, hot reload); six new achievements (four memory + hundred-day / one-year), 45 total | [Release](https://github.com/Sutera-Diffusus/dsh-whale-musume/releases/tag/v2.5.0) · [Notes](docs/release-notes-v2.5.0.md) |
